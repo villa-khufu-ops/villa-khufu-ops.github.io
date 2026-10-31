@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Villa Khufu Operations</title>
+<meta name="theme-color" content="#8A4A14">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Villa Khufu">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap">
+<style>
+/* Layout: one phone-width column, a sticky title bar, cards that hold one room or one task each. */
+:root{
+  --bg:#F5EFE4; --surface:#FFFFFF; --ink:#2B2620; --muted:#6B5F52; --line:#E2D6C4;
+  --accent:#8A4A14; --on-accent:#FFFFFF; --soft:#F3E3D2; --soft-ink:#5E3209;
+  --ok:#2E5E33; --ok-bg:#E6F0E6; --warn:#9A3412; --warn-bg:#FBE6DA; --alert:#E8590C;
+  --info:#3B4A6B; --info-bg:#EEF0F4; --grey:#4A443D; --grey-bg:#E4E1DC; --tab:#EADFCD; --wa:#1F7A43;
+  --font:'Cairo','Segoe UI',Tahoma,system-ui,sans-serif; color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#1C1915; --surface:#27221D; --ink:#F2EBDF; --muted:#B3A795; --line:#3E362D;
+  --accent:#D08A4E; --on-accent:#1C1915; --soft:#3A2E22; --soft-ink:#F0C9A0;
+  --ok:#8FCB95; --ok-bg:#1F3322; --warn:#F2A57A; --warn-bg:#3D2318; --alert:#F07A35;
+  --info:#A9B6D6; --info-bg:#252C3D; --grey:#CFC8BE; --grey-bg:#33302C; --tab:#2F2923; --wa:#5BC98A; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+#app{max-width:520px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 32px}
+[hidden]{display:none!important}
+img{max-width:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+h1,h2{margin:0;text-wrap:balance}
+a{color:var(--accent)}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;align-items:center;gap:12px;padding-block:16px 10px}
+.top .t{flex:1;min-width:0;display:flex;flex-direction:column}
+.top h1{font-size:21px;font-weight:800;line-height:1.3}
+.top p{margin:0;font-size:12px;color:var(--muted)}
+.ib{width:44px;height:44px;border-radius:14px;border:0;background:var(--surface);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.ib.on{background:var(--accent);color:var(--on-accent)}
+.stack{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 2px rgba(0,0,0,.05);border:0;text-align:start;width:100%}
+.row{display:flex;align-items:center;gap:12px}
+.grow{flex:1;min-width:0}
+.badge{width:52px;height:52px;border-radius:14px;background:var(--soft);color:var(--soft-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;line-height:1.1}
+.badge small{font-size:10px;font-weight:700}
+.badge b{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}
+.badge.occ{background:var(--accent);color:var(--on-accent)}
+.badge.grey{background:var(--grey-bg);color:var(--grey)}
+.badge.info{background:var(--info-bg);color:var(--info)}
+.ttl{font-size:15px;font-weight:800}
+.sub{font-size:12px;color:var(--muted)}
+.chip{font-size:11px;font-weight:800;padding:2px 9px;border-radius:9px;white-space:nowrap;flex-shrink:0}
+.c-ok{background:var(--ok-bg);color:var(--ok)} .c-warn{background:var(--warn-bg);color:var(--warn)}
+.c-info{background:var(--info-bg);color:var(--info)} .c-grey{background:var(--grey-bg);color:var(--grey)}
+.c-soft{background:var(--soft);color:var(--soft-ink)}
+.btn{min-height:50px;border-radius:14px;border:0;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 14px;width:100%;text-decoration:none}
+.b-main{background:var(--accent);color:var(--on-accent)}
+.b-dark{background:var(--ink);color:var(--bg)}
+.b-ok{background:var(--ok);color:var(--surface)}
+.b-line{background:var(--surface);color:var(--ink);border:1.5px solid var(--line)}
+.b-warn{background:var(--surface);color:var(--warn);border:1.5px solid var(--warn)}
+.b-wa{background:var(--surface);color:var(--wa);border:1.5px solid var(--wa);min-height:44px;font-size:14px}
+.big{min-height:110px;border-radius:22px;border:0;padding:18px;display:flex;align-items:center;gap:16px;text-align:start;width:100%;background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.big.main{background:var(--accent);color:var(--on-accent)}
+.big .ic{width:58px;height:58px;border-radius:18px;background:var(--soft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.big.main .ic{background:rgba(255,255,255,.18);color:var(--on-accent)}
+.big .l{font-size:21px;font-weight:800;display:block}
+.big .d{font-size:13px;opacity:.85}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stat{border-radius:14px;padding:10px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.stat b{font-size:24px;font-weight:800;line-height:1.2;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;font-weight:700}
+.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:var(--tab);border-radius:14px;padding:4px}
+.tabs button{min-height:44px;border:0;border-radius:10px;background:transparent;font-size:13px;font-weight:800;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:4px}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.cnt{min-width:20px;height:20px;padding:0 5px;border-radius:10px;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;color:#FFFFFF;background:var(--alert)}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.room{min-height:80px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 4px}
+.room b{font-size:21px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.room.sel{background:var(--ok);color:var(--surface);border-color:var(--ok)}
+.room.occ{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.grp{display:flex;flex-direction:column;gap:8px}
+.grp h2{font-size:14px;font-weight:800;direction:ltr;text-align:right}
+.picks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.pick{min-height:44px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);font-size:14px;font-weight:800}
+.pick[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:700}
+.inp{width:100%;min-height:50px;padding:0 14px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);font-size:16px}
+textarea.inp{padding:12px 14px;min-height:84px;resize:none}
+.check{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:0 16px;border-radius:14px;background:var(--surface);font-weight:700}
+.check input{width:24px;height:24px;accent-color:var(--accent)}
+.alert{border:0;border-radius:16px;padding:10px 14px;display:flex;align-items:center;gap:12px;color:#FFFFFF;background:var(--alert);text-align:start;width:100%}
+.alert.info{background:var(--info);color:var(--surface)}
+.alert b{display:block;font-size:14px}
+.alert span{font-size:12px;font-weight:600}
+.toast{border-radius:14px;padding:10px 14px;background:var(--ink);color:var(--bg);font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:8px}
+.err{color:var(--warn);font-size:13px;font-weight:700;margin:0}
+.empty{padding:40px 0;text-align:center;color:var(--muted);font-weight:700}
+.note{font-size:13px;background:var(--bg);border-radius:10px;padding:8px 10px}
+.hero{border-radius:20px;padding:16px 18px;background:var(--accent);color:var(--on-accent);display:flex;flex-direction:column;gap:6px}
+.hero .cat{direction:ltr;text-align:right;font-weight:700}
+.hero .cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.hero small{display:block;font-size:11px;opacity:.85}
+.hero strong{font-size:15px}
+.logo{width:96px;height:96px;border-radius:50%;object-fit:cover;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.brand{display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:32px;text-align:center}
+.brand h1{font-size:24px;font-weight:800;direction:ltr}
+.brand .py{font-size:11px;font-weight:700;letter-spacing:4px;color:var(--accent);direction:ltr}
+.flash{animation:flash .9s ease-in-out infinite}
+@keyframes flash{0%,100%{background:var(--alert);color:#FFFFFF}50%{background:var(--warn-bg);color:var(--warn)}}
+.pulse{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}
+@media (prefers-reduced-motion:reduce){.pulse{animation:none}.flash{animation-duration:2s}}
+.ltr{direction:ltr;unicode-bidi:isolate}
+.hint{font-size:12px;color:var(--muted);text-align:center;margin:0}
+</style>
+</head>
+<body>
+<div id="app" dir="rtl"><p class="hint" style="padding-top:40px">بيحمّل…</p></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script>
+(function(){
+"use strict";
+// ---------- hotel rooms (fixed layout of the hotel) ----------
+var CATS=[
+ ['Standard Double',[['106','2',0],['107','2',0],['206','2',0],['207','2',0]]],
+ ['Standard Double w/ Balcony',[['108','2',1],['109','2',0],['208','2',1],['209','2',0]]],
+ ['Garden View',[['105','2',0],['205','2',0]]],
+ ['Queen w/ Pyramids View',[['104','K',0],['204','K',0],['110','K',0],['210','K',0]]],
+ ['Double w/ Pyramids View',[['202','2',0],['302','3',1]]],
+ ['Deluxe Double w/ Balcony Pyramids View',[['102','2',0]]],
+ ['Suite Double w/ Balcony Pyramids View',[['101','2',1],['201','2',1]]],
+ ['Family w/ Balcony Pyramids View',[['103','3B',0],['203','3B',0],['301','3B',0]]],
+ ['Family w/ Pyramids View',[['001','3',1],['002','4',1],['003','4',1],['111','4',1],['112','4',1],['211','4',1]]]
+];
+var META={};CATS.forEach(function(c){c[1].forEach(function(r){META[r[0]]={cat:c[0],beds:r[1],sofa:!!r[2]};});});
+var ROLES={admin:{label:'مدير',areas:['rec','hk','users']},rec:{label:'ريسبشن',areas:['rec']},hkm:{label:'مدير الهاوس كيبنج',areas:['hk']},hk:{label:'هاوس كيبنج',areas:['work']}};
+var ST={free:['فاضية','c-ok'],occ:['مشغولة','c-soft'],clean:['محتاجة تنظيف','c-warn'],maint:['صيانة','c-grey']};
+var ISSUES=['تكييف','سباكة','كهربا','تلفزيون / واي فاي','أثاث','حاجة تانية'];
+var MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+var REMIND_MS=15*60000;
+var DOMAIN='@villakhufu.app'; // اسم المستخدم بيتحول لإيميل داخلي لـ Firebase
+
+// ---------- helpers ----------
+function h(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function pad(n){return(n<10?'0':'')+n;}
+function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function today(){return iso(new Date());}
+function dayDiff(a,b){return Math.round((Date.parse(b)-Date.parse(a))/86400000);}
+function fmt(d){if(!d)return'—';var p=d.split('-');return(+p[2])+' '+MONTHS[+p[1]-1];}
+function rel(d){var n=dayDiff(today(),d);return n===0?'النهارده':n===1?'بكرة':fmt(d);}
+function nights(n){return n===1?'ليلة':n===2?'ليلتين':n+' ليالي';}
+function ago(ms){var m=Math.max(0,Math.floor(ms/60000));return m<1?'دلوقتي':m<60?m+' د':Math.floor(m/60)+' س';}
+function mmss(ms){var t=Math.max(0,Math.ceil(ms/1000));return Math.floor(t/60)+':'+pad(t%60);}
+function beds(b){return b==='K'?'سرير كينج':b==='3B'?'3 سراير + بانيو':b==='2'?'سريرين':b+' سراير';}
+function bedsS(b){return b==='K'?'كينج':b==='3B'?'3 سراير':b+' سرير';}
+function waPhone(p){p=String(p||'').replace(/\D/g,'');if(!p)return'';if(p.indexOf('00')===0)p=p.slice(2);else if(p.charAt(0)==='0')p='20'+p.slice(1);return p;}
+function waLink(phone,text){var p=waPhone(phone);return 'https://wa.me/'+(p||'')+'?text='+encodeURIComponent(text);}
+var ICON={
+ back:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>',
+ bell:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>',
+ mute:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M22 9l-6 6M16 9l6 6"/></svg>',
+ sound:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>',
+ out:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>',
+ in:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>',
+ bed:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18V7"/><path d="M3 14h18v4"/><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="2"/></svg>',
+ desk:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 17a8 8 0 0 1 16 0"/><path d="M2 17h20"/><path d="M12 9V7"/><path d="M10 7h4"/></svg>',
+ broom:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3l-4 9"/><path d="M6 12h8l2 9H4z"/><path d="M8 16v5M12 16v5"/></svg>',
+ users:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9" r="2.5"/><path d="M16 14.2a5 5 0 0 1 5.5 5.8"/></svg>',
+ key:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2"/><path d="M16 7l3 3"/><path d="M14 9l2 2"/></svg>',
+ wrench:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"/></svg>',
+ check:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>',
+ wa:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21l1.7-5A8.5 8.5 0 1 1 8 19.4z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1-1.5-2-1-1 1c-1-.5-2-1.5-2.5-2.5l1-1-1-2z"/></svg>'
+};
+
+// ---------- state ----------
+var S={ready:false,setup:null,uid:null,staff:{},rooms:{},maint:[],view:'home',p:{},toast:null,err:'',sound:false,now:Date.now(),busy:false};
+var app=document.getElementById('app');
+var audio=null,ticks=0,toastTimer=null,unsubs=[];
+var cfg=window.FIREBASE_CONFIG||{};
+var configured=!!(cfg.apiKey&&cfg.projectId);
+var fb=null,auth=null,db=null;
+
+function meDoc(){return S.uid&&S.staff[S.uid]&&S.staff[S.uid].active!==false?S.staff[S.uid]:null;}
+function areas(){var m=meDoc();return m&&ROLES[m.role]?ROLES[m.role].areas:[];}
+function room(no){return S.rooms[no]||{status:'free'};}
+function staffBy(fn){return Object.keys(S.staff).filter(function(u){var s=S.staff[u];return s.active!==false&&fn(s);}).sort(function(a,b){return(S.staff[a].order||99)-(S.staff[b].order||99);});}
+function workers(){return staffBy(function(s){return s.role==='hk';});}
+function hkManagers(){return staffBy(function(s){return s.role==='hkm';});}
+function receptionists(){return staffBy(function(s){return s.role==='rec';});}
+function wname(u){return S.staff[u]?S.staff[u].name:'—';}
+function needs(no){var r=room(no);return r.status==='clean'||(r.status==='occ'&&!!r.cleanReq);}
+function taskUrgent(t){return !!t&&(t.st==='new'||t.st==='redo'||(t.st==='ack'&&S.now>=t.next));}
+function allNos(){return Object.keys(META);}
+
+function urgentForMe(){
+  var a=areas(),n=0;
+  if(a.indexOf('hk')>=0){allNos().forEach(function(no){var r=room(no);if(needs(no)&&!r.task)n++;if(r.task&&r.task.st==='review')n++;});}
+  if(a.indexOf('work')>=0){allNos().forEach(function(no){var t=room(no).task;if(t&&t.w===S.uid&&taskUrgent(t))n++;});}
+  return n;
+}
+
+// ---------- writes ----------
+function upd(no,patch){
+  if(!db)return Promise.resolve();
+  return db.collection('rooms').doc(no).set(patch,{merge:true}).catch(function(e){
+    flash(e&&e.code==='permission-denied'?'مش مسموح لك تعمل ده':'ما اتحفظش، اتأكد من النت وجرّب تاني');
+  });
+}
+// toast with optional WhatsApp buttons: [{label, phone, text}]
+function flash(msg,wa){S.toast={msg:msg,wa:wa||[]};render();clearTimeout(toastTimer);toastTimer=setTimeout(function(){S.toast=null;render();},wa&&wa.length?20000:3500);}
+function waFor(uids,text,label){return uids.map(function(u){return{label:(label||'ابعت واتساب لـ')+' '+wname(u),phone:S.staff[u]&&S.staff[u].phone,text:text};});}
+function go(view,p){S.view=view;S.p=p||{};S.err='';render();window.scrollTo(0,0);}
+
+// ---------- screens ----------
+function top(title,sub,backTo,extra){
+  return '<div class="top">'+(backTo?'<button class="ib" data-a="go" data-v="'+backTo+'" aria-label="رجوع">'+ICON.back+'</button>':'')+
+  '<div class="t"><h1>'+h(title)+'</h1>'+(sub?'<p>'+h(sub)+'</p>':'')+'</div>'+(extra||'')+'</div>';
+}
+function soundBtn(){return '<button class="ib'+(S.sound?' on':'')+'" data-a="sound" aria-label="'+(S.sound?'كتم صوت التنبيه':'تشغيل صوت التنبيه')+'">'+(S.sound?ICON.sound:ICON.mute)+'</button>';}
+function toastHtml(){
+  if(!S.toast)return '';
+  var w=S.toast.wa.map(function(x){return '<a class="btn b-wa" target="_blank" rel="noopener" href="'+h(waLink(x.phone,x.text))+'">'+ICON.wa+' '+h(x.label)+'</a>';}).join('');
+  return '<div class="toast" role="status"><span>'+h(S.toast.msg)+'</span>'+w+'</div>';
+}
+function soundHint(){return urgentForMe()&&!S.sound?'<p class="hint">دوس على السماعة فوق عشان يشتغل صوت التنبيه</p>':'';}
+function waBtn(label,phone,text){return '<a class="btn b-wa" target="_blank" rel="noopener" href="'+h(waLink(phone,text))+'">'+ICON.wa+' '+h(label)+'</a>';}
+
+function vNoConfig(){
+  return '<div class="brand"><img class="logo" alt="Villa Khufu Pyramids logo" src="icon-192.png"><h1>Villa Khufu</h1><div class="py">PYRAMIDS</div></div>'+
+  '<div class="card" style="margin-top:20px"><span class="ttl">الصفحة لسه مش متوصلة بقاعدة البيانات</span><span class="sub">حط كود Firebase في ملف config.js وارفع الصفحة تاني.</span></div>';
+}
+function vLogin(){
+  return '<div class="brand"><img class="logo" alt="Villa Khufu Pyramids logo" src="icon-192.png"><h1>Villa Khufu</h1><div class="py">PYRAMIDS</div><h2 style="font-size:18px;margin-top:8px">تسجيل الدخول</h2></div>'+
+  '<form class="stack" id="loginForm" style="margin-top:20px">'+
+  '<label class="f" for="lu">اسم المستخدم<input class="inp ltr" id="lu" autocomplete="username" autocapitalize="off" spellcheck="false"></label>'+
+  '<label class="f" for="lp">الرقم السري<input class="inp ltr" id="lp" type="password" inputmode="numeric" autocomplete="current-password"></label>'+
+  (S.err?'<p class="err" role="alert">'+h(S.err)+'</p>':'')+
+  '<button class="btn b-main" type="submit"'+(S.busy?' disabled':'')+'>'+(S.busy?'بيدخل…':'دخول')+'</button></form>';
+}
+function vSetup(){
+  return '<div class="brand"><img class="logo" alt="Villa Khufu Pyramids logo" src="icon-192.png"><h1>Villa Khufu</h1><div class="py">PYRAMIDS</div><h2 style="font-size:18px;margin-top:8px">أول تشغيل · حساب المدير</h2></div>'+
+  '<form class="stack" id="setupForm" style="margin-top:20px"><p class="sub" style="margin:0">الحساب ده هيبقى المدير، ومنه تعمل حسابات باقي الموظفين. الخطوة دي بتحصل مرة واحدة بس.</p>'+
+  '<label class="f" for="sn">اسمك<input class="inp" id="sn" required></label>'+
+  '<label class="f" for="su">اسم المستخدم (إنجليزي)<input class="inp ltr" id="su" autocapitalize="off" spellcheck="false" value="admin" required></label>'+
+  '<label class="f" for="sp">الرقم السري (6 أرقام أو أكتر)<input class="inp ltr" id="sp" type="password" inputmode="numeric" required></label>'+
+  (S.err?'<p class="err" role="alert">'+h(S.err)+'</p>':'')+
+  '<button class="btn b-main" type="submit"'+(S.busy?' disabled':'')+'>'+(S.busy?'بيجهّز…':'إنشاء حساب المدير وتجهيز الغرف')+'</button></form>';
+}
+function vBlocked(){
+  return top('الحساب مش متاح','',null,'<button class="ib" data-a="logout" aria-label="تسجيل خروج">'+ICON.out+'</button>')+'<p class="empty">الحساب ده موقوف أو اتمسح · كلّم المدير</p>';
+}
+
+function vHome(){
+  var m=meDoc(),a=areas(),tiles='';
+  if(a.indexOf('rec')>=0)tiles+=big('rec','الريسبشن','تشيك إن · خروج · نقل · طلب نظافة',ICON.desk,true);
+  if(a.indexOf('hk')>=0)tiles+=big('hk','الهاوس كيبنج','توزيع · مراجعة · صيانة',ICON.broom,false,urgentForMe());
+  if(a.indexOf('work')>=0)tiles+=big('work','غرفي','الغرف اللي عليا',ICON.bed,false,urgentForMe());
+  if(a.indexOf('users')>=0)tiles+=big('users','المستخدمين','الحسابات وأرقام الواتساب',ICON.users,false);
+  return top('أهلاً، '+m.name,ROLES[m.role].label,null,soundBtn()+'<button class="ib" data-a="go" data-v="pin" aria-label="تغيير الرقم السري">'+ICON.key+'</button><button class="ib" data-a="logout" aria-label="تسجيل خروج">'+ICON.out+'</button>')+
+   '<div class="stack">'+toastHtml()+tiles+soundHint()+'</div>';
+}
+function big(v,l,d,ic,main,n){return '<button class="big'+(main?' main':'')+(n?' pulse':'')+'" data-a="go" data-v="'+v+'"><span class="ic">'+ic+'</span><span class="grow"><span class="l">'+l+(n?' <span class="cnt">'+n+'</span>':'')+'</span><span class="d">'+d+'</span></span></button>';}
+function homeOf(){var a=areas();return a.length===1?(a[0]==='work'?'work':a[0]):'home';}
+
+// ----- reception -----
+function vRec(){
+  var t=today(),free=0,occ=0,leaving=0;
+  allNos().forEach(function(no){var r=room(no);if(r.status==='free')free++;if(r.status==='occ'){occ++;if(r.out&&r.out<=t)leaving++;}});
+  var mt=S.maint.filter(function(m){return m.open;});
+  var ml=mt.length?mt.map(function(m){return '<div class="row" style="border-top:1px solid var(--line);padding-top:8px"><span class="badge grey"><small>غرفة</small><b>'+h(m.room)+'</b></span><span class="grow"><span class="ttl">'+h(m.issue)+'</span><br><span class="sub">'+h(m.note||'')+(m.note?' · ':'')+'بلّغ: '+h(wname(m.by))+' · من '+ago(S.now-m.at)+'</span></span>'+(m.blocks?'<span class="chip c-warn">موقفة</span>':'')+'</div>';}).join(''):'<span class="sub">مفيش بلاغات مفتوحة</span>';
+  return top('الريسبشن',fmt(t),homeOf()==='rec'?null:'home',homeOf()==='rec'?soundBtn()+'<button class="ib" data-a="logout" aria-label="تسجيل خروج">'+ICON.out+'</button>':'')+'<div class="stack">'+toastHtml()+
+  '<div class="stats"><div class="stat c-ok"><b>'+free+'</b><span>فاضية</span></div><div class="stat" style="background:var(--accent);color:var(--on-accent)"><b>'+occ+'</b><span>مشغولة</span></div><div class="stat c-warn"><b>'+leaving+'</b><span>خروج النهارده</span></div></div>'+
+  big('rec-in','تشيك إن','تسكين غرفة فاضية',ICON.in,true)+
+  big('rec-occ','الغرف المشغولة','خروج · نقل · طلب نظافة',ICON.out,false)+
+  '<div class="card" style="border:2px solid var(--grey)"><div class="row">'+ICON.wrench+'<span class="ttl grow">بلاغات الصيانة</span><span class="cnt" style="background:var(--grey)">'+mt.length+'</span></div>'+ml+'</div></div>';
+}
+function freeGroups(act,selNo){
+  var out='',any=false;
+  CATS.forEach(function(c){
+    var rs=c[1].filter(function(r){return room(r[0]).status==='free';});
+    if(!rs.length)return;any=true;
+    out+='<div class="grp"><h2>'+h(c[0])+'</h2><div class="grid3">'+rs.map(function(r){return '<button class="room'+(selNo===r[0]?' sel':'')+'" data-a="'+act+'" data-n="'+r[0]+'" aria-pressed="'+(selNo===r[0])+'"><b>'+r[0]+'</b><span class="sub" style="color:inherit">'+bedsS(r[1])+'</span></button>';}).join('')+'</div></div>';
+  });
+  return any?out:'<p class="empty">مفيش غرف فاضية دلوقتي</p>';
+}
+function vRecIn(){return top('تشيك إن','اختار غرفة فاضية','rec')+'<div class="stack">'+freeGroups('pickIn')+'</div>';}
+function vRecForm(){
+  var no=S.p.no,m=META[no],t=today(),tom=iso(new Date(Date.now()+86400000));
+  return top('تشيك إن · غرفة '+no,'الغرفة هتبقى مشغولة بعد التأكيد','rec-in')+
+  '<form class="stack" id="inForm"><div class="card"><div class="row"><span class="badge c-ok"><small>غرفة</small><b>'+no+'</b></span><span class="grow"><span class="ttl ltr">'+h(m.cat)+'</span><br><span class="sub">'+beds(m.beds)+' · سوفا بيد: '+(m.sofa?'ينفع':'لا')+'</span></span></div></div>'+
+  '<label class="f" for="din">تاريخ تسجيل الدخول<input class="inp" id="din" type="date" value="'+t+'" required></label>'+
+  '<label class="f" for="dout">تاريخ تسجيل الخروج<input class="inp" id="dout" type="date" value="'+tom+'" required></label>'+
+  (m.sofa?'<label class="check" for="sofa">إضافة سوفا بيد<input type="checkbox" id="sofa"></label>':'')+
+  (S.err?'<p class="err" role="alert">'+h(S.err)+'</p>':'')+
+  '<button class="btn b-main" type="submit">تأكيد التشيك إن</button></form>';
+}
+function vRecOcc(){
+  var t=today();
+  var list=allNos().filter(function(no){return room(no).status==='occ';}).sort(function(a,b){return(room(a).out||'').localeCompare(room(b).out||'')||a.localeCompare(b);});
+  var body=list.length?list.map(function(no){
+    var r=room(no),chips='';
+    if(r.out&&r.out<=t)chips+='<span class="chip c-warn">خروج النهارده</span>';
+    if(r.cleanReq)chips+='<span class="chip c-info">'+cleanState(r)+'</span>';
+    return '<button class="card" data-a="go" data-v="rec-room" data-n="'+no+'"><div class="row"><span class="badge occ"><small>غرفة</small><b>'+no+'</b></span><span class="grow"><span class="ttl ltr" style="display:block;text-align:right;font-size:13px">'+h(META[no].cat)+'</span><span class="sub">من '+fmt(r.in)+' لـ '+rel(r.out)+(r.sofa?' · سوفا بيد':'')+'</span></span></div>'+(chips?'<div class="row" style="flex-wrap:wrap;gap:6px">'+chips+'</div>':'')+'</button>';
+  }).join(''):'<p class="empty">مفيش غرف مشغولة</p>';
+  return top('الغرف المشغولة',list.length+' غرفة','rec')+'<div class="stack">'+toastHtml()+body+'</div>';
+}
+function cleanState(r){var t=r.task;if(!t)return 'طلب نظافة · مستني التوزيع';if(t.st==='review')return 'نظافة · مستنية المراجعة';return 'نظافة مع '+wname(t.w);}
+function vRecRoom(){
+  var no=S.p.no,r=room(no);
+  if(r.status!=='occ')return top('غرفة '+no,'','rec-occ')+'<div class="stack">'+toastHtml()+'<p class="empty">الغرفة دي مش مشغولة</p></div>';
+  var so=Math.max(1,dayDiff(r.in,today()));
+  var clean=r.cleanReq?
+   '<div class="card" style="background:var(--warn-bg);color:var(--warn)"><div class="row">'+ICON.broom+'<span class="grow"><span class="ttl">النظافة</span><br><span style="font-size:12px;font-weight:600">'+cleanState(r)+' · من '+ago(S.now-r.cleanReq)+'</span></span><button class="btn b-warn" style="width:auto;min-height:44px" data-a="cleanOff" data-n="'+no+'">إلغاء</button></div></div>':
+   '<div class="card"><div class="row">'+ICON.broom+'<span class="grow"><span class="ttl">النظافة</span><br><span class="sub">مفيش طلب نظافة</span></span><button class="btn b-main" style="width:auto;min-height:44px" data-a="cleanOn" data-n="'+no+'">طلب نظافة</button></div></div>';
+  var confirm=S.p.confirm?
+   '<div class="card" style="border:2px solid var(--warn)"><span class="ttl">متأكد إن غرفة '+no+' خرجت؟</span><span class="sub">الغرفة هتتبعت للهاوس كيبنج عشان تتنضف</span><div class="row"><button class="btn b-main" data-a="doOut" data-n="'+no+'">أيوه، خرجت</button><button class="btn b-line" data-a="go" data-v="rec-room" data-n="'+no+'">لأ</button></div></div>':
+   '<button class="btn b-main" data-a="go" data-v="rec-room" data-n="'+no+'" data-c="1">'+ICON.out+' الغرفة خرجت · تسجيل خروج</button>';
+  return top('غرفة '+no,'مشغولة','rec-occ')+'<div class="stack">'+toastHtml()+
+  '<div class="hero"><span class="cat">'+h(META[no].cat)+'</span><div class="cols"><span><small>الدخول</small><strong>'+fmt(r.in)+'</strong></span><span><small>الخروج المتوقع</small><strong>'+rel(r.out)+'</strong></span><span><small>لحد النهارده</small><strong>'+nights(so)+'</strong></span></div></div>'+
+  clean+'<button class="btn b-line" data-a="go" data-v="rec-move" data-n="'+no+'">نقل لغرفة تانية</button>'+confirm+'</div>';
+}
+function vRecMove(){
+  var no=S.p.no,tg=S.p.target;
+  return top('نقل غرفة '+no,'اختار الغرفة الجديدة','rec-room')+'<div class="stack">'+freeGroups('pickMove',tg)+
+  (S.err?'<p class="err" role="alert">'+h(S.err)+'</p>':'')+
+  '<button class="btn b-main" data-a="doMove"'+(tg?'':' disabled style="opacity:.5"')+'>'+(tg?'تأكيد النقل من '+no+' لـ '+tg:'اختار الغرفة الجديدة')+'</button></div>';
+}
+
+// ----- housekeeping manager -----
+function vHk(){
+  var tab=S.p.tab||'assign';
+  var need=allNos().filter(needs);
+  var un=need.filter(function(no){return !room(no).task;});
+  var rv=allNos().filter(function(no){var t=room(no).task;return t&&t.st==='review';});
+  var mt=S.maint.filter(function(m){return m.open;});
+  var tabs=[['assign','التوزيع',un.length],['review','المراجعة',rv.length],['maint','الصيانة',mt.length],['rooms','الغرف',0]].map(function(t){
+    return '<button role="tab" aria-selected="'+(tab===t[0])+'" data-a="tab" data-t="'+t[0]+'">'+t[1]+(t[2]?' <span class="cnt"'+(t[0]==='review'?' style="background:var(--info)"':t[0]==='maint'?' style="background:var(--grey)"':'')+'>'+t[2]+'</span>':'')+'</button>';}).join('');
+  var banners='';
+  if(un.length)banners+='<button class="alert pulse" data-a="tab" data-t="assign" role="alert">'+ICON.bell+'<span><b>'+un.length+' غرفة محتاجة تتوزع</b><span>غرف '+un.join('، ')+'</span></span></button>';
+  if(rv.length)banners+='<button class="alert info pulse" data-a="tab" data-t="review" role="alert">'+ICON.check+'<span><b>'+rv.length+' غرفة مستنية مراجعتك</b><span>غرف '+rv.join('، ')+'</span></span></button>';
+  var body='',ws=workers();
+  if(tab==='assign'){
+    var load=ws.map(function(u){var n=allNos().filter(function(no){var t=room(no).task;return t&&t.w===u;}).length;return '<div class="stat" style="background:var(--surface)"><b style="font-size:15px">'+h(wname(u))+'</b><span class="sub">'+n+' غرفة</span></div>';}).join('');
+    body=(ws.length?'<div class="stats">'+load+'</div>':'<p class="sub">مفيش عاملات هاوس كيبنج · المدير يضيفهم من المستخدمين</p>')+(need.length?need.map(function(no){
+      var r=room(no),t=r.task;
+      var reason=r.status==='clean'?'خروج · تنظيف كامل':'طلب نظافة من الريسبشن';
+      var state=!t?'مش متوزعة لسه':t.st==='new'?'اتبعتت لـ'+wname(t.w)+' · مستنية تستلم':t.st==='redo'?'رجعت لـ'+wname(t.w)+' تعيدها':t.st==='review'?wname(t.w)+' خلّصت · مستنية مراجعتك':wname(t.w)+' شغالة عليها';
+      return '<div class="card'+(!t?' flash':'')+'"><div class="row"><span class="badge"><small>غرفة</small><b>'+no+'</b></span><span class="grow"><span class="ttl">'+reason+'</span><br><span style="font-size:12px;font-weight:600;opacity:.85">'+h(state)+'</span></span></div><div class="picks">'+
+      ws.map(function(u){return '<button class="pick" data-a="assign" data-n="'+no+'" data-u="'+h(u)+'" aria-pressed="'+(!!t&&t.w===u)+'">'+h(wname(u))+'</button>';}).join('')+'</div></div>';
+    }).join(''):'<p class="empty">مفيش غرف محتاجة تنظيف</p>');
+  }else if(tab==='review'){
+    body=rv.length?rv.map(function(no){var r=room(no),t=r.task;return '<div class="card" style="border:2px solid var(--info)"><div class="row"><span class="badge info"><small>غرفة</small><b>'+no+'</b></span><span class="grow"><span class="ttl">'+h(wname(t.w))+' خلّصت التنظيف</span><br><span class="sub">'+(r.status==='clean'?'خروج · تنظيف كامل':'طلب نظافة')+' · من '+ago(S.now-t.doneAt)+'</span></span></div><button class="btn b-ok" data-a="approve" data-n="'+no+'">'+ICON.check+' راجعتها · الغرفة جاهزة</button><button class="btn b-warn" data-a="redo" data-n="'+no+'">ترجع تتعاد</button></div>';}).join(''):'<p class="empty">مفيش غرف مستنية مراجعة</p>';
+  }else if(tab==='maint'){
+    body=mt.length?mt.map(function(m){return '<div class="card"><div class="row"><span class="badge grey"><small>غرفة</small><b>'+h(m.room)+'</b></span><span class="grow"><span class="ttl">'+h(m.issue)+'</span><br><span class="sub">بلّغ: '+h(wname(m.by))+' · من '+ago(S.now-m.at)+'</span></span>'+(m.blocks?'<span class="chip c-warn">موقفة</span>':'')+'</div>'+(m.note?'<span class="note">'+h(m.note)+'</span>':'')+'<span class="sub">ظاهر عند الريسبشن ومدير الهاوس كيبنج</span><button class="btn b-dark" data-a="fix" data-id="'+h(m.id)+'">اتصلحت</button></div>';}).join(''):'<p class="empty">مفيش بلاغات صيانة مفتوحة</p>';
+  }else{
+    body=CATS.map(function(c){return '<div class="grp"><h2>'+h(c[0])+'</h2><div class="grid3">'+c[1].map(function(rr){var no=rr[0],r=room(no),st=ST[r.status]||ST.free,t=r.task;
+      return '<button class="room'+(r.status==='occ'?' occ':'')+'" data-a="go" data-v="hk-room" data-n="'+no+'"><b>'+no+'</b><span class="chip '+st[1]+'">'+st[0]+'</span>'+(t?'<span class="sub" style="color:inherit">'+(t.st==='review'?'مراجعة':h(wname(t.w)))+'</span>':r.cleanReq?'<span class="sub" style="color:inherit">طلب نظافة</span>':'')+'</button>';}).join('')+'</div></div>';}).join('');
+  }
+  var solo=homeOf()==='hk';
+  return top('الهاوس كيبنج',need.length+' محتاجة تنظيف · '+rv.length+' مراجعة · '+mt.length+' صيانة',solo?null:'home',soundBtn()+(solo?'<button class="ib" data-a="logout" aria-label="تسجيل خروج">'+ICON.out+'</button>':''))+
+   '<div class="stack">'+toastHtml()+banners+soundHint()+'<div class="tabs" role="tablist">'+tabs+'</div>'+body+'</div>';
+}
+function vHkRoom(){
+  var no=S.p.no,r=room(no),m=META[no],st=ST[r.status]||ST.free;
+  var btns=r.status==='occ'?'<p class="sub" style="margin:0">الغرفة مشغولة · الدخول والخروج والنقل من الريسبشن</p>':
+   '<span class="ttl">تغيير الحالة</span><div class="picks">'+['free','clean','maint'].map(function(k){return '<button class="pick" data-a="setStatus" data-n="'+no+'" data-s="'+k+'" aria-pressed="'+(r.status===k)+'">'+ST[k][0]+'</button>';}).join('')+'</div>';
+  return top('غرفة '+no,st[0],'hk')+'<div class="stack">'+toastHtml()+
+   '<div class="card"><span class="ttl ltr" style="text-align:right">'+h(m.cat)+'</span><span class="sub">'+beds(m.beds)+' · سوفا بيد: '+(m.sofa?'ينفع':'لا')+'</span><span class="chip '+st[1]+'" style="align-self:flex-start">'+st[0]+'</span></div>'+
+   '<div class="card">'+btns+'</div><button class="btn b-line" data-a="go" data-v="report" data-n="'+no+'" data-b="hk-room">'+ICON.wrench+' بلّغ عن صيانة</button></div>';
+}
+
+// ----- worker -----
+function vWork(){
+  var mine=allNos().filter(function(no){var t=room(no).task;return t&&t.w===S.uid;});
+  var urgent=mine.filter(function(no){return taskUrgent(room(no).task);});
+  var body=mine.length?mine.map(function(no){
+    var r=room(no),t=r.task,u=taskUrgent(t);
+    var reason=r.status==='clean'?'خروج · تنظيف كامل':'طلب نظافة من الريسبشن';
+    var state=t.st==='new'?'جديدة عليكي · من '+ago(S.now-t.at):t.st==='redo'?'رجعت من المراجعة · محتاجة تتعاد':t.st==='review'?'اتبعتت للمراجعة':S.now>=t.next?'تذكير: الغرفة لسه مخلصتش':'شغالة عليها · التذكير بعد '+mmss(t.next-S.now);
+    var acts='';
+    if(t.st==='new'||t.st==='redo')acts='<button class="btn b-dark" data-a="ack" data-n="'+no+'">استلمت · هبدأ فيها</button>';
+    else if(t.st==='ack'){acts=(S.now>=t.next?'<button class="btn b-dark" data-a="ack" data-n="'+no+'">تمام، شغالة عليها</button>':'')+'<button class="btn b-ok" data-a="done" data-n="'+no+'">'+ICON.check+' الغرفة جاهزة · ابعت للمراجعة</button>';}
+    else acts='<span class="note" style="text-align:center;color:var(--info);font-weight:700">مستنية مراجعة مدير الهاوس كيبنج</span>';
+    return '<div class="card'+(u?' flash':'')+'"><div class="row"><span class="badge" style="width:60px;height:60px"><small>غرفة</small><b style="font-size:22px">'+no+'</b></span><span class="grow"><span class="ttl">'+reason+'</span><br><span style="font-size:12px;font-weight:600;opacity:.85">'+state+'</span></span></div>'+acts+
+     '<button class="btn b-line" style="min-height:44px" data-a="go" data-v="report" data-n="'+no+'" data-b="work">'+ICON.wrench+' بلّغ عن صيانة</button></div>';
+  }).join(''):'<p class="empty">مفيش غرف عليكي دلوقتي</p>';
+  var banner=urgent.length?'<div class="alert pulse" role="alert">'+ICON.bell+'<span><b>'+urgent.length+' غرفة محتاجة منك</b><span>غرف '+urgent.join('، ')+'</span></span></div>':'';
+  var solo=homeOf()==='work';
+  return top('غرفي',mine.length+' غرفة',solo?null:'home',soundBtn()+(solo?'<button class="ib" data-a="go" data-v="pin" aria-label="تغيير الرقم السري">'+ICON.key+'</button><button class="ib" data-a="logout" aria-label="تسجيل خروج">'+ICON.out+'</button>':''))+'<div class="stack">'+toastHtml()+banner+soundHint()+body+'</div>';
+}
+function vReport(){
+  var no=S.p.no,iss=S.p.issue||'';
+  return top('بلاغ صيانة · غرفة '+no,'بيوصل للريسبشن ومدير الهاوس كيبنج',S.p.back||homeOf())+
+  '<form class="stack" id="repForm"><span class="ttl">المشكلة إيه؟</span><div class="picks" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+
+  ISSUES.map(function(i){return '<button type="button" class="pick" style="min-height:50px" data-a="issue" data-i="'+h(i)+'" aria-pressed="'+(iss===i)+'">'+h(i)+'</button>';}).join('')+'</div>'+
+  '<label class="f" for="mnote">تفاصيل (اختياري)<textarea class="inp" id="mnote" placeholder="مثلاً: الحنفية بتنقط في الحمام"></textarea></label>'+
+  (room(no).status!=='occ'?'<label class="check" for="mblock"><span>الغرفة متتسكنش لحد ما تتصلح<br><span class="sub">حالتها هتبقى صيانة</span></span><input type="checkbox" id="mblock"></label>':'')+
+  (S.err?'<p class="err" role="alert">'+h(S.err)+'</p>':'')+
+  '<button class="btn b-dark" type="submit">إرسال البلاغ</button></form>';
+}
+
+// ----- my PIN -----
+function vPin(){
+  return top('تغيير الرقم السري','',homeOf())+'<form class="stack" id="pinForm">'+
+  '<label class="f" for="op">الرقم السري الحالي<input class="inp ltr" id="op" type="password" inputmode="numeric" autocomplete="current-password" required></label>'+
+  '<label class="f" for="np">الرقم السري الجديد (6 أرقام أو أكتر)<input class="inp ltr" id="np" type="password" inputmode="numeric" autocomplete="new-password" required></label>'+
+  (S.err?'<p class="err" role="alert">'+h(S.err)+'</p>':'')+
+  '<button class="btn b-main" type="submit"'+(S.busy?' disabled':'')+'>حفظ</button></form>';
+}
+
+// ----- users (admin) -----
+function vUsers(){
+  var list=Object.keys(S.staff).sort(function(a,b){return(S.staff[a].order||99)-(S.staff[b].order||99);});
+  return top('المستخدمين',list.length+' حساب','home','<button class="ib on" data-a="go" data-v="user-form" aria-label="حساب جديد"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>')+
+  '<div class="stack">'+toastHtml()+list.map(function(u){var s=S.staff[u];return '<button class="card" style="'+(s.active===false?'opacity:.6':'')+'" data-a="go" data-v="user-form" data-u="'+h(u)+'"><div class="row"><span class="badge"><b>'+h((s.name||'?').charAt(0))+'</b></span><span class="grow"><span class="ttl">'+h(s.name)+(s.active===false?' <span class="chip c-grey">موقوف</span>':'')+'</span><br><span class="sub">'+h(ROLES[s.role]?ROLES[s.role].label:s.role)+' · <span class="ltr">@'+h(s.username)+'</span>'+(s.phone?' · <span class="ltr">'+h(s.phone)+'</span>':' · من غير رقم واتساب')+'</span></span></div></button>';}).join('')+'</div>';
+}
+function vUserForm(){
+  var u=S.p.u,s=u?S.staff[u]:null;
+  return top(s?'تعديل '+s.name:'حساب جديد','','users')+'<form class="stack" id="userForm">'+
+  '<label class="f" for="un">الاسم<input class="inp" id="un" value="'+h(s?s.name:'')+'" required></label>'+
+  (s?'<p class="sub" style="margin:0">اسم المستخدم: <span class="ltr">@'+h(s.username)+'</span></p>':
+   '<label class="f" for="uu">اسم المستخدم (إنجليزي)<input class="inp ltr" id="uu" autocapitalize="off" spellcheck="false" required></label>'+
+   '<label class="f" for="up">الرقم السري (6 أرقام أو أكتر)<input class="inp ltr" id="up" type="password" inputmode="numeric" required></label>')+
+  '<label class="f" for="uph">رقم الواتساب<input class="inp ltr" id="uph" type="tel" inputmode="tel" placeholder="01xxxxxxxxx" value="'+h(s&&s.phone||'')+'"></label>'+
+  '<label class="f" for="ur">الوظيفة<select class="inp" id="ur">'+Object.keys(ROLES).map(function(k){return '<option value="'+k+'"'+(s&&s.role===k?' selected':(!s&&k==='hk'?' selected':''))+'>'+ROLES[k].label+'</option>';}).join('')+'</select></label>'+
+  '<label class="check" for="ua">الحساب شغال<input type="checkbox" id="ua"'+(!s||s.active!==false?' checked':'')+'></label>'+
+  (s?'<p class="sub" style="margin:0">نسي الرقم السري؟ اقفل الحساب ده واعمله حساب جديد باسم مستخدم تاني.</p>':'')+
+  (S.err?'<p class="err" role="alert">'+h(S.err)+'</p>':'')+'<button class="btn b-main" type="submit"'+(S.busy?' disabled':'')+'>'+(s?'حفظ':'إنشاء الحساب')+'</button></form>';
+}
+
+// ---------- render ----------
+var VIEWS={home:vHome,rec:vRec,'rec-in':vRecIn,'rec-form':vRecForm,'rec-occ':vRecOcc,'rec-room':vRecRoom,'rec-move':vRecMove,hk:vHk,'hk-room':vHkRoom,work:vWork,report:vReport,users:vUsers,'user-form':vUserForm,pin:vPin};
+var NEED={rec:'rec','rec-in':'rec','rec-form':'rec','rec-occ':'rec','rec-room':'rec','rec-move':'rec',hk:'hk','hk-room':'hk',work:'work',users:'users','user-form':'users'};
+function current(){
+  if(!configured)return vNoConfig;
+  if(!S.ready)return function(){return '<p class="hint" style="padding-top:40px">بيحمّل…</p>';};
+  if(!S.uid)return S.setup===false?vSetup:vLogin;
+  if(!S.staffLoaded)return function(){return '<p class="hint" style="padding-top:40px">بيحمّل…</p>';};
+  if(!meDoc())return vBlocked;
+  var a=areas();
+  if(S.view==='home'&&a.length===1)S.view=homeOf();
+  if(NEED[S.view]&&a.indexOf(NEED[S.view])<0)S.view=homeOf();
+  return VIEWS[S.view]||vHome;
+}
+function render(){
+  var keep={},fid=document.activeElement&&document.activeElement.id;
+  app.querySelectorAll('input,textarea,select').forEach(function(el){if(el.id)keep[el.id]=el.type==='checkbox'?el.checked:el.value;});
+  app.innerHTML=current()();
+  Object.keys(keep).forEach(function(id){var el=document.getElementById(id);if(!el)return;if(el.type==='checkbox')el.checked=keep[id];else el.value=keep[id];});
+  if(fid){var f=document.getElementById(fid);if(f)try{f.focus({preventScroll:true});}catch(e){}}
+}
+
+// ---------- actions ----------
+app.addEventListener('click',function(ev){
+  var b=ev.target.closest('[data-a]');if(!b||b.disabled)return;
+  var a=b.dataset.a,no=b.dataset.n,now=Date.now(),me=meDoc();
+  if(a==='go'){var p={};if(no)p.no=no;if(b.dataset.u)p.u=b.dataset.u;if(b.dataset.c)p.confirm=true;if(b.dataset.b)p.back=b.dataset.b;if(b.dataset.v==='hk')p.tab=S.lastTab||'assign';go(b.dataset.v,p);return;}
+  if(a==='logout'){auth&&auth.signOut();S.view='home';S.err='';return;}
+  if(a==='sound'){toggleSound();return;}
+  if(a==='tab'){S.p.tab=b.dataset.t;S.lastTab=b.dataset.t;render();return;}
+  if(a==='pickIn'){go('rec-form',{no:no});return;}
+  if(a==='pickMove'){S.p.target=no;S.err='';render();return;}
+  if(a==='issue'){S.p.issue=b.dataset.i;S.err='';render();return;}
+  if(a==='cleanOn'){upd(no,{cleanReq:now});flash('طلب نظافة غرفة '+no+' اتبعت للهاوس كيبنج',waFor(hkManagers(),'طلب نظافة · غرفة '+no+' (من الريسبشن)'));return;}
+  if(a==='cleanOff'){var r0=room(no);var pt={cleanReq:null};if(r0.task&&r0.status==='occ')pt.task=null;upd(no,pt);flash('اتلغى طلب نظافة غرفة '+no);return;}
+  if(a==='doOut'){upd(no,{status:'clean',in:null,out:null,sofa:false,cleanReq:null});go('rec-occ');flash('غرفة '+no+' خرجت واتبعتت للهاوس كيبنج',waFor(hkManagers(),'غرفة '+no+' خرجت · محتاجة تنظيف كامل'));return;}
+  if(a==='doMove'){
+    var from=S.p.no,to=S.p.target,r=room(from);
+    if(!to||room(to).status!=='free'){S.err='الغرفة دي مبقتش فاضية، اختار غيرها';S.p.target=null;render();return;}
+    upd(to,{status:'occ',in:r.in,out:r.out,sofa:false,cleanReq:null,task:null});
+    upd(from,{status:'clean',in:null,out:null,sofa:false,cleanReq:null,task:null});
+    go('rec-room',{no:to});flash('النزيل اتنقل من '+from+' لـ '+to+' · غرفة '+from+' اتبعتت للهاوس كيبنج',waFor(hkManagers(),'نقل نزيل من غرفة '+from+' لغرفة '+to+' · غرفة '+from+' محتاجة تنظيف'));return;
+  }
+  if(a==='assign'){var u=b.dataset.u;upd(no,{task:{w:u,st:'new',at:now,ackAt:0,next:0,doneAt:0}});
+    flash('غرفة '+no+' اتوزعت على '+wname(u),waFor([u],'غرفة '+no+' اتوزعت عليكي للنظافة · افتحي الأبلكيشن ودوسي استلمت'));return;}
+  if(a==='approve'){var r1=room(no);var p1={task:null,cleanReq:null};if(r1.status==='clean')p1.status='free';upd(no,p1);
+    flash('غرفة '+no+' جاهزة',r1.status==='clean'?waFor(receptionists(),'غرفة '+no+' اتنضفت واتراجعت · جاهزة للتسكين'):[]);return;}
+  if(a==='redo'){var t1=room(no).task;upd(no,{task:{w:t1.w,st:'redo',at:now,ackAt:0,next:0,doneAt:0}});flash('غرفة '+no+' رجعت لـ'+wname(t1.w),waFor([t1.w],'غرفة '+no+' رجعت من المراجعة · محتاجة تتعاد'));return;}
+  if(a==='ack'){var t2=room(no).task;upd(no,{task:{w:t2.w,st:'ack',at:t2.at,ackAt:now,next:now+REMIND_MS,doneAt:0}});return;}
+  if(a==='done'){var t3=room(no).task;upd(no,{task:{w:t3.w,st:'review',at:t3.at,ackAt:t3.ackAt,next:0,doneAt:now}});
+    flash('غرفة '+no+' اتبعتت للمراجعة',waFor(hkManagers(),'غرفة '+no+' خلصت تنظيف ('+(me?me.name:'')+') · مستنية مراجعتك'));return;}
+  if(a==='setStatus'){upd(no,{status:b.dataset.s});flash('غرفة '+no+': '+ST[b.dataset.s][0]);return;}
+  if(a==='fix'){
+    var m=S.maint.filter(function(x){return x.id===b.dataset.id;})[0];if(!m||!db)return;
+    db.collection('maint').doc(m.id).set({open:false,fixedAt:now,fixedBy:S.uid},{merge:true}).catch(function(){flash('ما اتحفظش، جرّب تاني');});
+    if(room(m.room).status==='maint')upd(m.room,{status:'clean'});
+    flash('غرفة '+m.room+' اتصلحت · محتاجة تنظيف قبل التسكين');return;
+  }
+});
+app.addEventListener('submit',function(ev){
+  ev.preventDefault();var f=ev.target;
+  if(f.id==='loginForm'){
+    var u=(document.getElementById('lu').value||'').trim().toLowerCase(),p=document.getElementById('lp').value||'';
+    if(!u||!p){S.err='اكتب اسم المستخدم والرقم السري';render();return;}
+    S.busy=true;S.err='';render();
+    auth.signInWithEmailAndPassword(u+DOMAIN,p).then(function(){S.busy=false;S.view='home';}).catch(function(e){
+      S.busy=false;S.err=e&&e.code==='auth/too-many-requests'?'محاولات كتير غلط · استنى شوية وجرّب تاني':e&&e.code==='auth/network-request-failed'?'النت مقطوع':'اسم المستخدم أو الرقم السري غلط';
+      render();var lp=document.getElementById('lp');if(lp)lp.value='';});
+    return;
+  }
+  if(f.id==='setupForm'){
+    var sn=document.getElementById('sn').value.trim(),su=(document.getElementById('su').value||'').trim().toLowerCase(),sp=document.getElementById('sp').value;
+    if(!sn){S.err='اكتب اسمك';render();return;}
+    if(!/^[a-z0-9._-]{2,30}$/.test(su)){S.err='اسم المستخدم حروف إنجليزي صغيرة وأرقام بس';render();return;}
+    if(sp.length<6){S.err='الرقم السري لازم 6 أرقام أو أكتر';render();return;}
+    S.busy=true;S.err='';render();
+    auth.createUserWithEmailAndPassword(su+DOMAIN,sp).then(function(cred){
+      var uid=cred.user.uid,batch=db.batch();
+      batch.set(db.collection('staff').doc(uid),{name:sn,username:su,role:'admin',phone:'',active:true,order:1});
+      batch.set(db.collection('meta').doc('setup'),{done:true,at:Date.now()});
+      return batch.commit().then(function(){
+        var b2=db.batch();allNos().forEach(function(no){b2.set(db.collection('rooms').doc(no),{status:'free'},{merge:true});});return b2.commit();
+      });
+    }).then(function(){S.busy=false;S.setup=true;S.view='home';flash('تمام · الحساب اتعمل والـ 28 غرفة جاهزين');}).catch(function(e){
+      S.busy=false;S.err=e&&e.code==='auth/email-already-in-use'?'اسم المستخدم ده متسجّل قبل كده · ادخل بيه من شاشة الدخول':e&&e.code==='auth/operation-not-allowed'?'لازم تشغّل Email/Password في Firebase Authentication':'حصلت مشكلة: '+(e&&e.message||'');render();});
+    return;
+  }
+  if(f.id==='pinForm'){
+    var op=document.getElementById('op').value,np=document.getElementById('np').value,me=meDoc();
+    if(np.length<6){S.err='الرقم الجديد لازم 6 أرقام أو أكتر';render();return;}
+    S.busy=true;S.err='';render();
+    var user=auth.currentUser,cr=firebase.auth.EmailAuthProvider.credential(me.username+DOMAIN,op);
+    user.reauthenticateWithCredential(cr).then(function(){return user.updatePassword(np);}).then(function(){S.busy=false;go(homeOf());flash('الرقم السري اتغيّر');}).catch(function(e){
+      S.busy=false;S.err=e&&(e.code==='auth/wrong-password'||e.code==='auth/invalid-credential'||e.code==='auth/invalid-login-credentials')?'الرقم السري الحالي غلط':'ما اتغيّرش، جرّب تاني';render();});
+    return;
+  }
+  if(f.id==='repForm'){
+    var rno=S.p.no;if(!S.p.issue){S.err='اختار نوع المشكلة';render();return;}
+    var blk=document.getElementById('mblock'),blocks=!!(blk&&blk.checked);
+    var note=(document.getElementById('mnote').value||'').trim().slice(0,300);
+    var doc={room:rno,issue:S.p.issue,note:note,by:S.uid,at:Date.now(),blocks:blocks,open:true};
+    db.collection('maint').add(doc).catch(function(){flash('البلاغ ما اتبعتش، جرّب تاني');});
+    if(blocks)upd(rno,{status:'maint'});
+    var back=S.p.back||homeOf();go(back,back==='hk-room'?{no:rno}:{});
+    var txt='بلاغ صيانة · غرفة '+rno+' · '+S.p.issue+(note?' · '+note:'');
+    flash('بلاغ صيانة غرفة '+rno+' اتبعت للريسبشن ومدير الهاوس كيبنج',waFor(hkManagers().concat(receptionists()),txt));return;
+  }
+  if(f.id==='userForm'){
+    var ex=S.p.u,name=document.getElementById('un').value.trim(),role=document.getElementById('ur').value,act=document.getElementById('ua').checked,phone=(document.getElementById('uph').value||'').trim();
+    if(!name){S.err='اكتب الاسم';render();return;}
+    if(ex===S.uid&&(!act||role!=='admin')){S.err='مينفعش توقف حسابك أو تشيل صلاحية المدير من نفسك';render();return;}
+    if(ex){
+      db.collection('staff').doc(ex).set({name:name,role:role,active:act,phone:phone},{merge:true}).then(function(){go('users');flash('اتحفظ '+name);}).catch(function(){S.err='ما اتحفظش، جرّب تاني';render();});
+      return;
+    }
+    var uname=(document.getElementById('uu').value||'').trim().toLowerCase(),pin=document.getElementById('up').value;
+    if(!/^[a-z0-9._-]{2,30}$/.test(uname)){S.err='اسم المستخدم حروف إنجليزي صغيرة وأرقام بس';render();return;}
+    if(Object.keys(S.staff).some(function(k){return S.staff[k].username===uname;})){S.err='اسم المستخدم ده موجود';render();return;}
+    if(pin.length<6){S.err='الرقم السري لازم 6 أرقام أو أكتر';render();return;}
+    S.busy=true;S.err='';render();
+    // a second Firebase app creates the account without signing the admin out
+    var sec=firebase.apps.filter(function(x){return x.name==='creator';})[0]||firebase.initializeApp(cfg,'creator');
+    sec.auth().createUserWithEmailAndPassword(uname+DOMAIN,pin).then(function(cred){
+      var uid=cred.user.uid;
+      return db.collection('staff').doc(uid).set({name:name,username:uname,role:role,phone:phone,active:act,order:Object.keys(S.staff).length+1}).then(function(){return sec.auth().signOut();});
+    }).then(function(){S.busy=false;go('users');flash('اتعمل حساب '+name+' (@'+uname+')',phone?[{label:'ابعت بيانات الدخول لـ'+name,phone:phone,text:'أهلاً '+name+' · حسابك على أبلكيشن Villa Khufu:\nاسم المستخدم: '+uname+'\nالرقم السري: '+pin+'\nاللينك: '+location.href.split('#')[0]}]:[]);}).catch(function(e){
+      S.busy=false;S.err=e&&e.code==='auth/email-already-in-use'?'اسم المستخدم ده متسجّل قبل كده':'ما اتعملش: '+(e&&e.message||'');render();});
+    return;
+  }
+  if(f.id==='inForm'){
+    var no=S.p.no,din=document.getElementById('din').value,dout=document.getElementById('dout').value,sofa=document.getElementById('sofa');
+    if(!din||!dout){S.err='اختار تاريخ الدخول والخروج';render();return;}
+    if(dayDiff(din,dout)<1){S.err='تاريخ الخروج لازم يكون بعد تاريخ الدخول';render();return;}
+    if(room(no).status!=='free'){S.err='الغرفة دي مبقتش فاضية';render();return;}
+    upd(no,{status:'occ',in:din,out:dout,sofa:!!(sofa&&sofa.checked),cleanReq:null,task:null});
+    go('rec');flash('تم التشيك إن · غرفة '+no+' من '+fmt(din)+' لـ '+fmt(dout));return;
+  }
+});
+
+// ---------- sound ----------
+function toggleSound(){
+  if(S.sound){S.sound=false;try{audio&&audio.pause();}catch(e){}render();return;}
+  try{if(!audio){audio=new Audio('ring.mp4');audio.preload='auto';}}catch(e){}
+  S.sound=true;ticks=0;render();ring();
+}
+function ring(){if(!S.sound||!audio||!urgentForMe())return;try{audio.currentTime=0;var p=audio.play();if(p&&p.catch)p.catch(function(){});}catch(e){}}
+setInterval(function(){
+  S.now=Date.now();ticks++;
+  if(ticks%4===0)ring();
+  var inForm=document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+  if(!inForm&&S.uid&&(S.view==='work'||S.view==='hk'||S.view==='home'))render();
+},1000);
+
+// ---------- data ----------
+function stopListening(){unsubs.forEach(function(u){try{u();}catch(e){}});unsubs=[];S.staff={};S.rooms={};S.maint=[];S.staffLoaded=false;}
+function listen(){
+  stopListening();
+  unsubs.push(db.collection('staff').onSnapshot(function(snap){var o={};snap.forEach(function(d){o[d.id]=d.data();});S.staff=o;S.staffLoaded=true;render();},function(){S.staffLoaded=true;render();}));
+  unsubs.push(db.collection('rooms').onSnapshot(function(snap){var o={},before=urgentForMe();snap.forEach(function(d){o[d.id]=d.data();});S.rooms=o;render();if(urgentForMe()>before)ring();},function(){}));
+  unsubs.push(db.collection('maint').where('open','==',true).onSnapshot(function(snap){var l=[];snap.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.maint=l.sort(function(a,b){return b.at-a.at;});render();},function(){}));
+}
+if(!configured){render();return;}
+fb=firebase.initializeApp(cfg);auth=firebase.auth();db=firebase.firestore();
+try{db.enablePersistence({synchronizeTabs:true}).catch(function(){});}catch(e){}
+db.collection('meta').doc('setup').onSnapshot(function(d){S.setup=d.exists;render();},function(){S.setup=true;render();});
+auth.onAuthStateChanged(function(user){
+  S.ready=true;
+  if(user){S.uid=user.uid;listen();}else{S.uid=null;stopListening();}
+  render();
+});
+})();
+</script>
+</body>
+</html>

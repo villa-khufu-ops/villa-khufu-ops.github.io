@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function staffDoc() { return get(/databases/$(database)/documents/staff/$(request.auth.uid)); }
+    function isStaff() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/staff/$(request.auth.uid))
+        && staffDoc().data.active == true;
+    }
+    function isAdmin() { return isStaff() && staffDoc().data.role == 'admin'; }
+    function setupDone() { return exists(/databases/$(database)/documents/meta/setup); }
+
+    // تعرف الصفحة منه إذا كان أول تشغيل ولا لأ
+    match /meta/setup {
+      allow read: if true;
+      allow create: if signedIn() && !setupDone()
+        && getAfter(/databases/$(database)/documents/staff/$(request.auth.uid)).data.role == 'admin';
+      allow update, delete: if false;
+    }
+
+    match /staff/{uid} {
+      allow read: if isStaff();
+      // أول مدير بيسجّل نفسه مرة واحدة بس، وقت الإعداد
+      allow create: if (signedIn() && request.auth.uid == uid && !setupDone()
+                        && getAfter(/databases/$(database)/documents/meta/setup) != null
+                        && request.resource.data.role == 'admin')
+                    || isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    match /rooms/{no} {
+      allow read, write: if isStaff();
+    }
+
+    match /maint/{id} {
+      allow read, write: if isStaff();
+    }
+  }
+}
