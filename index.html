@@ -158,7 +158,7 @@ var CATS=[
  ['Family w/ Pyramids View',[['001','3',1],['002','4',1],['003','4',1],['111','4',1],['112','4',1],['211','4',1]]]
 ];
 var META={};CATS.forEach(function(c){c[1].forEach(function(r){META[r[0]]={cat:c[0],beds:r[1],sofa:!!r[2]};});});
-var ROLES={admin:{label:'مدير',areas:['rec','hk','rest','kit','lnd','users']},rec:{label:'ريسبشن',areas:['rec']},hkm:{label:'مدير الهاوس كيبنج',areas:['hk']},hk:{label:'هاوس كيبنج',areas:['work']},rest:{label:'المطعم (ويتر)',areas:['rest']},kit:{label:'المطبخ',areas:['kit']},lnd:{label:'المغسلة',areas:['lnd']}};
+var ROLES={admin:{label:'مدير',areas:['rec','hk','rest','kit','lnd','users']},rec:{label:'ريسبشن',areas:['rec']},hkm:{label:'مدير الهاوس كيبنج',areas:['hk']},hks:{label:'سوبر فايزر هاوس كيبنج',areas:['hk','work']},hk:{label:'هاوس كيبنج',areas:['work']},restm:{label:'مدير المطعم',areas:['rest','kit']},rest:{label:'المطعم (ويتر)',areas:['rest']},kit:{label:'المطبخ',areas:['kit']},lnd:{label:'المغسلة',areas:['lnd']}};
 var ST={free:['فاضية','c-ok'],occ:['مشغولة','c-soft'],clean:['محتاجة تنظيف','c-warn'],maint:['صيانة','c-grey']};
 var ISSUES=['تكييف','سباكة','كهربا','تلفزيون / واي فاي','أثاث','حاجة تانية'];
 var MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
@@ -303,8 +303,8 @@ function meDoc(){return S.uid&&S.staff[S.uid]&&S.staff[S.uid].active!==false?S.s
 function areas(){var m=meDoc();return m&&ROLES[m.role]?ROLES[m.role].areas:[];}
 function room(no){return S.rooms[no]||{status:'free'};}
 function staffBy(fn){return Object.keys(S.staff).filter(function(u){var s=S.staff[u];return s.active!==false&&fn(s);}).sort(function(a,b){return(S.staff[a].order||99)-(S.staff[b].order||99);});}
-function workers(){return staffBy(function(s){return s.role==='hk';});}
-function hkManagers(){return staffBy(function(s){return s.role==='hkm';});}
+function workers(){return staffBy(function(s){return s.role==='hk'||s.role==='hks';});}
+function hkManagers(){return staffBy(function(s){return s.role==='hkm'||s.role==='hks';});}
 function receptionists(){return staffBy(function(s){return s.role==='rec';});}
 function wname(u){return S.staff[u]?S.staff[u].name:'—';}
 function arrPending(r){return r.status==='free'&&!!r.arrival&&!!r.arrival.in&&r.arrival.in<=today()&&!r.arrival.ready;}
@@ -333,8 +333,8 @@ function cartTotal(){return cartLines().reduce(function(s,l){return s+l.q*l.p;},
 function money(n){return '$'+(Math.round((n||0)*100)/100);}
 function destTxt(o){return o.dest==='room'?'غرفة '+o.room:o.dest==='table'?'ترابيزة '+o.table:'تيك أواي';}
 function ordUrgentKit(o){return o.st==='new'||(o.st==='prep'&&S.now>=(o.next||0));}
-function kitchenStaff(){return staffBy(function(s){return s.role==='kit';});}
-function waiters(){return staffBy(function(s){return s.role==='rest';});}
+function kitchenStaff(){return staffBy(function(s){return s.role==='kit'||s.role==='restm';});}
+function waiters(){return staffBy(function(s){return s.role==='rest'||s.role==='restm';});}
 function restBack(){var x=homeOf();return x==='rest'?null:x==='rec'?'rec':'home';}
 function roomBill(no){var r=room(no);return S.bills.filter(function(o){return o.room===no&&o.st!=='cancel'&&(o.stayIn||null)===(r.in||null);}).sort(function(a,b){return a.at-b.at;});}
 function billSum(l){return l.reduce(function(s,o){return s+(o.total||0);},0);}
@@ -411,7 +411,7 @@ function vHome(){
   var m=meDoc(),a=areas(),tiles='';
   if(a.indexOf('rec')>=0)tiles+=big('rec','الريسبشن','وصول النهارده · خروج · نقل · طلب نظافة',ICON.desk,true);
   if(a.indexOf('hk')>=0)tiles+=big('hk','الهاوس كيبنج','توزيع · مراجعة · صيانة',ICON.broom,false,urg('hk'));
-  if(a.indexOf('work')>=0)tiles+=big('work','غرفي','الغرف اللي عليا',ICON.bed,false,urgentForMe());
+  if(a.indexOf('work')>=0)tiles+=big('work','غرفي','الغرف اللي عليا',ICON.bed,false,urg('work'));
   if(a.indexOf('rest')>=0)tiles+=big('rest','المطعم','المنيو · طلب للمطبخ والريسبشن',ICON.food,false,urg('rest'));
   if(a.indexOf('lnd')>=0)tiles+=big('lnd','المغسلة','غسيل جديد · موجود بالمغسلة',ICON.wash,false,urg('lnd'));
   if(a.indexOf('kit')>=0)tiles+=big('kit','المطبخ','الطلبات الجاية من المنيو',ICON.pot,false,urg('kit'));
