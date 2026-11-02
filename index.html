@@ -409,7 +409,7 @@ function vBlocked(){
 
 function vHome(){
   var m=meDoc(),a=areas(),tiles='';
-  if(a.indexOf('rec')>=0)tiles+=big('rec','الريسبشن','تشيك إن · خروج · نقل · طلب نظافة',ICON.desk,true);
+  if(a.indexOf('rec')>=0)tiles+=big('rec','الريسبشن','وصول النهارده · خروج · نقل · طلب نظافة',ICON.desk,true);
   if(a.indexOf('hk')>=0)tiles+=big('hk','الهاوس كيبنج','توزيع · مراجعة · صيانة',ICON.broom,false,urg('hk'));
   if(a.indexOf('work')>=0)tiles+=big('work','غرفي','الغرف اللي عليا',ICON.bed,false,urgentForMe());
   if(a.indexOf('rest')>=0)tiles+=big('rest','المطعم','المنيو · طلب للمطبخ والريسبشن',ICON.food,false,urg('rest'));
@@ -431,8 +431,7 @@ function vRec(){
   var ml=mt.length?mt.map(function(m){return '<div class="row" style="border-top:1px solid var(--line);padding-top:8px"><span class="badge grey"><small>غرفة</small><b>'+h(m.room)+'</b></span><span class="grow"><span class="ttl">'+h(m.issue)+'</span><br><span class="sub">'+h(m.note||'')+(m.note?' · ':'')+'بلّغ: '+h(wname(m.by))+' · من '+ago(S.now-m.at)+'</span></span>'+(m.blocks?'<span class="chip c-warn">موقفة</span>':'')+'</div>';}).join(''):'<span class="sub">مفيش بلاغات مفتوحة</span>';
   return top('الريسبشن',fmt(t),homeOf()==='rec'?null:'home',homeOf()==='rec'?soundBtn()+'<button class="ib" data-a="logout" aria-label="تسجيل خروج">'+ICON.out+'</button>':'')+'<div class="stack">'+toastHtml()+
   '<div class="stats"><div class="stat c-ok"><b>'+free+'</b><span>فاضية</span></div><div class="stat" style="background:var(--accent);color:var(--on-accent)"><b>'+occ+'</b><span>مشغولة</span></div><div class="stat c-warn"><b>'+leaving+'</b><span>خروج النهارده</span></div></div>'+
-  (function(){var n=arrivals().length;return big('rec-arr','وصول النهارده',n?n+' غرفة جاية النهارده · دوس للتشيك إن':'مفيش وصول متسجّل النهارده',ICON.bed,false,n);})()+
-  big('rec-in','تشيك إن','تسكين غرفة فاضية',ICON.in,true)+
+  (function(){var n=arrivals().length,c=allNos().filter(function(no){var r=room(no);return r.status==='occ'&&r.in===today();}).length;return big('rec-arr','وصول النهارده',n||c?n+' جاية · '+c+' وصلت · دوس للتشيك إن':'مفيش وصول متسجّل النهارده',ICON.bed,true,n);})()+
   big('rec-occ','الغرف المشغولة','خروج · نقل · طلب نظافة · حساب المطعم',ICON.out,false)+
   (function(){var o=S.orders.filter(function(x){return x.d===today()&&x.st!=='cancel';});return big('rest','المطعم','طلب جديد · '+o.length+' طلب النهارده',ICON.food,false);})()+
   big('lnd','المغسلة',S.laundry.length?S.laundry.length+' فاتورة في المغسلة · غسيل جديد':'غسيل جديد على حساب الغرفة',ICON.wash,false)+
@@ -462,8 +461,13 @@ function vRecArr(){
       '<div class="row" style="flex-wrap:wrap;gap:6px">'+hk+'</div>'+
       (why?'<p class="err">'+why+'</p>':'')+
       '<div class="row"><button class="btn b-main" data-a="arrIn" data-n="'+no+'"'+(ready?'':' disabled style="opacity:.5"')+'>'+ICON.in+' وصل · تشيك إن</button><button class="btn b-line" style="width:auto" data-a="arrDrop" data-n="'+no+'">لغي</button></div></div>';
-  }).join(''):'<p class="empty">مفيش وصول متسجّل النهارده</p>';
-  return top('وصول النهارده',list.length+' غرفة · من Aiosell','rec')+'<div class="stack">'+toastHtml()+body+'</div>';
+  }).join(''):'<p class="empty">مفيش غرف جاية لسه</p>';
+  // rooms whose check-in date is today and are already checked in
+  var came=allNos().filter(function(no){var r=room(no);return r.status==='occ'&&r.in===t;}).sort();
+  var cameHtml=came.length?'<h2 style="font-size:15px;margin-top:6px">وصلت النهارده · '+came.length+'</h2>'+came.map(function(no){var r=room(no);
+    return '<button class="card" data-a="go" data-v="rec-room" data-n="'+no+'"><div class="row"><span class="badge occ"><small>غرفة</small><b>'+no+'</b></span><span class="grow"><span class="ttl ltr" style="display:block;text-align:right;font-size:13px">'+h(META[no].cat)+'</span><span class="sub">'+fmt(r.in)+' ← '+fmt(r.out)+' · '+nights(Math.max(1,dayDiff(r.in,r.out)))+'</span></span><span class="chip c-ok">'+ICON.check+' وصل</span></div></button>';}).join(''):'';
+  return top('وصول النهارده',list.length+' جاية · '+came.length+' وصلت','rec')+'<div class="stack">'+toastHtml()+
+   (list.length||!came.length?'<h2 style="font-size:15px">جاية النهارده · '+list.length+'</h2>':'')+body+cameHtml+'</div>';
 }
 function vRecIn(){return top('تشيك إن','اختار غرفة فاضية','rec')+'<div class="stack">'+freeGroups('pickIn')+'</div>';}
 function vRecForm(){
