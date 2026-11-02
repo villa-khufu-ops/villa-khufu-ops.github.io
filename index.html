@@ -636,8 +636,13 @@ function vRestCart(){
   var dests='<span class="ttl">الطلب لمين؟</span><div class="picks">'+[['room','غرفة'],['table','ترابيزة'],['take','تيك أواي']].map(function(x){return '<button class="pick" data-a="dest" data-d="'+x[0]+'" aria-pressed="'+(d===x[0])+'">'+x[1]+'</button>';}).join('')+'</div>';
   var extra='';
   if(d==='room'){
-    var occ=allNos().filter(function(no){return room(no).status==='occ';}).sort();
-    extra=occ.length?'<span class="sub">الحساب هيتسجّل على الغرفة ويظهر عند الريسبشن</span><div class="grid3">'+occ.map(function(no){return '<button class="room'+(S.draft.room===no?' sel':'')+'" style="min-height:56px" data-a="pickOrdRoom" data-n="'+no+'" aria-pressed="'+(S.draft.room===no)+'"><b>'+no+'</b></button>';}).join('')+'</div>':'<p class="sub">مفيش غرف مشغولة دلوقتي</p>';
+    // all 28 rooms: occupied ones charge the room bill, any other room pays cash
+    var rbtn=function(no){var oc=room(no).status==='occ',sel=S.draft.room===no;return '<button class="room'+(sel?' sel':oc?' occ':'')+'" style="min-height:60px'+(!oc&&!sel?';opacity:.75':'')+'" data-a="pickOrdRoom" data-n="'+no+'" aria-pressed="'+sel+'"><b>'+no+'</b><span style="font-size:11px;font-weight:700">'+(oc?'على الغرفة':'كاش')+'</span></button>';};
+    var occL=allNos().filter(function(no){return room(no).status==='occ';}).sort(),othL=allNos().filter(function(no){return room(no).status!=='occ';}).sort();
+    var pr=S.draft.room;
+    extra='<span class="sub">الغرف المشغولة: الحساب بيتسجّل على الغرفة ويظهر عند الريسبشن</span><div class="grid3">'+occL.map(rbtn).join('')+'</div>'+
+      (othL.length?'<span class="sub">غرف تانية (مش مسجّل فيها نزيل في الأبلكيشن): الدفع كاش</span><div class="grid3">'+othL.map(rbtn).join('')+'</div>':'')+
+      (pr&&room(pr).status!=='occ'?'<p class="err" style="margin:0">غرفة '+pr+' مش مسجّل فيها نزيل · الطلب هيتسجّل كاش، مش على حساب الغرفة</p>':'');
   }else if(d==='table'){
     extra='<label class="f" for="otable">رقم الترابيزة<input class="inp ltr" id="otable" inputmode="numeric" maxlength="10"></label><span class="sub">الدفع كاش</span>';
   }else extra='<span class="sub">الدفع كاش</span>';
@@ -839,7 +844,7 @@ app.addEventListener('click',function(ev){
     var L=cartLines();if(!L.length||!db)return;
     var dd=S.draft.dest||'room',o={d:today(),at:now,by:S.uid,dest:dd,items:L.map(function(l){return{n:l.n,p:l.p,q:l.q};}),total:cartTotal(),st:'new',next:0,
       note:((document.getElementById('onote')||{}).value||'').trim().slice(0,200)};
-    if(dd==='room'){var rn=S.draft.room;if(!rn||room(rn).status!=='occ'){S.err='اختار الغرفة';render();return;}o.room=rn;o.pay='room';o.paid=false;o.stayIn=room(rn).in||null;}
+    if(dd==='room'){var rn=S.draft.room;if(!rn||!META[rn]){S.err='اختار الغرفة';render();return;}o.room=rn;if(room(rn).status==='occ'){o.pay='room';o.paid=false;o.stayIn=room(rn).in||null;}else{o.pay='cash';o.paid=true;}}
     else if(dd==='table'){var tb=((document.getElementById('otable')||{}).value||'').trim();if(!tb){S.err='اكتب رقم الترابيزة';render();return;}o.table=tb.slice(0,10);o.pay='cash';o.paid=true;}
     else{o.pay='cash';o.paid=true;}
     o.no=S.orders.filter(function(x){return x.d===o.d;}).reduce(function(m,x){return Math.max(m,x.no||0);},0)+1;
