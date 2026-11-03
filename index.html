@@ -954,10 +954,10 @@ function vGuest(){
     return '<div class="card" style="gap:8px"><div class="row" style="align-items:flex-start"><span class="grow"><span class="ttl">'+h(it[0])+'</span>'+(it[2]?'<span class="sub" style="display:block">'+h(it[2])+'</span>':'')+'</span><b class="money" style="font-size:16px">'+money(it[1])+'</b></div>'+
      (q?'<div class="qty" style="align-self:flex-start"><button data-a="gQ" data-k="'+k+'" data-d="-1" aria-label="Less">−</button><b>'+q+'</b><button data-a="gQ" data-k="'+k+'" data-d="1" aria-label="More">+</button></div>':'<button class="btn b-line" style="min-height:42px;width:auto;align-self:flex-start;color:var(--accent);border-color:var(--accent)" data-a="gQ" data-k="'+k+'" data-d="1">+ Add</button>')+'</div>';}).join('');
   var n=gCount();
-  var gpl=G.place||'room',places='<span class="ttl">Where should we serve it?</span><div class="picks" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+PLACES.map(function(x){return '<button class="pick" data-a="gPlace" data-p="'+x[0]+'" aria-pressed="'+(gpl===x[0])+'">'+x[1]+'</button>';}).join('')+'</div>';
-  var send=n?places+'<label class="f" for="gnoteF">Notes for the kitchen (optional)<input class="inp" id="gnoteF" maxlength="200" placeholder="e.g. no onions"></label><span class="sub">Breakfast or meals included in your stay will not be charged. Reception confirms every order.</span>'+err+
+  var gpl=G.place||'room',places='<div class="card" style="gap:8px"><span class="ttl">Where are you? We will serve your order there</span><div class="picks" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+PLACES.map(function(x){return '<button class="pick" data-a="gPlace" data-p="'+x[0]+'" aria-pressed="'+(gpl===x[0])+'">'+x[1]+'</button>';}).join('')+'</div></div>';
+  var send=n?'<span class="sub">Serving: <b>'+h((PLACES.filter(function(x){return x[0]===gpl;})[0]||PLACES[0])[1])+'</b></span><label class="f" for="gnoteF">Notes for the kitchen (optional)<input class="inp" id="gnoteF" maxlength="200" placeholder="e.g. no onions"></label><span class="sub">Breakfast or meals included in your stay will not be charged. Reception confirms every order.</span>'+err+
     '<button class="btn b-main cartbar" data-a="gSendFood"'+(G.busy?' disabled':'')+'><span>'+n+' item'+(n>1?'s':'')+' · <span class="money">'+money(gTotal())+'</span></span><span>Send order</span></button>':'';
-  return wrap(tabs+chips+items+send);
+  return wrap(tabs+places+chips+items+send);
 }
 // ----- guest chat: one thread per phone + room, its random id is the key to read it -----
 function gUnread(){var G=S.g;if(G.tab==='chat')return 0;return G.msgs.slice(G.seen||0).filter(function(m){return m.from==='rec';}).length;}
