@@ -2,6 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
+<script>/* guest page (?guest) is English, left-to-right, from the very first paint */try{if(/(^|[?&])guest(=|&|$)/.test(location.search)){document.documentElement.lang='en';document.documentElement.dir='ltr';document.title='Villa Khufu · Guest services';}}catch(e){}</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Villa Khufu Operations</title>
 <meta name="theme-color" content="#8A4A14">
@@ -1697,7 +1698,7 @@ function listen(){
 }
 if(!configured){render();return;}
 fb=firebase.initializeApp(cfg);auth=firebase.auth();db=firebase.firestore();
-if(GQ){document.documentElement.lang='en';document.title='Villa Khufu · Room service & tours';try{S.g.room=sessionStorage.getItem('vkRoom')||'';}catch(e){}if(S.g.room)gOpenRoom();S.ready=true;render();return;}
+if(GQ){document.documentElement.lang='en';document.documentElement.dir='ltr';document.title='Villa Khufu · Guest services';try{S.g.room=sessionStorage.getItem('vkRoom')||'';}catch(e){}if(S.g.room)gOpenRoom();S.ready=true;render();return;}
 try{db.enablePersistence({synchronizeTabs:true}).catch(function(){});}catch(e){}
 db.collection('meta').doc('setup').onSnapshot(function(d){S.setup=d.exists;render();},function(){S.setup=true;render();});
 auth.onAuthStateChanged(function(user){
