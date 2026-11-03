@@ -149,6 +149,34 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // شات النزلاء: كل محادثة ليها رقم سري عشوائي هو اللي بيفتحها، والريسبشن والمدير بيشوفوا الكل
+    match /chats/{tid} {
+      allow get: if true;
+      allow list: if hasRole(['admin', 'rec']);
+      allow create: if tid.size() >= 20
+        && request.resource.data.keys().hasOnly(['room', 'at', 'last', 'lastFrom', 'lastText', 'open', 'unread'])
+        && request.resource.data.room is string && request.resource.data.room.size() == 3
+        && request.resource.data.lastFrom == 'guest' && request.resource.data.open == true
+        && request.resource.data.lastText is string && request.resource.data.lastText.size() <= 80
+        && exists(/databases/$(database)/documents/rooms/$(request.resource.data.room))
+        && get(/databases/$(database)/documents/rooms/$(request.resource.data.room)).data.status == 'occ';
+      allow update: if hasRole(['admin', 'rec'])
+        || (onlyKeys(['last', 'lastFrom', 'lastText', 'open', 'unread'])
+            && request.resource.data.lastFrom == 'guest' && request.resource.data.open == true
+            && request.resource.data.lastText is string && request.resource.data.lastText.size() <= 80);
+      allow delete: if isAdmin();
+      match /msgs/{m} {
+        allow read: if true;
+        allow create: if existsAfter(/databases/$(database)/documents/chats/$(tid))
+          && request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 500
+          && request.resource.data.at is number
+          && ((request.resource.data.from == 'guest' && request.resource.data.keys().hasOnly(['from', 'text', 'at']))
+              || (request.resource.data.from == 'rec' && hasRole(['admin', 'rec']) && request.resource.data.by == request.auth.uid));
+        allow update: if false;
+        allow delete: if isAdmin();
+      }
+    }
+
     // تسليم الشيفت
     match /shift/{id} {
       allow read: if hasRole(['admin', 'rec']);

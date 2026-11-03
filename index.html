@@ -327,7 +327,7 @@ var ICON={
 };
 
 // ---------- state ----------
-var S={greq:[],tdraft:{},g:{room:'',tab:'food',cat:0,cart:{},tour:null,pax:2,sent:null,err:'',busy:false},ready:false,setup:null,uid:null,staff:{},rooms:{},maint:[],orders:[],bills:[],laundry:[],lbills:[],ldraft:{room:null,pieces:4},cart:{},prep:{},preDone:{},prepDay:'',aio:[],lost:[],ck:{},mcart:{},mdraft:{room:null},draft:{dest:'room',room:null},view:'home',p:{},toast:null,err:'',sound:false,now:Date.now(),busy:false};
+var S={chats:[],chat:null,chatMsgs:[],greq:[],tdraft:{},g:{tid:'',msgs:[],room:'',tab:'food',cat:0,cart:{},tour:null,pax:2,sent:null,err:'',busy:false},ready:false,setup:null,uid:null,staff:{},rooms:{},maint:[],orders:[],bills:[],laundry:[],lbills:[],ldraft:{room:null,pieces:4},cart:{},prep:{},preDone:{},prepDay:'',aio:[],lost:[],ck:{},mcart:{},mdraft:{room:null},draft:{dest:'room',room:null},view:'home',p:{},toast:null,err:'',sound:false,now:Date.now(),busy:false};
 var app=document.getElementById('app');
 var audio=null,ticks=0,toastTimer=null,unsubs=[];
 var cfg=window.FIREBASE_CONFIG||{};
@@ -354,7 +354,7 @@ function urg(x){
   if(x==='work'){allNos().forEach(function(no){var t=room(no).task;if(t&&t.w===S.uid&&taskUrgent(t))n++;});}
   if(x==='kit')S.orders.forEach(function(o){if(ordUrgentKit(o))n++;});
   if(x==='rest')S.orders.forEach(function(o){if(o.st==='ready')n++;});
-  if(x==='rec')n+=S.greq.length;
+  if(x==='rec')n+=S.greq.length+chatUnread();
   if(x==='lnd')S.laundry.forEach(function(o){if(o.st==='new')n++;});
   if(x==='mnt')S.maint.forEach(function(m){if(maintUrgent(m))n++;});
   return n;
@@ -518,6 +518,7 @@ function vRec(){
   var ml=mt.length?mt.map(function(m){return '<div class="row" style="border-top:1px solid var(--line);padding-top:8px"><span class="badge grey"><small>غرفة</small><b>'+h(m.room)+'</b></span><span class="grow"><span class="ttl">'+h(m.issue)+'</span><br><span class="sub">'+h(m.note||'')+(m.note?' · ':'')+'بلّغ: '+h(wname(m.by))+' · من '+ago(S.now-m.at)+'</span></span>'+(m.blocks?'<span class="chip c-warn">موقفة</span>':'')+'</div>';}).join(''):'<span class="sub">مفيش بلاغات مفتوحة</span>';
   return top('الريسبشن',fmt(t),homeOf()==='rec'?null:'home',homeOf()==='rec'?soundBtn()+'<button class="ib" data-a="go" data-v="pin" aria-label="حسابي · الاسم والرقم السري">'+ICON.user+'</button><button class="ib" data-a="logout" aria-label="تسجيل خروج">'+ICON.out+'</button>':'')+'<div class="stack">'+toastHtml()+
   '<div class="stats"><div class="stat c-ok"><b>'+free+'</b><span>فاضية</span></div><div class="stat" style="background:var(--accent);color:var(--on-accent)"><b>'+occ+'</b><span>مشغولة</span></div><div class="stat c-warn"><b>'+leaving+'</b><span>خروج النهارده</span></div></div>'+syncLine()+
+  (chatUnread()?'<button class="alert info pulse" data-a="go" data-v="rec-chats" role="alert">'+ICON.bell+'<span><b>'+chatUnread()+' رسالة جديدة من النزلاء</b><span>'+h(S.chats.filter(function(c){return c.unread;}).map(function(c){return 'غرفة '+c.room;}).join('، '))+'</span></span></button>':'')+
   (S.greq.length?'<button class="alert pulse" data-a="go" data-v="rec-greq" role="alert">'+ICON.bell+'<span><b>'+S.greq.length+' طلب جديد من النزلاء</b><span>'+h(S.greq.map(function(g){return 'غرفة '+g.room+' · '+(g.type==='tour'?'رحلة':'مطعم');}).join('، '))+'</span></span></button>':'')+
   (function(){var n=arrivals().length,c=allNos().filter(function(no){var r=room(no);return r.status==='occ'&&r.in===today();}).length;return big('rec-arr','وصول النهارده',n||c?(n+c)+' غرفة النهارده · '+c+' دخلت · '+n+' لسه':'مفيش وصول متسجّل النهارده',ICON.bed,true,n);})()+
   big('rec-occ','الغرف المشغولة','خروج · نقل · طلب نظافة',ICON.out,false)+
@@ -528,6 +529,7 @@ function vRec(){
   (function(){var o=S.orders.filter(function(x){return isFood(x)&&x.d===today()&&x.st!=='cancel';});return big('rest','المطعم','طلب جديد · '+o.length+' طلب النهارده',ICON.food,false);})()+
   big('mini','التلاجة','مياه · سوفت درينك · شوكولاتة · على حساب الغرفة',ICON.fridge,false)+
   big('tour','الرحلات','حجز رحلة للنزيل · السعر بتحدده إنت · على حساب الغرفة',ICON.report,false)+
+  big('rec-chats','شات النزلاء',chatUnread()?chatUnread()+' رسالة جديدة':'الرسايل اللي النزلاء بيبعتوها من الـ QR',ICON.bell,false,chatUnread())+
   big('rec-greq','طلبات النزلاء (QR)',S.greq.length?S.greq.length+' طلب مستني ردّك':'الطلبات اللي النزلاء بيبعتوها من الـ QR',ICON.bell,false,S.greq.length)+
   big('qr','QR النزلاء','اطبع الـ QR · النزيل يطلب أكل أو رحلة من موبايله',ICON.report,false)+
   big('lnd-new','استلام غسيل','استلم الغسيل من النزيل وابعته للمغسلة',ICON.wash,false)+
@@ -846,6 +848,30 @@ function vTour(){
    '<button class="btn b-main" style="min-height:58px" data-a="tSave">تسجيل الرحلة على حساب الغرفة</button></div>';
 }
 // ----- guest requests from the QR page (reception) -----
+// ----- guest chats (reception) -----
+function chatUnread(){return S.chats.filter(function(c){return c.unread;}).length;}
+var chatUnsub=null;
+function openChat(id){if(chatUnsub){try{chatUnsub();}catch(e){}chatUnsub=null;}S.chatMsgs=[];S.chat=id;if(!db||!id)return;
+  chatUnsub=db.collection('chats').doc(id).collection('msgs').orderBy('at').onSnapshot(function(sn){var l=[];sn.forEach(function(d){l.push(d.data());});S.chatMsgs=l;render();},function(){});
+  db.collection('chats').doc(id).set({unread:0},{merge:true}).catch(function(){});}
+function vRecChats(){
+  var l=S.chats.slice().sort(function(a,b){return (b.last||0)-(a.last||0);});
+  return top('شات النزلاء',l.length?l.length+' محادثة مفتوحة':'','rec')+'<div class="stack">'+toastHtml()+
+   (l.length?l.map(function(c){return '<button class="card" style="text-align:start" data-a="chatOpen" data-id="'+h(c.id)+'"><div class="row"><span class="badge'+(c.unread?' occ':'')+'"><small>غرفة</small><b>'+h(c.room)+'</b></span><span class="grow"><span class="ttl">'+(c.unread?'رسالة جديدة':'غرفة '+h(c.room))+'</span><br><span class="sub ltr" style="display:block;text-align:right">'+(c.lastFrom==='rec'?'إنت: ':'')+h(c.lastText||'')+'</span></span><span class="sub">'+ago(S.now-(c.last||0))+'</span></div></button>';}).join(''):'<p class="empty">مفيش محادثات · النزيل بيبعت من تبويب Chat في صفحة الـ QR</p>')+'</div>';
+}
+function vRecChat(){
+  var c=S.chats.filter(function(x){return x.id===S.chat;})[0];
+  if(!c)return top('شات','','rec-chats')+'<div class="stack"><p class="empty">المحادثة دي اتقفلت</p></div>';
+  if(c.unread&&db)db.collection('chats').doc(c.id).set({unread:0},{merge:true}).catch(function(){});
+  var r=room(c.room),oc=r&&r.status==='occ';
+  var ms=S.chatMsgs.map(function(m){var me=m.from==='rec';return '<div style="align-self:'+(me?'flex-start':'flex-end')+';max-width:82%;background:'+(me?'var(--accent)':'var(--surface)')+';color:'+(me?'var(--on-accent)':'var(--ink)')+';border:1px solid var(--line);border-radius:16px;padding:8px 12px"><div class="ltr" style="white-space:pre-wrap;word-break:break-word;text-align:start" dir="auto">'+h(m.text)+'</div><div style="font-size:11px;opacity:.7;margin-top:2px">'+(me?'الريسبشن':'النزيل')+' · '+hm(m.at)+'</div></div>';}).join('');
+  return top('شات غرفة '+c.room,oc?'مشغولة':'الغرفة مش مشغولة دلوقتي','rec-chats','<button class="ib" data-a="chatClose" aria-label="قفل المحادثة">'+ICON.check+'</button>')+'<div class="stack">'+toastHtml()+
+   '<div class="card" style="gap:8px">'+(ms||'<p class="sub">بيحمّل…</p>')+'</div>'+
+   (S.err?'<p class="err" role="alert">'+h(S.err)+'</p>':'')+
+   '<span class="sub">النزيل غالباً أجنبي · اكتب بالإنجليزي. الرد بيظهرله في صفحة الـ QR وهي مفتوحة.</span>'+
+   '<div class="row" style="gap:8px;position:sticky;bottom:8px"><textarea class="inp grow" id="rmsg" maxlength="500" rows="2" placeholder="Write a reply…" aria-label="الرد"></textarea><button class="btn b-main" style="width:auto" data-a="chatSend">إرسال</button></div>'+
+   '<button class="btn b-line" data-a="chatClose">قفل المحادثة (خلصت)</button></div>';
+}
 function vRecGreq(){
   var l=S.greq.slice().sort(function(a,b){return a.at-b.at;});
   return top('طلبات النزلاء',l.length+' طلب','rec')+'<div class="stack">'+toastHtml()+
@@ -862,12 +888,12 @@ function guestUrl(){return location.origin+location.pathname+'?guest';}
 var qrLib=null;
 function qrSvg(text){
   if(!window.qrcode){if(!qrLib){qrLib=document.createElement('script');qrLib.src='https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';qrLib.onload=function(){render();};document.head.appendChild(qrLib);}return '<p class="hint">بيحمّل الـ QR…</p>';}
-  try{var q=window.qrcode(0,'M');q.addData(text);q.make();return q.createSvgTag({cellSize:8,margin:2,scalable:true});}catch(e){return '<p class="err">الـ QR ما اتعملش</p>';}
+  try{var q=window.qrcode(0,'H');q.addData(text);q.make();return '<div style="position:relative">'+q.createSvgTag({cellSize:8,margin:2,scalable:true})+'<img src="apple-touch-icon.png" alt="" style="position:absolute;left:50%;top:50%;width:22%;height:22%;transform:translate(-50%,-50%);border-radius:50%;border:4px solid #fff;background:#fff"></div>';}catch(e){return '<p class="err">الـ QR ما اتعملش</p>';}
 }
 function vQr(){
   var u=guestUrl();
   return top('QR النزلاء','اطبعه وحطه في الغرف والريسبشن','rec')+'<div class="stack">'+
-   '<div class="card qrcard" style="align-items:center;text-align:center;background:#fff;color:#2B2620"><b style="font-size:22px">Villa Khufu</b><span style="font-size:15px;font-weight:700">Scan to order food &amp; book tours</span><div style="width:260px;max-width:100%">'+qrSvg(u)+'</div><span style="font-size:13px" class="ltr">Room service · Restaurant · Tours</span></div>'+
+   '<div class="card qrcard" style="align-items:center;text-align:center;background:#fff;color:#2B2620"><img src="apple-touch-icon.png" alt="" width="90" height="90" style="border-radius:50%"><b style="font-size:22px">Villa Khufu</b><span style="font-size:15px;font-weight:700">Scan to order food, book tours &amp; chat with us</span><div style="width:260px;max-width:100%">'+qrSvg(u)+'</div><span style="font-size:13px" class="ltr">Restaurant · Tours · Chat with reception</span></div>'+
    '<p class="sub noprint" style="margin:0">QR واحد لكل الغرف. النزيل يعمل سكان، يكتب رقم غرفته، ويختار من المطعم أو الرحلات. الطلب بيوصلك هنا في "طلبات النزلاء" وبيرن، ومش بيتحسب على الغرفة غير لما إنت تبعته.</p>'+
    '<p class="sub noprint ltr" style="margin:0;text-align:right;word-break:break-all">'+h(u)+'</p>'+
    '<button class="btn b-main noprint" data-a="qrPrint">اطبع</button></div>';
@@ -877,14 +903,18 @@ function vQr(){
 function gTotal(){var G=S.g;return Object.keys(G.cart).reduce(function(s,k){var it=itemAt(k);return s+(it?it.p*G.cart[k]:0);},0);}
 function gCount(){var G=S.g;return Object.keys(G.cart).reduce(function(s,k){return s+(G.cart[k]||0);},0);}
 function vGuest(){
-  var G=S.g,head='<div class="top" style="direction:ltr"><div class="t" style="text-align:left"><h1>Villa Khufu</h1><p>'+(G.room?'Room '+h(G.room)+' · <a href="#" data-a="gRoomChange" style="color:inherit">change</a>':'Room service &amp; tours')+'</p></div></div>';
+  var G=S.g,head='<div class="top" style="direction:ltr"><img src="apple-touch-icon.png" alt="Villa Khufu" width="48" height="48" style="border-radius:50%;flex:none"><div class="t" style="text-align:left"><h1>Villa Khufu</h1><p>'+(G.room?'Room '+h(G.room)+' · <a href="#" data-a="gRoomChange" style="color:inherit">change</a>':'Room service &amp; tours')+'</p></div></div>';
   var wrap=function(x){return '<div style="direction:ltr;text-align:left">'+head+'<div class="stack">'+x+'</div></div>';};
-  if(!G.room)return wrap('<div class="card" style="gap:12px"><span class="ttl" style="font-size:18px">Welcome! What is your room number?</span>'+
+  if(!G.room)return wrap('<div class="card" style="gap:12px;align-items:center;text-align:center"><img src="apple-touch-icon.png" alt="" width="120" height="120" style="border-radius:50%"><span class="ttl" style="font-size:18px">Welcome! What is your room number?</span>'+
     '<input class="inp ltr" id="groom" inputmode="numeric" maxlength="3" placeholder="e.g. 110" style="font-size:22px;text-align:center" aria-label="Room number">'+
     (G.err?'<p class="err" role="alert">'+h(G.err)+'</p>':'')+'<button class="btn b-main" data-a="gRoom">Continue</button></div>');
   if(G.sent)return wrap('<div class="card" style="align-items:center;text-align:center;gap:10px"><b style="font-size:20px">Thank you! ✓</b><span>Your request was sent to reception. They will confirm it with you shortly.</span>'+(G.sent==='tour'?'<span class="sub">The tour price will be confirmed by reception.</span>':'')+'<button class="btn b-main" data-a="gAgain">Back to the menu</button></div>');
-  var tabs='<div class="tabs" role="tablist" style="grid-template-columns:1fr 1fr"><button role="tab" aria-selected="'+(G.tab==='food')+'" data-a="gTab" data-t="food">Restaurant</button><button role="tab" aria-selected="'+(G.tab==='tour')+'" data-a="gTab" data-t="tour">Tours</button></div>';
+  var tabs='<div class="tabs" role="tablist" style="grid-template-columns:1fr 1fr 1fr"><button role="tab" aria-selected="'+(G.tab==='food')+'" data-a="gTab" data-t="food">Restaurant</button><button role="tab" aria-selected="'+(G.tab==='tour')+'" data-a="gTab" data-t="tour">Tours</button><button role="tab" aria-selected="'+(G.tab==='chat')+'" data-a="gTab" data-t="chat">Chat'+(gUnread()?' <span class="cnt">'+gUnread()+'</span>':'')+'</button></div>';
   var err=G.err?'<p class="err" role="alert">'+h(G.err)+'</p>':'';
+  if(G.tab==='chat'){G.seen=G.msgs.length;
+    var ms=G.msgs.length?G.msgs.map(function(m){var me=m.from==='guest';return '<div style="align-self:'+(me?'flex-end':'flex-start')+';max-width:82%;background:'+(me?'var(--accent)':'var(--surface)')+';color:'+(me?'var(--on-accent)':'var(--ink)')+';border:1px solid var(--line);border-radius:16px;padding:8px 12px"><div style="white-space:pre-wrap;word-break:break-word">'+h(m.text)+'</div><div style="font-size:11px;opacity:.7;margin-top:2px">'+(me?'You':'Reception')+' · '+hm(m.at).replace(' ص',' am').replace(' م',' pm')+'</div></div>';}).join(''):'<p class="sub" style="text-align:center">Send a message to reception: questions, requests, anything you need.</p>';
+    return wrap(tabs+'<div class="card" style="gap:8px">'+ms+'</div>'+err+
+     '<div class="row" style="gap:8px;position:sticky;bottom:8px"><textarea class="inp grow" id="gmsg" maxlength="500" rows="2" placeholder="Write a message…" aria-label="Message"></textarea><button class="btn b-main" style="width:auto" data-a="gChatSend"'+(G.busy?' disabled':'')+'>Send</button></div>');}
   if(G.tab==='tour'){
     if(G.tour){var t=tourById(G.tour);
       return wrap(tabs+'<div class="card" style="gap:10px"><span class="ttl" style="font-size:17px">'+h(t[1])+'</span><span class="sub">'+h(t[3])+'</span>'+
@@ -905,16 +935,35 @@ function vGuest(){
     '<button class="btn b-main cartbar" data-a="gSendFood"'+(G.busy?' disabled':'')+'><span>'+n+' item'+(n>1?'s':'')+' · <span class="money">'+money(gTotal())+'</span></span><span>Send order</span></button>':'';
   return wrap(tabs+chips+items+send);
 }
+// ----- guest chat: one thread per phone + room, its random id is the key to read it -----
+function gUnread(){var G=S.g;if(G.tab==='chat')return 0;return G.msgs.slice(G.seen||0).filter(function(m){return m.from==='rec';}).length;}
+var gChatUnsub=null;
+function gListen(){var G=S.g;if(!db||!G.tid||gChatUnsub)return;
+  gChatUnsub=db.collection('chats').doc(G.tid).collection('msgs').orderBy('at').onSnapshot(function(sn){var l=[];sn.forEach(function(d){l.push(d.data());});var nw=l.length>G.msgs.length&&l[l.length-1].from==='rec';G.msgs=l;render();if(nw&&G.tab==='chat')window.scrollTo(0,document.body.scrollHeight);},function(){});}
+function gTidKey(){return 'vkChat'+S.g.room;}
+function gChatSend(){
+  var G=S.g,el=document.getElementById('gmsg'),t=((el||{}).value||'').trim().slice(0,500);if(!t||!db||G.busy)return;
+  G.busy=true;G.err='';var now=Date.now(),first=!G.tid;
+  if(first){var a=new Uint8Array(16);(window.crypto||window.msCrypto).getRandomValues(a);G.tid=Array.prototype.map.call(a,function(x){return ('0'+x.toString(16)).slice(-2);}).join('');}
+  var ref=db.collection('chats').doc(G.tid),b=db.batch();
+  if(first)b.set(ref,{room:G.room,at:now,last:now,lastFrom:'guest',lastText:t.slice(0,80),open:true,unread:1});
+  else b.set(ref,{last:now,lastFrom:'guest',lastText:t.slice(0,80),open:true,unread:1},{merge:true});
+  b.set(ref.collection('msgs').doc(),{from:'guest',text:t,at:now});
+  b.commit().then(function(){G.busy=false;if(first){try{localStorage.setItem(gTidKey(),G.tid);}catch(e){}gListen();}var e2=document.getElementById('gmsg');if(e2)e2.value='';render();window.scrollTo(0,document.body.scrollHeight);})
+   .catch(function(e){G.busy=false;if(first)G.tid='';G.err=e&&e.code==='permission-denied'?'We could not send this for room '+G.room+'. Please check the room number or call reception.':'Could not send. Check your internet and try again.';render();});
+}
 function gSend(doc,kind){
   var G=S.g;if(!db||G.busy)return;G.busy=true;G.err='';render();
   doc.room=G.room;doc.at=Date.now();doc.st='new';doc.type=kind;
   db.collection('greq').add(doc).then(function(){G.busy=false;G.sent=kind;G.cart={};G.tour=null;render();window.scrollTo(0,0);})
    .catch(function(e){G.busy=false;G.err=e&&e.code==='permission-denied'?'We could not send this for room '+G.room+'. Please check the room number or call reception.':'Could not send. Check your internet and try again.';render();});
 }
+function gOpenRoom(){var G=S.g;try{G.tid=localStorage.getItem(gTidKey())||'';}catch(e){G.tid='';}G.msgs=[];G.seen=0;gListen();}
 function guestAct(a,b){
   var G=S.g;
-  if(a==='gRoom'){var v=((document.getElementById('groom')||{}).value||'').trim();if(v.length<3)v=('000'+v).slice(-3);if(!META[v]){G.err='Please enter a valid room number.';render();return;}G.room=v;G.err='';try{sessionStorage.setItem('vkRoom',v);}catch(e){}render();return;}
-  if(a==='gRoomChange'){G.room='';G.sent=null;render();return;}
+  if(a==='gRoom'){var v=((document.getElementById('groom')||{}).value||'').trim();if(v.length<3)v=('000'+v).slice(-3);if(!META[v]){G.err='Please enter a valid room number.';render();return;}G.room=v;G.err='';try{sessionStorage.setItem('vkRoom',v);}catch(e){}gOpenRoom();render();return;}
+  if(a==='gRoomChange'){G.room='';G.sent=null;if(gChatUnsub){try{gChatUnsub();}catch(e){}gChatUnsub=null;}G.tid='';G.msgs=[];G.seen=0;render();return;}
+  if(a==='gChatSend'){gChatSend();return;}
   if(a==='gAgain'){G.sent=null;render();return;}
   if(a==='gTab'){G.tab=b.dataset.t;G.err='';render();window.scrollTo(0,0);return;}
   if(a==='gCat'){G.cat=+b.dataset.i;render();return;}
@@ -1285,8 +1334,8 @@ function vUserForm(){
 }
 
 // ---------- render ----------
-var VIEWS={tour:vTour,'rec-greq':vRecGreq,qr:vQr,daily:vDaily,home:vHome,rec:vRec,'rec-arr':vRecArr,'rec-in':vRecIn,'rec-form':vRecForm,'rec-occ':vRecOcc,'rec-room':vRecRoom,'rec-move':vRecMove,hk:vHk,'hk-room':vHkRoom,work:vWork,report:vReport,users:vUsers,'user-form':vUserForm,pin:vPin,rest:vRest,'rec-acc':vRecAcc,'hk-tmr':vHkTmr,mnt:vMnt,'rec-aio':vRecAio,'rec-lost':vRecLost,'rec-shift':vRecShift,help:vHelp,'rec-mpick':vRecMPick,'rec-rep':vRecRep,'rec-acc-room':vRecAccRoom,mini:vMini,lnd:vLnd,'lnd-new':vLndNew,'rest-cart':vRestCart,'rest-orders':vRestOrders,kit:vKit};
-var NEED={tour:'rec','rec-greq':'rec',qr:'rec','hk-tmr':'hk',mnt:'mnt','rec-aio':'rec','rec-lost':'rec','rec-shift':'rec','rec-mpick':'rec','rec-rep':'rec','rec-acc':'rec','rec-acc-room':'rec',mini:['rec','hk','work'],lnd:['lnd','rec','hk','work'],'lnd-new':['lnd','rec','hk','work'],rest:['rest','rec'],'rest-cart':['rest','rec'],'rest-orders':['rest','rec','kit'],kit:'kit',daily:'hk',rec:'rec','rec-arr':'rec','rec-in':'rec','rec-form':'rec','rec-occ':'rec','rec-room':'rec','rec-move':'rec',hk:'hk','hk-room':'hk',work:'work',users:'users','user-form':'users'};
+var VIEWS={'rec-chats':vRecChats,'rec-chat':vRecChat,tour:vTour,'rec-greq':vRecGreq,qr:vQr,daily:vDaily,home:vHome,rec:vRec,'rec-arr':vRecArr,'rec-in':vRecIn,'rec-form':vRecForm,'rec-occ':vRecOcc,'rec-room':vRecRoom,'rec-move':vRecMove,hk:vHk,'hk-room':vHkRoom,work:vWork,report:vReport,users:vUsers,'user-form':vUserForm,pin:vPin,rest:vRest,'rec-acc':vRecAcc,'hk-tmr':vHkTmr,mnt:vMnt,'rec-aio':vRecAio,'rec-lost':vRecLost,'rec-shift':vRecShift,help:vHelp,'rec-mpick':vRecMPick,'rec-rep':vRecRep,'rec-acc-room':vRecAccRoom,mini:vMini,lnd:vLnd,'lnd-new':vLndNew,'rest-cart':vRestCart,'rest-orders':vRestOrders,kit:vKit};
+var NEED={'rec-chats':'rec','rec-chat':'rec',tour:'rec','rec-greq':'rec',qr:'rec','hk-tmr':'hk',mnt:'mnt','rec-aio':'rec','rec-lost':'rec','rec-shift':'rec','rec-mpick':'rec','rec-rep':'rec','rec-acc':'rec','rec-acc-room':'rec',mini:['rec','hk','work'],lnd:['lnd','rec','hk','work'],'lnd-new':['lnd','rec','hk','work'],rest:['rest','rec'],'rest-cart':['rest','rec'],'rest-orders':['rest','rec','kit'],kit:'kit',daily:'hk',rec:'rec','rec-arr':'rec','rec-in':'rec','rec-form':'rec','rec-occ':'rec','rec-room':'rec','rec-move':'rec',hk:'hk','hk-room':'hk',work:'work',users:'users','user-form':'users'};
 function current(){
   if(!configured)return vNoConfig;
   if(GQ)return vGuest;
@@ -1382,6 +1431,11 @@ app.addEventListener('click',function(ev){
     if(TD.greq)gqSet(TD.greq,'acc');
     S.tdraft={};S.err='';go('rec');flash('رحلة '+tt[2]+' اتسجّلت على غرفة '+to.room+' · '+money(to.total));return;
   }
+  if(a==='chatOpen'){openChat(b.dataset.id);go('rec-chat');return;}
+  if(a==='chatSend'){var cid=S.chat,el=document.getElementById('rmsg'),tx=((el||{}).value||'').trim().slice(0,500);if(!tx||!db||!cid)return;
+    var cref=db.collection('chats').doc(cid),cb=db.batch();cb.set(cref.collection('msgs').doc(),{from:'rec',text:tx,at:now,by:S.uid});cb.set(cref,{last:now,lastFrom:'rec',lastText:tx.slice(0,80),unread:0},{merge:true});
+    cb.commit().then(function(){var e2=document.getElementById('rmsg');if(e2)e2.value='';}).catch(function(e){flash(e&&e.code==='permission-denied'?'لازم تحديث قواعد Firebase (Rules) الأول':'ما اتبعتش، جرّب تاني');});return;}
+  if(a==='chatClose'){if(db&&S.chat)db.collection('chats').doc(S.chat).set({open:false,unread:0,closedAt:now,closedBy:S.uid},{merge:true}).catch(function(){});openChat(null);go('rec-chats');flash('المحادثة اتقفلت');return;}
   if(a==='gqRej'){gqSet(b.dataset.id,'rej');flash('الطلب اترفض');return;}
   if(a==='gqTour'){var gt=gqById(b.dataset.id);if(!gt)return;S.tdraft={id:gt.tour&&gt.tour.id,room:gt.room,pax:(gt.tour&&gt.tour.pax)||1,date:gt.tour&&gt.tour.date,greq:gt.id};go('tour');
     var tn=document.getElementById('tnote');if(tn&&gt.note)tn.value=gt.note;return;}
@@ -1609,7 +1663,7 @@ function listenPrep(){
   prepUnsubs.forEach(function(u){try{u();}catch(e){}});prepUnsubs=[];S.prep={};S.prepDay=today();
   [today(),tomorrow()].forEach(function(d){prepUnsubs.push(db.collection('prep').doc(d).onSnapshot(function(sn){S.prep[d]=sn.exists?sn.data():{};render();applyPre();},function(){}));});
 }
-function stopListening(){prepUnsubs.forEach(function(u){try{u();}catch(e){}});prepUnsubs=[];unsubs.forEach(function(u){try{u();}catch(e){}});unsubs=[];S.staff={};S.rooms={};S.maint=[];S.orders=[];S.bills=[];S.laundry=[];S.lbills=[];S.aio=[];S.lost=[];S.greq=[];S.staffLoaded=false;}
+function stopListening(){prepUnsubs.forEach(function(u){try{u();}catch(e){}});prepUnsubs=[];unsubs.forEach(function(u){try{u();}catch(e){}});unsubs=[];S.staff={};S.rooms={};S.maint=[];S.orders=[];S.bills=[];S.laundry=[];S.lbills=[];S.aio=[];S.lost=[];S.greq=[];S.chats=[];S.staffLoaded=false;}
 function listen(){
   stopListening();
   unsubs.push(db.collection('staff').onSnapshot(function(snap){var o={};snap.forEach(function(d){o[d.id]=d.data();});S.staff=o;S.staffLoaded=true;render();},function(){S.staffLoaded=true;render();}));
@@ -1619,6 +1673,8 @@ function listen(){
   unsubs.push(db.collection('orders').where('at','>=',Date.now()-36*3600000).onSnapshot(function(snap){var l=[],before=urgentForMe();snap.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.orders=l;render();if(urgentForMe()>before)ring();},function(){}));
   unsubs.push(db.collection('orders').where('paid','==',false).onSnapshot(function(snap){var l=[];snap.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.bills=l;render();},function(){}));
   listenPrep();
+  // open guest chats
+  unsubs.push(db.collection('chats').where('open','==',true).onSnapshot(function(snap){var l=[],before=urgentForMe();snap.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.chats=l;render();if(urgentForMe()>before)ring();},function(){}));
   // guest requests from the QR page (reception and the manager can read them)
   unsubs.push(db.collection('greq').where('st','==','new').onSnapshot(function(snap){var l=[],before=urgentForMe();snap.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.greq=l;render();if(urgentForMe()>before)ring();},function(){}));
   unsubs.push(db.collection('lost').where('st','==','held').onSnapshot(function(snap){var l=[];snap.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.lost=l;render();},function(){}));
@@ -1628,7 +1684,7 @@ function listen(){
 }
 if(!configured){render();return;}
 fb=firebase.initializeApp(cfg);auth=firebase.auth();db=firebase.firestore();
-if(GQ){document.documentElement.lang='en';document.title='Villa Khufu · Room service & tours';try{S.g.room=sessionStorage.getItem('vkRoom')||'';}catch(e){}S.ready=true;render();return;}
+if(GQ){document.documentElement.lang='en';document.title='Villa Khufu · Room service & tours';try{S.g.room=sessionStorage.getItem('vkRoom')||'';}catch(e){}if(S.g.room)gOpenRoom();S.ready=true;render();return;}
 try{db.enablePersistence({synchronizeTabs:true}).catch(function(){});}catch(e){}
 db.collection('meta').doc('setup').onSnapshot(function(d){S.setup=d.exists;render();},function(){S.setup=true;render();});
 auth.onAuthStateChanged(function(user){
