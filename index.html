@@ -77,10 +77,12 @@ a{color:var(--accent)}
 .stat{border-radius:14px;padding:10px;display:flex;flex-direction:column;align-items:center;text-align:center}
 .stat b{font-size:24px;font-weight:800;line-height:1.2;font-variant-numeric:tabular-nums}
 .stat span{font-size:12px;font-weight:700}
-.stat.tipw{position:relative;cursor:pointer;outline:none}
-.stat .tip{display:none;position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);z-index:30;min-width:120px;max-width:220px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:8px 10px;box-shadow:0 6px 20px rgba(0,0,0,.18);font-size:13px;font-weight:700;line-height:1.6;text-align:center}
-.stat .tip b{font-size:15px;display:inline-block;margin:0 4px}
-.stat.tipw:hover .tip,.stat.tipw:focus .tip,.stat.tipw:focus-within .tip{display:block}
+.tipw{position:relative}.stat.tipw{cursor:pointer;outline:none}
+.tipw .tip{display:none;position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);z-index:30;min-width:120px;max-width:220px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:8px 10px;box-shadow:0 6px 20px rgba(0,0,0,.18);font-size:13px;font-weight:700;line-height:1.6;text-align:center}
+.tipw .tip b{font-size:15px;display:inline-block;margin:0 4px}
+.tipw:hover>.tip,.stat.tipw:focus>.tip{display:block}
+.tipw .tip small{display:block;font-size:12px;opacity:.75;margin-top:4px}
+@media (hover:none){.tipw.hov>.tip{display:none!important}}
 .tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:var(--tab);border-radius:14px;padding:4px}
 .tabs button{min-height:44px;border:0;border-radius:10px;background:transparent;font-size:13px;font-weight:800;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:4px}
 .tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
@@ -479,18 +481,19 @@ function vHome(){
   return top('أهلاً، '+m.name,ROLES[m.role].label,null,soundBtn()+'<button class="ib" data-a="go" data-v="pin" aria-label="حسابي · الاسم والرقم السري">'+ICON.user+'</button><button class="ib" data-a="logout" aria-label="تسجيل خروج">'+ICON.out+'</button>')+
    '<div class="stack">'+toastHtml()+tiles+soundHint()+'</div>';
 }
+function tipList(groups){var o=groups.filter(function(g){return g[1].length;}).map(function(g){return '<small>'+g[0]+'</small>'+g[1].map(function(n){return '<b>'+h(n)+'</b>';}).join('');}).join('');return '<div class="tip" role="tooltip">'+(o||'مفيش')+'</div>';}
 function big(v,l,d,ic,main,n){return '<button class="big'+(main?' main':'')+(n?' pulse':'')+'" data-a="go" data-v="'+v+'"><span class="ic">'+ic+'</span><span class="grow"><span class="l">'+l+(n?' <span class="cnt">'+n+'</span>':'')+'</span><span class="d">'+d+'</span></span></button>';}
 function homeOf(){var a=areas();return a.length===1?(a[0]==='work'?'work':a[0]):'home';}
 
 // ----- reception -----
 function vRec(){
-  var t=today(),free=0,occ=0,leaving=0,lvNos=[];
-  allNos().forEach(function(no){var r=room(no);if(r.status==='free')free++;if(r.status==='occ'){occ++;if(r.out&&r.out<=t){leaving++;lvNos.push(no);}}});
+  var t=today(),free=0,occ=0,leaving=0,lvNos=[],frNos=[];
+  allNos().forEach(function(no){var r=room(no);if(r.status==='free'){free++;frNos.push(no);}if(r.status==='occ'){occ++;if(r.out&&r.out<=t){leaving++;lvNos.push(no);}}});
   var mt=S.maint.filter(function(m){return m.open;});
   var ml=mt.length?mt.map(function(m){return '<div class="row" style="border-top:1px solid var(--line);padding-top:8px"><span class="badge grey"><small>غرفة</small><b>'+h(m.room)+'</b></span><span class="grow"><span class="ttl">'+h(m.issue)+'</span><br><span class="sub">'+h(m.note||'')+(m.note?' · ':'')+'بلّغ: '+h(wname(m.by))+' · من '+ago(S.now-m.at)+'</span></span>'+(m.blocks?'<span class="chip c-warn">موقفة</span>':'')+'</div>';}).join(''):'<span class="sub">مفيش بلاغات مفتوحة</span>';
   return top('الريسبشن',fmt(t),homeOf()==='rec'?null:'home',homeOf()==='rec'?soundBtn()+'<button class="ib" data-a="go" data-v="pin" aria-label="حسابي · الاسم والرقم السري">'+ICON.user+'</button><button class="ib" data-a="logout" aria-label="تسجيل خروج">'+ICON.out+'</button>':'')+'<div class="stack">'+toastHtml()+
-  '<div class="stats"><div class="stat c-ok"><b>'+free+'</b><span>فاضية</span></div><div class="stat" style="background:var(--accent);color:var(--on-accent)"><b>'+occ+'</b><span>مشغولة</span></div><div class="stat c-warn tipw" tabindex="0" aria-label="خروج النهارده: '+(lvNos.length?h(lvNos.join('، ')):'مفيش')+'"><b>'+leaving+'</b><span>خروج النهارده</span><div class="tip" role="tooltip">'+(lvNos.length?'غرف الخروج<br>'+lvNos.map(function(n){return '<b>'+h(n)+'</b>';}).join(''):'مفيش خروج النهارده')+'</div></div></div>'+
-  (function(){var n=arrivals().length,c=allNos().filter(function(no){var r=room(no);return r.status==='occ'&&r.in===today();}).length;return big('rec-arr','وصول النهارده',n||c?(n+c)+' غرفة النهارده · '+c+' دخلت · '+n+' لسه':'مفيش وصول متسجّل النهارده',ICON.bed,true,n);})()+
+  '<div class="stats"><div class="stat c-ok tipw" tabindex="0" aria-label="فاضية: '+(frNos.length?h(frNos.join('، ')):'مفيش')+'"><b>'+free+'</b><span>فاضية</span>'+tipList([['الغرف الفاضية',frNos]])+'</div><div class="stat" style="background:var(--accent);color:var(--on-accent)"><b>'+occ+'</b><span>مشغولة</span></div><div class="stat c-warn tipw" tabindex="0" aria-label="خروج النهارده: '+(lvNos.length?h(lvNos.join('، ')):'مفيش')+'"><b>'+leaving+'</b><span>خروج النهارده</span><div class="tip" role="tooltip">'+(lvNos.length?'غرف الخروج<br>'+lvNos.map(function(n){return '<b>'+h(n)+'</b>';}).join(''):'مفيش خروج النهارده')+'</div></div></div>'+
+  (function(){var al=arrivals(),n=al.length,cl=allNos().filter(function(no){var r=room(no);return r.status==='occ'&&r.in===today();}),c=cl.length;return '<div class="tipw hov">'+big('rec-arr','وصول النهارده',n||c?(n+c)+' غرفة النهارده · '+c+' دخلت · '+n+' لسه':'مفيش وصول متسجّل النهارده',ICON.bed,true,n)+tipList([['لسه ما دخلتش',al],['دخلت',cl]])+'</div>';})()+
   big('rec-occ','الغرف المشغولة','خروج · نقل · طلب نظافة',ICON.out,false)+
   (function(){var A=openAccounts(),ks=Object.keys(A),tot=ks.reduce(function(s,k){return s+A[k].total;},0);return big('rec-acc','حسابات الغرف',ks.length?ks.length+' غرفة عليها حساب · '+money(tot):'مفيش حسابات مفتوحة',ICON.cash,false);})()+
   big('rec-rep','تقرير غرفة','اختار الغرفة والتاريخ · كل اللي حصل فيها',ICON.report,false)+
