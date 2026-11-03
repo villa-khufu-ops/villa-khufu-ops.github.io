@@ -282,6 +282,27 @@ var TOURS=[
  [14,'St. Catherine & Mount Sinai (overnight)','سانت كاترين وجبل موسى (ليلة)','Sunrise climb of Mount Sinai · St. Catherine Monastery · 1 night 4* hotel half board']
 ];
 function tourById(id){return TOURS.filter(function(t){return t[0]===+id;})[0];}
+// full tour details from the hotel brochure (no prices in the brochure · reception confirms the price)
+var TCAR='All transfers by a private air-conditioned vehicle';
+var TFEES='Entrance fees to all the mentioned sites';
+var TOUR_INFO={
+ 1:{dur:'Full day',see:['Giza Plateau: the Pyramids and the Sphinx','The Valley Temple','Sakkara: the Step Pyramid','The statue of Ramses II in Memphis'],inc:[TCAR,'Private tour guide (all languages available)',TFEES,'Traditional Egyptian lunch (mixed grilled meats & chicken)']},
+ 2:{dur:'Full day',see:['The Egyptian Museum or the Museum of Civilization','Citadel of Saladin','Mohamed Ali Mosque','The Hanging Church'],inc:[TCAR,'Private Egyptologist guide (all languages available)',TFEES,'Traditional Egyptian lunch (grilled meats)']},
+ 3:{dur:'Full day',see:['Citadel of Qaitbay','Pompey\'s Pillar','Catacombs of Kom El Shoqafa','Library of Alexandria'],inc:[TCAR,'Private Egyptologist guide (all languages available)',TFEES,'Traditional Egyptian lunch (fish)']},
+ 4:{dur:'Evening · about 2 hours sailing',about:'Dinner on a five-star cruise boat sailing the Nile for two hours, with a belly dancer, folklore show and western music. Chef\'s menu with a selection of Egyptian favourites.',inc:[TCAR,'Dinner on board','Tannoura show & belly dance show','All service charges & taxes']},
+ 5:{dur:'Half day',about:'Explore the desert around the Giza Pyramids on a 4-wheel quad bike and feel the sand and the sun. A unique way to see the Pyramids for adventurers.'},
+ 6:{dur:'About 2 hours · sunrise or sunset',about:'Ride a camel or a horse around the Pyramids area and the Great Sphinx, just at your doorstep. You meet your camel or horse near the Pyramids and ride for about 2 hours at sunrise or sunset.'},
+ 7:{dur:'Full day',see:['Giza Plateau: the Pyramids and the Sphinx','The Valley Temple','The Egyptian Museum','The golden statues in the Egyptian Museum'],inc:[TCAR,'Private Egyptologist guide (all languages available)',TFEES,'Traditional Egyptian lunch (grilled meats)']},
+ 8:{dur:'Full day · flight from Cairo',about:'Visit the top attractions of Luxor in one day.',see:['West Bank: Valley of the Kings, King Tut\'s tomb, Hatshepsut Temple, Colossi of Memnon','Lunch','East Bank: Luxor Temple and Karnak Temple'],inc:[TCAR,'Private Egyptologist guide (English & Spanish)',TFEES,'Traditional Egyptian lunch (grilled meats)']},
+ 9:{dur:'About 1 hour flight at sunrise',about:'Fly over Luxor, one of the biggest open-air museums in the world, and watch the sun rise from a hot air balloon.'},
+ 10:{dur:'About 12 hours',about:'A private guided day trip from Cairo to El Fayoum\'s major sights.',see:['Wadi El Hitan (Valley of the Whales)','Wadi El Rayan waterfalls','Mudawara Mountain'],inc:['Transfers by 4x4 car in Fayoum','Traditional Egyptian meal']},
+ 11:{dur:'2 days · 1 night',days:['Day 1 (lunch, dinner): early pick-up from the hotel, drive about 4 hours to Bahariya Oasis, lunch, the Black Desert, El Haize hot spring, Crystal Mountain, Valley of Agabat, then the White Desert National Park. Night in a desert camp (or a hotel in Farafra Oasis when needed).','Day 2 (breakfast, lunch): breakfast at the camp, Golden Mummies, nobles\' tombs from the 26th dynasty, climb the Black Mountain, lunch in Bahariya, drive back to Cairo.'],inc:['Pick-up from the hotel and return',TFEES,'Private air-conditioned vehicle and a private 4x4 in the White and Black Deserts','1 night desert camping','1 breakfast, 2 lunches, 1 dinner','Bottled water','Desert expert','All taxes & service charges']},
+ 12:{dur:'5 days · 4 nights · Monday to Friday',days:['Day 1 (Mon): meet at Luxor airport or station, board the cruise, lunch, Karnak and Luxor Temples, dinner, night in Luxor.','Day 2 (Tue): Valley of the Kings (3 tombs), Hatshepsut Temple, sail to Edfu via Esna.','Day 3 (Wed): Horus Temple in Edfu, Kom Ombo Temple, sail to Aswan, galabeya party.','Day 4 (Thu): High Dam, Unfinished Obelisk, Philae Temple, felucca ride around Kitchener Island.','Day 5 (Fri): breakfast, disembark, transfer to Aswan airport or station.'],inc:['Meet & greet at airports and stations','Guest relations assistance','Private air-conditioned deluxe vehicle with free Wi-Fi','4 nights on the Nile cruise, full board']},
+ 13:{dur:'Full day',about:'A relaxing day away from the city on the Red Sea beach in Ain El Sokhna, with day use at a hotel.',inc:['Lunch','Day use at the hotel','All pick-up and drop-off transfers']},
+ 14:{dur:'2 days · 1 night',days:['Day 1 (lunch, dinner): pick-up from the hotel at 7:00 am, about 6 hours drive to St. Catherine, night at the hotel.','Day 2 (breakfast): pick-up at 2:00 am, climb Mount Sinai with a Bedouin guide to watch the sunrise, visit St. Catherine Monastery around 7:00 am, breakfast at the hotel, drive back to Cairo.'],inc:['Pick-up from your hotel in Cairo and back','Private air-conditioned vehicle','1 night at a 4* hotel, half board',TFEES,'Guide (all languages)','Bottled water','Bedouin guide for the climb','All taxes & service charges'],exc:['Any extras not mentioned','Tips']}
+};
+function tourDetails(id){var I=TOUR_INFO[id];if(!I)return '';var li=function(a){return '<ul style="margin:4px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:3px">'+a.map(function(x){return '<li>'+h(x)+'</li>';}).join('')+'</ul>';},sec=function(t,a){return a&&a.length?'<div><span class="ttl" style="font-size:14px">'+t+'</span>'+li(a)+'</div>':'';};
+ return '<div style="display:flex;flex-direction:column;gap:10px;font-size:14px;line-height:1.5">'+(I.dur?'<span class="chip c-soft" style="align-self:flex-start">'+h(I.dur)+'</span>':'')+(I.about?'<span>'+h(I.about)+'</span>':'')+sec('What you will see',I.see)+sec('Itinerary',I.days)+sec('Included',I.inc)+sec('Not included',I.exc)+'</div>';}
 // English names of the menu tabs, for the guest page
 var MENU_EN=['Breakfast','Salads','Soups','Pasta','Pizza','Vegetarian','Seafood','Meat','Chicken','Fajita','Cold Drinks','Hot Drinks','Shisha'];
 // guest page: opened from the hotel QR code (?guest) · no login · the guest types the room number
@@ -426,7 +447,7 @@ function roomBill(no){return roomOrdersAll(no).filter(function(o){return o.kind!
 function roomTours(no){return roomOrdersAll(no).filter(function(o){return o.kind==='tour';});}
 function roomMini(no){return roomOrdersAll(no).filter(function(o){return o.kind==='mini';});}
 function isFood(o){return o.kind!=='mini'&&o.kind!=='tour';}
-function tourTxt(o){var t=o.tour||{};return (t.ar||t.n||'رحلة')+' · '+(t.pax||1)+' أفراد'+(t.date?' · '+fmt(t.date):'');}
+function tourTxt(o){var t=o.tour||{};return (t.ar||t.n||'رحلة')+' · '+(t.pax||1)+' أفراد'+(t.date?' · '+fmt(t.date):'')+(t.time?' · '+t.time:'');}
 // every unpaid charge grouped by room: {room:{food,mini,wash,total,items:[...]}}
 function openAccounts(){var A={};
   S.bills.forEach(function(o){if(o.st==='cancel'||!o.room)return;var a=A[o.room]=A[o.room]||{food:0,mini:0,wash:0,tour:0,total:0,items:[]};var v=o.total||0;if(o.kind==='mini')a.mini+=v;else if(o.kind==='tour')a.tour+=v;else a.food+=v;a.total+=v;a.items.push({c:'o',o:o});});
@@ -852,7 +873,7 @@ function vTour(){
    '<span class="ttl">الرحلة</span><div class="stack" style="gap:6px">'+list+(t?'<button class="btn b-line" style="min-height:40px" data-a="tPick" data-i="0">تغيير الرحلة</button>':'')+'</div>'+
    '<span class="ttl">الغرفة</span><span class="sub">الغرف المشغولة بس · الرحلة بتتسجّل على حساب الغرفة</span>'+rooms+
    '<div class="card"><div class="row"><span class="ttl grow">عدد الأفراد</span><div class="qty"><button data-a="tPax" data-d="1" aria-label="زيادة">+</button><b>'+pax+'</b><button data-a="tPax" data-d="-1" aria-label="تقليل">−</button></div></div>'+
-   '<label class="f" for="tdate">تاريخ الرحلة<input class="inp" id="tdate" type="date" min="'+today()+'" value="'+h(D.date||tomorrow())+'"></label>'+
+   '<div class="row" style="gap:8px;align-items:flex-end"><label class="f grow" for="tdate">تاريخ الرحلة<input class="inp" id="tdate" type="date" min="'+today()+'" value="'+h(D.date||tomorrow())+'"></label><label class="f grow" for="ttime">ساعة التحرك<input class="inp" id="ttime" type="time" value="'+h(D.time||'08:00')+'"></label></div>'+
    '<label class="f" for="tprice">السعر الإجمالي بالدولار (لكل الأفراد)<input class="inp ltr" id="tprice" type="number" inputmode="decimal" min="0" step="0.5" placeholder="مثلاً 90"></label>'+
    '<label class="f" for="tnote">ملاحظة (اختياري)<input class="inp" id="tnote" maxlength="200" placeholder="مثلاً: البيك أب 7 الصبح"></label></div>'+
    (S.err?'<p class="err" role="alert">'+h(S.err)+'</p>':'')+
@@ -888,7 +909,7 @@ function vRecGreq(){
   return top('طلبات النزلاء',l.length+' طلب','rec')+'<div class="stack">'+toastHtml()+
    '<p class="sub" style="margin:0">النزيل بعت الطلبات دي من الـ QR. الطلب مش بيتحسب لحد ما تفتحه وتبعته إنت. لو مش منطقي (الغرفة غلط مثلاً) اتصل بالغرفة أو ارفضه.</p>'+
    (l.length?l.map(function(g){var r=room(g.room),oc=r&&r.status==='occ',body;
-     if(g.type==='tour'){var t=tourById(g.tour&&g.tour.id)||[];body='<span class="ttl" style="display:block">رحلة: '+h(t[2]||'')+'</span><span class="sub" style="display:block">'+(g.tour&&g.tour.pax||1)+' أفراد'+(g.tour&&g.tour.date?' · يوم '+fmt(g.tour.date):'')+'</span>';}
+     if(g.type==='tour'){var t=tourById(g.tour&&g.tour.id)||[];body='<span class="ttl" style="display:block">رحلة: '+h(t[2]||'')+'</span><span class="sub" style="display:block">'+(g.tour&&g.tour.pax||1)+' أفراد'+(g.tour&&g.tour.date?' · يوم '+fmt(g.tour.date):'')+(g.tour&&g.tour.time?' · الساعة '+h(g.tour.time):'')+'</span>';}
      else{var tot=(g.items||[]).reduce(function(s,i){return s+(i.p||0)*(i.q||0);},0);body='<span class="ttl" style="display:block">مطعم · <span class="money">'+money(tot)+'</span>'+(g.place?' · <span class="chip c-warn">'+h(placeAr(g.place))+'</span>':'')+'</span><span class="ltr" style="display:block;text-align:right;font-size:13px">'+h((g.items||[]).map(function(i){return i.q+'× '+i.n;}).join('، '))+'</span>';}
      return '<div class="card"><div class="row" style="align-items:flex-start"><span class="badge'+(oc?' occ':'')+'"><small>غرفة</small><b>'+h(g.room)+'</b></span><span class="grow">'+body+(g.note?'<span class="sub" style="display:block;color:var(--warn);font-weight:700">ملاحظة: '+h(g.note)+'</span>':'')+'<span class="sub" style="display:block">من '+ago(S.now-g.at)+'</span></span></div>'+
       (oc?'':'<p class="err" style="margin:0">غرفة '+h(g.room)+' مش مشغولة دلوقتي · اتأكد من النزيل</p>')+
@@ -940,13 +961,13 @@ function vGuest(){
      '<div class="row" style="gap:8px;position:sticky;bottom:8px"><textarea class="inp grow" id="gmsg" maxlength="500" rows="2" placeholder="Write a message…" aria-label="Message"></textarea><button class="btn b-main" style="width:auto" data-a="gChatSend"'+(G.busy?' disabled':'')+'>Send</button></div>');}
   if(G.tab==='tour'){
     if(G.tour){var t=tourById(G.tour);
-      return wrap(tabs+'<div class="card" style="gap:10px"><span class="ttl" style="font-size:17px">'+h(t[1])+'</span><span class="sub">'+h(t[3])+'</span>'+
+      return wrap(tabs+'<div class="card" style="gap:10px"><span class="ttl" style="font-size:17px">'+h(t[1])+'</span>'+(TOUR_INFO[t[0]]?tourDetails(t[0]):'<span class="sub">'+h(t[3])+'</span>')+'</div><div class="card" style="gap:10px"><span class="ttl">Book this tour</span>'+
        '<div class="row"><span class="ttl grow">Number of people</span><div class="qty"><button data-a="gPax" data-d="-1" aria-label="Less">−</button><b>'+G.pax+'</b><button data-a="gPax" data-d="1" aria-label="More">+</button></div></div>'+
-       '<label class="f" for="gdate">Preferred date<input class="inp" id="gdate" type="date" min="'+today()+'" value="'+tomorrow()+'"></label>'+
-       '<label class="f" for="gnoteT">Notes (optional)<input class="inp" id="gnoteT" maxlength="200" placeholder="e.g. pick-up time, language"></label>'+
-       '<span class="sub">Reception will contact you with the price and pick-up time.</span></div>'+err+
+       '<div class="row" style="gap:8px;align-items:flex-end"><label class="f grow" for="gdate">Date<input class="inp" id="gdate" type="date" min="'+today()+'" value="'+tomorrow()+'"></label><label class="f grow" for="gtime">Pick-up time<input class="inp" id="gtime" type="time" value="08:00"></label></div>'+
+       '<label class="f" for="gnoteT">Notes (optional)<input class="inp" id="gnoteT" maxlength="200" placeholder="e.g. language, special requests"></label>'+
+       '<span class="sub">Reception will contact you to confirm the price and the pick-up time.</span></div>'+err+
        '<button class="btn b-main" style="min-height:56px" data-a="gSendTour"'+(G.busy?' disabled':'')+'>Send request to reception</button><button class="btn b-line" data-a="gTourBack">← All tours</button>');}
-    return wrap(tabs+TOURS.map(function(x){return '<button class="card" style="text-align:left;gap:6px" data-a="gTour" data-i="'+x[0]+'"><span class="ttl">'+x[0]+'. '+h(x[1])+'</span><span class="sub">'+h(x[3])+'</span><span class="chip c-soft" style="align-self:flex-start">Request this tour</span></button>';}).join(''));
+    return wrap(tabs+TOURS.map(function(x){return '<button class="card" style="text-align:left;gap:6px" data-a="gTour" data-i="'+x[0]+'"><span class="ttl">'+x[0]+'. '+h(x[1])+'</span><span class="sub">'+h(x[3])+'</span><span class="chip c-soft" style="align-self:flex-start">Details &amp; booking →</span></button>';}).join(''));
   }
   var ci=Math.min(G.cat||0,MENU.length-1),c=MENU[ci];
   var chips='<div class="chips" role="tablist" aria-label="Menu">'+MENU.map(function(m,i){var n=m[2].reduce(function(s,it,ii){return s+(G.cart[i+'-'+ii]||0);},0);return '<button role="tab" aria-selected="'+(i===ci)+'" data-a="gCat" data-i="'+i+'">'+h(MENU_EN[i]||m[0])+(n?' · '+n:'')+'</button>';}).join('')+'</div>';
@@ -997,8 +1018,9 @@ function guestAct(a,b){
   if(a==='gTour'){G.tour=+b.dataset.i;G.pax=2;G.err='';render();window.scrollTo(0,0);return;}
   if(a==='gTourBack'){G.tour=null;render();return;}
   if(a==='gPax'){G.pax=Math.max(1,Math.min(30,G.pax+(+b.dataset.d)));render();return;}
-  if(a==='gSendTour'){var d=(document.getElementById('gdate')||{}).value||'';var t=tourById(G.tour);
-    gSend({tour:{id:t[0],pax:G.pax,date:d},items:[],note:((document.getElementById('gnoteT')||{}).value||'').trim().slice(0,200)},'tour');return;}
+  if(a==='gSendTour'){var d=(document.getElementById('gdate')||{}).value||'';var tm=((document.getElementById('gtime')||{}).value||'').slice(0,5);var t=tourById(G.tour);
+    if(!d){G.err='Please choose the date.';render();return;}
+    gSend({tour:{id:t[0],pax:G.pax,date:d,time:tm},items:[],note:((document.getElementById('gnoteT')||{}).value||'').trim().slice(0,200)},'tour');return;}
   if(a==='gSendFood'){var it=Object.keys(G.cart).slice(0,40).map(function(k){var x=itemAt(k);return {k:k,n:x.n,p:x.p,q:G.cart[k]};});if(!it.length)return;
     gSend({items:it,place:G.place||'room',note:((document.getElementById('gnoteF')||{}).value||'').trim().slice(0,200)},'food');return;}
 }
@@ -1451,8 +1473,8 @@ app.addEventListener('click',function(ev){
     if(room(TD.room).status!=='occ'){S.err='غرفة '+TD.room+' مش مشغولة · مينفعش يتحمّل عليها رحلة';render();return;}
     var tp=parseFloat((document.getElementById('tprice')||{}).value);
     if(!(tp>=0)||isNaN(tp)){S.err='اكتب السعر';render();return;}
-    var tdt=(document.getElementById('tdate')||{}).value||'';
-    var to={kind:'tour',d:today(),at:now,by:S.uid,dest:'room',room:TD.room,tour:{id:tt[0],n:tt[1],ar:tt[2],pax:TD.pax||1,date:tdt},items:[{n:tt[1],ar:tt[2],p:Math.round(tp*100)/100,q:1}],total:Math.round(tp*100)/100,st:'served',next:0,
+    var tdt=(document.getElementById('tdate')||{}).value||'',ttm=((document.getElementById('ttime')||{}).value||'').slice(0,5);
+    var to={kind:'tour',d:today(),at:now,by:S.uid,dest:'room',room:TD.room,tour:{id:tt[0],n:tt[1],ar:tt[2],pax:TD.pax||1,date:tdt,time:ttm},items:[{n:tt[1],ar:tt[2],p:Math.round(tp*100)/100,q:1}],total:Math.round(tp*100)/100,st:'served',next:0,
       note:((document.getElementById('tnote')||{}).value||'').trim().slice(0,200),pay:'room',paid:false,stayIn:room(TD.room).in||null};
     db.collection('orders').add(to).catch(function(e){flash(e&&e.code==='permission-denied'?'ما اتسجّلش · لازم تحديث قواعد Firebase (Rules)':'ما اتسجّلش، اتأكد من النت وجرّب تاني');});
     if(TD.greq)gqSet(TD.greq,'acc');
@@ -1464,7 +1486,7 @@ app.addEventListener('click',function(ev){
     cb.commit().then(function(){var e2=document.getElementById('rmsg');if(e2)e2.value='';}).catch(function(e){flash(e&&e.code==='permission-denied'?'لازم تحديث قواعد Firebase (Rules) الأول':'ما اتبعتش، جرّب تاني');});return;}
   if(a==='chatClose'){if(db&&S.chat)db.collection('chats').doc(S.chat).set({open:false,unread:0,closedAt:now,closedBy:S.uid},{merge:true}).catch(function(){});openChat(null);go('rec-chats');flash('المحادثة اتقفلت');return;}
   if(a==='gqRej'){gqSet(b.dataset.id,'rej');flash('الطلب اترفض');return;}
-  if(a==='gqTour'){var gt=gqById(b.dataset.id);if(!gt)return;S.tdraft={id:gt.tour&&gt.tour.id,room:gt.room,pax:(gt.tour&&gt.tour.pax)||1,date:gt.tour&&gt.tour.date,greq:gt.id};go('tour');
+  if(a==='gqTour'){var gt=gqById(b.dataset.id);if(!gt)return;S.tdraft={id:gt.tour&&gt.tour.id,room:gt.room,pax:(gt.tour&&gt.tour.pax)||1,date:gt.tour&&gt.tour.date,time:gt.tour&&gt.tour.time,greq:gt.id};go('tour');
     var tn=document.getElementById('tnote');if(tn&&gt.note)tn.value=gt.note;return;}
   if(a==='gqFood'){var gf=gqById(b.dataset.id);if(!gf)return;S.cart={};(gf.items||[]).forEach(function(i){if(itemAt(i.k))S.cart[i.k]=Math.min(20,i.q||1);});
     S.draft={dest:'room',room:gf.room,bb:room(gf.room).status==='occ'&&!!planOf(gf.room)&&planOf(gf.room)!=='RO',greq:gf.id,place:gf.place||null};go('rest-cart');
