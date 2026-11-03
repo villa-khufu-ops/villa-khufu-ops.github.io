@@ -151,6 +151,7 @@ textarea.inp{padding:12px 14px;min-height:84px;resize:none}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -452,6 +453,33 @@ function cartHasBfast(){var c=eligibleCats();return (S.draft.dest||'room')==='ro
 function planChip(no){var p=planOf(no);return p?'<span class="chip c-ok">'+p+'</span>':'';}
 function cartTotal(){return cartLines().reduce(function(s,l){return s+l.q*effP(l);},0);}
 function money(n){return '$'+(Math.round((n||0)*100)/100);}
+// ----- phone notifications (Firebase Cloud Messaging through the hotel's Google Apps Script) -----
+// PUSH_URL = the Apps Script web app link · PUSH_VAPID = Firebase › Cloud Messaging › Web Push certificates key
+var PUSH_URL='https://script.google.com/macros/s/AKfycbxxsljca60rNfE7R-3LLixkoW6SSsJamPLITTp4AwCWv_XbmmkFfOB6-jvEledGnjB-/exec',PUSH_VAPID='BPq5tyqsLOAGfPLJvmt3ADjVPIVhxISSaFqOLJ6-SZqpD76cJWoFGBlQeLavyx4HPMp5UD1CUCP-ViyxrPDgC_U';
+function pushReady(){return !!(PUSH_URL&&PUSH_VAPID);}
+function pushEvt(k,id){if(!PUSH_URL||!id)return;try{fetch(PUSH_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:k,id:id})}).catch(function(){});}catch(e){}}
+function pushState(){try{return localStorage.getItem('vkPush')||'';}catch(e){return '';}}
+function pushEnable(){
+  if(!pushReady())return;
+  if(!('Notification' in window)||!('serviceWorker' in navigator)){flash('الجهاز ده مش بيدعم الإشعارات · على الآيفون لازم تثبّت الأبلكيشن الأول');return;}
+  Notification.requestPermission().then(function(p){
+    if(p!=='granted'){flash('الإشعارات اترفضت · فعّلها من إعدادات المتصفح للموقع ده');return;}
+    return navigator.serviceWorker.register('sw.js').then(function(){return navigator.serviceWorker.ready;}).then(function(reg){
+      return firebase.messaging().getToken({vapidKey:PUSH_VAPID,serviceWorkerRegistration:reg});
+    }).then(function(tok){
+      if(!tok)throw new Error('no token');
+      return db.collection('push').doc(tok).set({uid:S.uid,role:(meDoc()||{}).role||'',at:Date.now(),ua:navigator.userAgent.slice(0,120)}).then(function(){
+        try{localStorage.setItem('vkPush',tok);}catch(e){}flash('الإشعارات اتفعّلت على الجهاز ده ✓');});
+    });
+  }).catch(function(e){flash(e&&e.code==='permission-denied'?'لازم تحديث قواعد Firebase (Rules) الأول':'الإشعارات ما اتفعّلتش، جرّب تاني');});
+}
+function pushCard(){
+  if(!pushReady())return '';
+  var on=pushState()&&('Notification' in window)&&Notification.permission==='granted';
+  return '<div class="card" style="gap:8px"><span class="ttl">الإشعارات حتى لو الأبلكيشن مقفول</span>'+
+   (on?'<span class="sub" style="color:var(--ok);font-weight:700">مفعّلة على الجهاز ده ✓</span><button class="btn b-line" data-a="pushOn">تفعيل تاني (لو الإشعارات وقفت)</button>':'<button class="btn b-main" data-a="pushOn">فعّل الإشعارات على الجهاز ده</button>')+
+   '<span class="sub">هيوصلك إشعار برنّة بشغلك بس. على الآيفون: ثبّت الأبلكيشن على الشاشة الرئيسية الأول وافتحه من الأيقونة.</span></div>';
+}
 var PLACES=[['room','In my room','في الغرفة'],['roof','Rooftop','على الروف'],['pool','By the pool','عند حمام السباحة'],['out','Outside the hotel','بره الفندق']];
 function placeAr(k){var p=PLACES.filter(function(x){return x[0]===k;})[0];return p?p[2]:'';}
 function destTxt(o){return (o.dest==='room'?'غرفة '+o.room:o.dest==='table'?'ترابيزة '+o.table:'تيك أواي')+(o.place&&o.place!=='room'?' · '+placeAr(o.place):'');}
@@ -1013,13 +1041,13 @@ function gChatSend(){
   if(first)b.set(ref,{room:G.room,at:now,last:now,lastFrom:'guest',lastText:t.slice(0,80),open:true,unread:1});
   else b.set(ref,{last:now,lastFrom:'guest',lastText:t.slice(0,80),open:true,unread:1},{merge:true});
   b.set(ref.collection('msgs').doc(),{from:'guest',text:t,at:now});
-  b.commit().then(function(){G.busy=false;if(first){try{localStorage.setItem(gTidKey(),G.tid);}catch(e){}gListen();}var e2=document.getElementById('gmsg');if(e2)e2.value='';render();window.scrollTo(0,document.body.scrollHeight);})
+  b.commit().then(function(){pushEvt('chat',G.tid);G.busy=false;if(first){try{localStorage.setItem(gTidKey(),G.tid);}catch(e){}gListen();}var e2=document.getElementById('gmsg');if(e2)e2.value='';render();window.scrollTo(0,document.body.scrollHeight);})
    .catch(function(e){G.busy=false;if(first)G.tid='';G.err=e&&e.code==='permission-denied'?'We could not send this for room '+G.room+'. Please check the room number or call reception.':'Could not send. Check your internet and try again.';render();});
 }
 function gSend(doc,kind){
   var G=S.g;if(!db||G.busy)return;G.busy=true;G.err='';render();
   doc.room=G.room;doc.at=Date.now();doc.st='new';doc.type=kind;
-  db.collection('greq').add(doc).then(function(){G.busy=false;G.sent=kind;G.cart={};G.tour=null;render();window.scrollTo(0,0);})
+  db.collection('greq').add(doc).then(function(ref){pushEvt('greq',ref&&ref.id);G.busy=false;G.sent=kind;G.cart={};G.tour=null;render();window.scrollTo(0,0);})
    .catch(function(e){G.busy=false;G.err=e&&e.code==='permission-denied'?'We could not send this for room '+G.room+'. Please check the room number or call reception.':'Could not send. Check your internet and try again.';render();});
 }
 function gOpenRoom(){var G=S.g;try{G.tid=localStorage.getItem(gTidKey())||'';}catch(e){G.tid='';}G.msgs=[];G.seen=0;gListen();}
@@ -1373,10 +1401,24 @@ function vDaily(){
    '<p class="hint">باقي الغرف مفيهاش أي حركة في اليوم ده. التقرير بيبدأ يتسجّل من أول يوم اترفعت فيه النسخة دي.</p>'+
    (isAdminU()?'<form class="card" id="expForm"><span class="ttl">تصدير Excel · نسخة احتياطية</span><span class="sub">الحسابات (مطعم · تلاجة · غسيل) والحركة والصيانة والمفقودات وتسليم الشيفت</span><div class="row" style="gap:8px"><label class="f grow" for="exf">من<input class="inp" id="exf" type="date" value="'+date+'" max="'+today()+'"></label><label class="f grow" for="ext">لحد<input class="inp" id="ext" type="date" value="'+date+'" max="'+today()+'"></label></div><button class="btn b-main" type="submit">'+ICON.report+' نزّل ملف Excel</button></form>':'')+'</div>';
 }
+var deferredInstall=null;
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredInstall=e;try{render();}catch(x){}});
+window.addEventListener('appinstalled',function(){deferredInstall=null;try{render();}catch(x){}});
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
+function isStandalone(){return (window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;}
+function installCard(){
+  if(isStandalone())return '<div class="card"><span class="ttl">الأبلكيشن متثبّت على الجهاز ده ✓</span></div>';
+  var ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  return '<div class="card" style="gap:8px"><span class="ttl">ثبّت الأبلكيشن على الجهاز ده</span>'+
+   (deferredInstall?'<button class="btn b-main" data-a="appInstall">تثبيت الأبلكيشن</button>':
+    '<span class="sub">'+(ios?'من Safari: دوس زرار المشاركة (المربع اللي فيه سهم) ← Add to Home Screen.':'من Chrome أو Edge: دوس ⋮ فوق ← Install app أو Add to Home screen.')+'</span>')+
+   '<span class="sub">هتلاقي أيقونة Villa Khufu على الشاشة الرئيسية أو سطح المكتب، وبيفتح زي أي أبلكيشن من غير شريط المتصفح.</span></div>';
+}
 function vPin(){
   var m=meDoc()||{};
   return top('حسابي',(m.name||'')+' · @'+(m.username||''),homeOf())+'<div class="stack">'+toastHtml()+
   '<button class="btn b-main" data-a="go" data-v="help">'+ICON.report+' دليل الاستخدام لوظيفتك</button>'+
+  installCard()+pushCard()+
   '<form class="card" id="nameForm"><span class="ttl">تغيير الاسم</span><label class="f" for="nn">الاسم اللي بيظهر للموظفين<input class="inp" id="nn" value="'+h(m.name||'')+'" maxlength="40" required></label><button class="btn b-main" type="submit">حفظ الاسم</button></form>'+
   '<form class="card" id="pinForm"><span class="ttl">تغيير الرقم السري</span>'+
   '<label class="f" for="op">الرقم السري الحالي<input class="inp ltr" id="op" type="password" inputmode="numeric" autocomplete="current-password" required></label>'+
@@ -1468,7 +1510,7 @@ app.addEventListener('click',function(ev){
     else if(dd==='table'){var tb=((document.getElementById('otable')||{}).value||'').trim();if(!tb){S.err='اكتب رقم الترابيزة';render();return;}o.table=tb.slice(0,10);o.pay='cash';o.paid=true;}
     else{o.pay='cash';o.paid=true;}
     o.no=S.orders.filter(function(x){return isFood(x)&&x.d===o.d;}).reduce(function(m,x){return Math.max(m,x.no||0);},0)+1;
-    db.collection('orders').add(o).catch(function(e){flash(e&&e.code==='permission-denied'?'الطلب ما اتبعتش · لازم تحديث قواعد Firebase (Rules) الأول':'الطلب ما اتبعتش، اتأكد من النت وجرّب تاني');});
+    db.collection('orders').add(o).then(function(ref){pushEvt('order',ref&&ref.id);}).catch(function(e){flash(e&&e.code==='permission-denied'?'الطلب ما اتبعتش · لازم تحديث قواعد Firebase (Rules) الأول':'الطلب ما اتبعتش، اتأكد من النت وجرّب تاني');});
     if(S.draft.greq)gqSet(S.draft.greq,'acc');
     S.cart={};S.draft={dest:dd,room:null,bb:false};S.err='';go('rest-orders');
     flash('طلب #'+o.no+' ('+destTxt(o)+') اتبعت للمطبخ'+(o.pay==='room'?' واتسجّل على حساب الغرفة':''),waFor(kitchenStaff(),'طلب جديد #'+o.no+' · '+destTxt(o)+'\n'+itemsTxt(o)+(o.note?'\nملاحظة: '+o.note:'')));return;
@@ -1516,6 +1558,8 @@ app.addEventListener('click',function(ev){
   if(a==='gqFood'){var gf=gqById(b.dataset.id);if(!gf)return;S.cart={};(gf.items||[]).forEach(function(i){if(itemAt(i.k))S.cart[i.k]=Math.min(20,i.q||1);});
     S.draft={dest:'room',room:gf.room,bb:room(gf.room).status==='occ'&&!!planOf(gf.room)&&planOf(gf.room)!=='RO',greq:gf.id,place:gf.place||null};go('rest-cart');
     var on=document.getElementById('onote');if(on&&gf.note)on.value=gf.note;return;}
+  if(a==='pushOn'){pushEnable();return;}
+  if(a==='appInstall'){if(deferredInstall){deferredInstall.prompt();deferredInstall.userChoice.then(function(){deferredInstall=null;render();});}return;}
   if(a==='qrPrint'){try{window.print();}catch(e){}return;}
   if(a==='cxOn'){if(!isAdminU())return;S.p.cx=b.dataset.id;render();return;}
   if(a==='cxOff'){S.p.cx=null;render();return;}
@@ -1543,7 +1587,7 @@ app.addEventListener('click',function(ev){
     var lo={d:today(),at:now,by:S.uid,room:LD.room,stayIn:room(LD.room).in||null,pieces:LD.pieces,price:lPrice(LD.pieces),st:'new',paid:false,
       note:((document.getElementById('lnote')||{}).value||'').trim().slice(0,200)};
     lo.no=S.laundry.concat(S.lbills).filter(function(x){return x.d===lo.d;}).reduce(function(m,x){return Math.max(m,x.no||0);},0)+1;
-    db.collection('laundry').add(lo).catch(function(e){flash(e&&e.code==='permission-denied'?'الغسيل ما اتبعتش · لازم تحديث قواعد Firebase (Rules) الأول':'الغسيل ما اتبعتش، اتأكد من النت وجرّب تاني');});
+    db.collection('laundry').add(lo).then(function(ref){pushEvt('laundry',ref&&ref.id);}).catch(function(e){flash(e&&e.code==='permission-denied'?'الغسيل ما اتبعتش · لازم تحديث قواعد Firebase (Rules) الأول':'الغسيل ما اتبعتش، اتأكد من النت وجرّب تاني');});
     S.ldraft={room:null,pieces:4};S.err='';go('lnd');
     var lt='غسيل جديد · غرفة '+lo.room+' · '+lo.pieces+' قطعة · '+money(lo.price)+' على حساب الغرفة'+(lo.note?'\nملاحظة: '+lo.note:'');
     flash('فاتورة #'+lo.no+' · غرفة '+lo.room+' · '+lo.pieces+' قطعة · اتضاف '+money(lo.price)+' على حساب الغرفة',waFor(laundryStaff(),lt).concat(waFor(receptionists(),lt)));return;
@@ -1553,7 +1597,7 @@ app.addEventListener('click',function(ev){
   if(a==='lDone'){var l3=lById(b.dataset.id);if(!l3)return;lUpd(l3.id,{st:'done',doneAt:now,doneBy:S.uid});flash('غسيل غرفة '+l3.room+' اتسلّم');return;}
   if(a==='lCancel'){var l4=lById(b.dataset.id);if(!l4||l4.st!=='new')return;lUpd(l4.id,{st:'cancel',paid:true,cancelAt:now,cancelBy:S.uid});flash('اتلغت فاتورة غسيل غرفة '+l4.room);return;}
   if(a==='kAck'){var ok1=ordById(b.dataset.id);if(!ok1)return;ordUpd(ok1.id,{st:'prep',ackAt:ok1.ackAt||now,ackBy:ok1.ackBy||S.uid,next:now+REMIND_MS});return;}
-  if(a==='kReady'){var ok2=ordById(b.dataset.id);if(!ok2)return;ordUpd(ok2.id,{st:'ready',readyAt:now});
+  if(a==='kReady'){var ok2=ordById(b.dataset.id);if(!ok2)return;ordUpd(ok2.id,{st:'ready',readyAt:now});setTimeout(function(){pushEvt('ready',ok2.id);},1500);
     flash('طلب #'+ok2.no+' جاهز · اتبعت للويتر',waFor(waiters(),'طلب #'+ok2.no+' جاهز في المطبخ · '+destTxt(ok2)));return;}
   if(a==='served'){var ok3=ordById(b.dataset.id);if(!ok3)return;ordUpd(ok3.id,{st:'served',servedAt:now,servedBy:S.uid});flash('طلب #'+ok3.no+' اتقدّم');return;}
   if(a==='ocxOn'){S.p.ocx=b.dataset.id;render();return;}
@@ -1678,7 +1722,7 @@ app.addEventListener('submit',function(ev){
     var blk=document.getElementById('mblock'),blocks=!!(blk&&blk.checked);
     var note=(document.getElementById('mnote').value||'').trim().slice(0,300);
     var doc={room:rno,issue:S.p.issue,note:note,by:S.uid,at:Date.now(),blocks:blocks,open:true};
-    db.collection('maint').add(doc).catch(function(){flash('البلاغ ما اتبعتش، جرّب تاني');});
+    db.collection('maint').add(doc).then(function(ref){pushEvt('maint',ref&&ref.id);}).catch(function(){flash('البلاغ ما اتبعتش، جرّب تاني');});
     if(blocks)upd(rno,{status:'maint'});
     var back=S.p.back||homeOf();go(back,(back==='hk-room'||back==='rec-room')?{no:rno}:{});
     var txt='بلاغ صيانة · غرفة '+rno+' · '+S.p.issue+(note?' · '+note:'');
