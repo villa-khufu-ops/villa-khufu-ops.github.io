@@ -355,7 +355,8 @@ function mntStaff(){return staffBy(function(s){return s.role==='mnt';});}
 function admins(){return staffBy(function(s){return s.role==='admin';});}
 function maintUrgent(m){return m.open&&(!m.ackAt||S.now>=(m.next||0));}
 // things done in the app that reception must repeat on Aiosell
-function aioTodo(no,what){if(!db)return;db.collection('aio').add({d:today(),at:Date.now(),by:S.uid,room:no,what:what,done:false}).catch(function(){});}
+// the "مطلوب على Aiosell" list was removed: Aiosell is the source of truth and the hourly sync overwrites the app
+function aioTodo(){}
 function aioNote(){return ' · سجّلها على Aiosell كمان';}
 // guest info to show housekeeping: today's arrival if any, else the guest in the room
 function roomGuest(r){return r.arrival&&r.arrival.in&&r.arrival.in<=today()&&r.status!=='occ'?guestInfo(r.arrival):r.status==='occ'?guestInfo(r):'';}
@@ -495,7 +496,6 @@ function vRec(){
   big('rec-occ','الغرف المشغولة','خروج · نقل · طلب نظافة',ICON.out,false)+
   (function(){var A=openAccounts(),ks=Object.keys(A),tot=ks.reduce(function(s,k){return s+A[k].total;},0);return big('rec-acc','حسابات الغرف',ks.length?ks.length+' غرفة عليها حساب · '+money(tot):'مفيش حسابات مفتوحة',ICON.cash,false);})()+
   big('rec-rep','تقرير غرفة','اختار الغرفة والتاريخ · كل اللي حصل فيها',ICON.report,false)+
-  big('rec-aio','مطلوب على Aiosell',S.aio.length?S.aio.length+' حاجة اتعملت هنا ولسه ما اتسجّلتش على Aiosell':'كله متسجّل على Aiosell',ICON.check.replace('width="18" height="18"','width="28" height="28"'),false,S.aio.length)+
   big('rec-shift','تسليم الشيفت','الفلوس اللي اتحصّلت · المفتوح · ملاحظات للي بعدك',ICON.users,false)+
   big('rec-lost','المفقودات',S.lost.length?S.lost.length+' حاجة محفوظة عندنا':'مفيش مفقودات محفوظة',ICON.bed,false)+
   (function(){var o=S.orders.filter(function(x){return isFood(x)&&x.d===today()&&x.st!=='cancel';});return big('rest','المطعم','طلب جديد · '+o.length+' طلب النهارده',ICON.food,false);})()+
@@ -975,7 +975,6 @@ function vRecShift(){
      row('خروج النهارده لسه ما خرجش',N.dep.length+(N.dep.length?' · '+h(N.dep.join('، ')):''))+
      row('غرف محتاجة نظافة أو تشيك',N.hkP)+
      row('بلاغات صيانة مفتوحة',N.mt,N.mt?'var(--warn)':'')+
-     row('مطلوب على Aiosell',N.aio,N.aio?'var(--warn)':'')+
      row('مفقودات محفوظة',N.lost)+'</div>'+
    '<form class="stack" id="shiftForm"><label class="f" for="shn">ملاحظات للي بعدك (اختياري)<textarea class="inp" id="shn" placeholder="مثلاً: غرفة 204 طالبة تاكسي الساعة 6 الصبح"></textarea></label>'+
    '<label class="f" for="shc">الكاش اللي في الدرج فعلاً (اختياري)<input class="inp ltr" id="shc" inputmode="decimal" placeholder="'+N.total+'"></label>'+
@@ -984,7 +983,7 @@ function vRecShift(){
 
 // ----- staff guide -----
 var GUIDE={
- rec:['وصول النهارده: الغرف اللي جاية من Aiosell. لما النزيل يوصل دوس "وصل · تشيك إن". النزيل اللي من غير حجز: "تسكين من غير حجز".','الغرف المشغولة ← الغرفة: طلب نظافة، تمديد الإقامة، نوع الحجز، نقل، بلاغ صيانة، الخروج.','المطعم والتلاجة واستلام غسيل: كله بيتسجّل على حساب الغرفة.','حسابات الغرف: المبلغ المطلوب من كل غرفة. لما النزيل يدفع دوس "الحساب اتدفع".','مطلوب على Aiosell: أي حاجة عملتها هنا لازم تتسجّل على Aiosell، وبعدين دوس "اتسجّلت".','آخر الشيفت: تسليم الشيفت.'],
+ rec:['وصول النهارده: الغرف اللي جاية من Aiosell. لما النزيل يوصل دوس "وصل · تشيك إن". النزيل اللي من غير حجز: "تسكين من غير حجز".','الغرف المشغولة ← الغرفة: طلب نظافة، تمديد الإقامة، نوع الحجز، نقل، بلاغ صيانة، الخروج.','المطعم والتلاجة واستلام غسيل: كله بيتسجّل على حساب الغرفة.','حسابات الغرف: المبلغ المطلوب من كل غرفة. لما النزيل يدفع دوس "الحساب اتدفع".','Aiosell هو المرجع: أي تشيك إن أو تمديد أو نقل أو خروج سجّله على Aiosell كمان، وإلا هيرجع زي Aiosell في التحديث كل ساعة.','آخر الشيفت: تسليم الشيفت.'],
  hk:['التوزيع: الغرف اللي محتاجة نظافة أو تشيك. دوس على اسم العاملة عشان توزّع.','الوصول: الغرف اللي جاية النهارده ولازم تتشيّك قبل النزيل.','المراجعة: لما العاملة تخلّص راجع الغرفة ودوس "راجعتها" أو "ترجع تتعاد".','الصيانة: البلاغات المفتوحة. الغرف: حالة كل الغرف.','التقارير: كل اللي حصل في أي يوم.'],
  work:['الغرفة الجديدة بترن. دوسي "استلمت · هبدأ فيها".','لما تخلّصي دوسي "الغرفة جاهزة" وعلّمي على الشيك ليست، ولو لقيتي حاجة للنزيل اكتبيها.','لو النزيل رافض النظافة دوسي "النزيل رافض النظافة / DND".','لو فيه عطل دوسي "بلّغ عن صيانة".','الغسيل والتلاجة: من الزراير تحت.'],
  rest:['المطعم: اختار الأصناف، وبعدين "مراجعة الطلب"، واختار غرفة أو ترابيزة أو تيك أواي.','غرف BB وHB وFB: الأكل المشمول بيتحسب صفر لوحده. الغدا لنزيل HB اقفل "مشمول".','لما الطلب يجهز بيرن عندك. دوس "استلمته واتقدّم".','الإلغاء: قبل ما المطبخ يستلم بس. بعدها من المدير.'],
@@ -1355,7 +1354,7 @@ app.addEventListener('submit',function(ev){
     if(!S.shift||!S.shift.since)return;var N2=shiftNums(),nt=(document.getElementById('shn').value||'').trim().slice(0,400),cv=(document.getElementById('shc').value||'').trim();
     var rec2={at:Date.now(),by:S.uid,since:S.shift.since,cash:N2.cashSum,roomPaid:N2.roomSum,total:N2.total,counted:cv===''?null:Number(cv),openSum:N2.openSum,notes:nt};
     db.collection('shift').add(rec2).then(function(){S.shift=null;go('rec');
-      var me2=meDoc()||{},txt2='تسليم شيفت الريسبشن · '+(me2.name||'')+'\nالمفروض: '+money(N2.total)+' (كاش '+money(N2.cashSum)+' + غرف '+money(N2.roomSum)+')'+(cv!==''?'\nالفعلي في الدرج: $'+cv:'')+'\nحسابات مفتوحة: '+money(N2.openSum)+'\nوصول لسه: '+N2.arrP+' · خروج لسه: '+N2.dep.length+' · صيانة مفتوحة: '+N2.mt+' · مطلوب على Aiosell: '+N2.aio+(nt?'\nملاحظات: '+nt:'');
+      var me2=meDoc()||{},txt2='تسليم شيفت الريسبشن · '+(me2.name||'')+'\nالمفروض: '+money(N2.total)+' (كاش '+money(N2.cashSum)+' + غرف '+money(N2.roomSum)+')'+(cv!==''?'\nالفعلي في الدرج: $'+cv:'')+'\nحسابات مفتوحة: '+money(N2.openSum)+'\nوصول لسه: '+N2.arrP+' · خروج لسه: '+N2.dep.length+' · صيانة مفتوحة: '+N2.mt+(nt?'\nملاحظات: '+nt:'');
       flash('اتسلّم الشيفت',waFor(admins(),txt2,'ابعت الملخص لـ'));}).catch(function(e){flash(e&&e.code==='permission-denied'?'تسليم الشيفت محتاج تحديث قواعد Firebase (Rules)':'ما اتحفظش، جرّب تاني');});
     return;
   }
@@ -1453,7 +1452,6 @@ function listen(){
   unsubs.push(db.collection('orders').where('at','>=',Date.now()-36*3600000).onSnapshot(function(snap){var l=[],before=urgentForMe();snap.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.orders=l;render();if(urgentForMe()>before)ring();},function(){}));
   unsubs.push(db.collection('orders').where('paid','==',false).onSnapshot(function(snap){var l=[];snap.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.bills=l;render();},function(){}));
   listenPrep();
-  unsubs.push(db.collection('aio').where('done','==',false).onSnapshot(function(snap){var l=[];snap.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.aio=l;render();},function(){}));
   unsubs.push(db.collection('lost').where('st','==','held').onSnapshot(function(snap){var l=[];snap.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.lost=l;render();},function(){}));
   // laundry still in the laundry room, and every laundry bill that isn't paid yet
   unsubs.push(db.collection('laundry').where('st','in',['new','wash','ready']).onSnapshot(function(snap){var l=[],before=urgentForMe();snap.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.laundry=l;render();if(urgentForMe()>before)ring();},function(){}));
