@@ -266,6 +266,11 @@ function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate
 function today(){return iso(new Date());}
 function dayDiff(a,b){return Math.round((Date.parse(b)-Date.parse(a))/86400000);}
 function fmt(d){if(!d)return'—';var p=d.split('-');return(+p[2])+' '+MONTHS[+p[1]-1];}
+// last Aiosell pull: the hourly sync stamps prep/{tomorrow}.syncAt (that doc becomes today's after midnight)
+function syncLine(){var a=Math.max((S.prep[today()]||{}).syncAt||0,(S.prep[tomorrow()]||{}).syncAt||0);
+  if(!a)return '<p class="sub" style="margin:0;text-align:center">آخر تحديث من Aiosell: لسه ما اتسجّلش</p>';
+  var old=S.now-a>2*3600000,d=new Date(a),ds=iso(d)===today()?'النهارده':fmt(iso(d));
+  return '<p class="sub" style="margin:0;text-align:center'+(old?';color:var(--warn);font-weight:700':'')+'">آخر تحديث من Aiosell: '+ds+' الساعة '+hm(a)+' · من '+ago(S.now-a)+(old?' · السحب متأخر، اتأكد إن الكمبيوتر وChrome شغالين':'')+'</p>';}
 function rel(d){var n=dayDiff(today(),d);return n===0?'النهارده':n===1?'بكرة':fmt(d);}
 function nights(n){return n===1?'ليلة':n===2?'ليلتين':n+' ليالي';}
 function ago(ms){var m=Math.max(0,Math.floor(ms/60000));return m<1?'دلوقتي':m<60?m+' د':Math.floor(m/60)+' س';}
@@ -485,7 +490,7 @@ function vRec(){
   var mt=S.maint.filter(function(m){return m.open;});
   var ml=mt.length?mt.map(function(m){return '<div class="row" style="border-top:1px solid var(--line);padding-top:8px"><span class="badge grey"><small>غرفة</small><b>'+h(m.room)+'</b></span><span class="grow"><span class="ttl">'+h(m.issue)+'</span><br><span class="sub">'+h(m.note||'')+(m.note?' · ':'')+'بلّغ: '+h(wname(m.by))+' · من '+ago(S.now-m.at)+'</span></span>'+(m.blocks?'<span class="chip c-warn">موقفة</span>':'')+'</div>';}).join(''):'<span class="sub">مفيش بلاغات مفتوحة</span>';
   return top('الريسبشن',fmt(t),homeOf()==='rec'?null:'home',homeOf()==='rec'?soundBtn()+'<button class="ib" data-a="go" data-v="pin" aria-label="حسابي · الاسم والرقم السري">'+ICON.user+'</button><button class="ib" data-a="logout" aria-label="تسجيل خروج">'+ICON.out+'</button>':'')+'<div class="stack">'+toastHtml()+
-  '<div class="stats"><div class="stat c-ok"><b>'+free+'</b><span>فاضية</span></div><div class="stat" style="background:var(--accent);color:var(--on-accent)"><b>'+occ+'</b><span>مشغولة</span></div><div class="stat c-warn"><b>'+leaving+'</b><span>خروج النهارده</span></div></div>'+
+  '<div class="stats"><div class="stat c-ok"><b>'+free+'</b><span>فاضية</span></div><div class="stat" style="background:var(--accent);color:var(--on-accent)"><b>'+occ+'</b><span>مشغولة</span></div><div class="stat c-warn"><b>'+leaving+'</b><span>خروج النهارده</span></div></div>'+syncLine()+
   (function(){var n=arrivals().length,c=allNos().filter(function(no){var r=room(no);return r.status==='occ'&&r.in===today();}).length;return big('rec-arr','وصول النهارده',n||c?(n+c)+' غرفة النهارده · '+c+' دخلت · '+n+' لسه':'مفيش وصول متسجّل النهارده',ICON.bed,true,n);})()+
   big('rec-occ','الغرف المشغولة','خروج · نقل · طلب نظافة',ICON.out,false)+
   (function(){var A=openAccounts(),ks=Object.keys(A),tot=ks.reduce(function(s,k){return s+A[k].total;},0);return big('rec-acc','حسابات الغرف',ks.length?ks.length+' غرفة عليها حساب · '+money(tot):'مفيش حسابات مفتوحة',ICON.cash,false);})()+
@@ -610,7 +615,7 @@ function vHk(){
   var mt=S.maint.filter(function(m){return m.open;});
   var tabs=[['assign','التوزيع',un.length],['review','المراجعة',rv.length],['maint','الصيانة',mt.length],['arr','الوصول',arrivals().filter(function(no){return !room(no).arrival.ready;}).length],['rooms','الغرف',0]].map(function(t){
     return '<button role="tab" aria-selected="'+(tab===t[0])+'" data-a="tab" data-t="'+t[0]+'">'+t[1]+(t[2]?' <span class="cnt"'+(t[0]==='review'?' style="background:var(--info)"':t[0]==='maint'?' style="background:var(--grey)"':t[0]==='arr'?' style="background:var(--ok)"':'')+'>'+t[2]+'</span>':'')+'</button>';}).join('');
-  var banners='';
+  var banners=syncLine();
   if(un.length)banners+='<button class="alert pulse" data-a="tab" data-t="assign" role="alert">'+ICON.bell+'<span><b>'+un.length+' غرفة محتاجة تتوزع</b><span>غرف '+un.join('، ')+'</span></span></button>';
   var sp=allNos().filter(function(no){var r=room(no);return r.status==='occ'?!!r.notes:!!(r.arrival&&r.arrival.in&&r.arrival.in<=today()&&r.arrival.notes);});
   if(sp.length)banners+='<div class="card" style="background:var(--warn-bg);color:var(--warn);border:2px solid var(--warn)"><span class="ttl">'+ICON.bell+' طلبات خاصة من النزلاء · '+sp.length+'</span>'+sp.map(function(no){var r=room(no),x=r.status==='occ'?r.notes:r.arrival.notes;return '<div class="row" style="border-top:1px solid var(--line);padding-top:6px"><span class="badge" style="width:44px;height:44px"><b style="font-size:14px">'+no+'</b></span><span class="grow" style="font-size:13px;font-weight:700">'+h(x)+(r.status==='occ'?'':' · وصول')+'</span></div>';}).join('')+'</div>';
