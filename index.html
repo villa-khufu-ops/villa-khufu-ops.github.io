@@ -373,7 +373,7 @@ var ICON={
 };
 
 // ---------- state ----------
-var S={chats:[],chat:null,chatMsgs:[],greq:[],tdraft:{},g:{tid:'',msgs:[],room:'',tab:'',cat:0,cart:{},tour:null,pax:2,sent:null,err:'',busy:false},ready:false,setup:null,uid:null,staff:{},rooms:{},maint:[],orders:[],bills:[],laundry:[],lbills:[],ldraft:{room:null,pieces:4},cart:{},prep:{},preDone:{},prepDay:'',aio:[],lost:[],ck:{},mcart:{},mdraft:{room:null},draft:{dest:'room',room:null},view:'home',p:{},toast:null,err:'',sound:false,now:Date.now(),busy:false};
+var S={chats:[],chat:null,chatMsgs:[],greq:[],tdraft:{},g:{tid:'',msgs:[],room:'',tab:'',cat:0,cart:{},tour:null,pax:2,sent:null,err:'',busy:false},ready:false,setup:null,uid:null,staff:{},rooms:{},maint:[],orders:[],bills:[],laundry:[],lbills:[],ldraft:{room:null,pieces:4},cart:{},prep:{},preDone:{},prepDay:'',aio:[],lost:[],ck:{},mcart:{},mdraft:{room:null},draft:{dest:'room',room:null},view:'home',p:{},toast:null,err:'',sound:(function(){try{return localStorage.getItem('vkSound')!=='0';}catch(e){return true;}})(),now:Date.now(),busy:false};
 var app=document.getElementById('app');
 var audio=null,ticks=0,toastTimer=null,unsubs=[];
 var cfg=window.FIREBASE_CONFIG||{};
@@ -446,8 +446,9 @@ var PLANS={RO:'من غير وجبات',BB:'فطار (BB)',HB:'هاف بورد ·
 var FOODCATS=[0,1,2,3,4,5,6,7,8,9];
 function planOf(no){var p=String((room(no)||{}).plan||'').toUpperCase();return PLANS[p]?p:'';}
 function catOf(l){return +String(l.k).split('-')[0];}
-function inclCats(){var r=S.draft.room,p=planOf(r);if(!S.draft.bb||(S.draft.dest||'room')!=='room'||!r||room(r).status!=='occ')return null;return (p==='HB'||p==='FB')?FOODCATS:[0];}
-function eligibleCats(){var p=planOf(S.draft.room);return (p==='HB'||p==='FB')?FOODCATS:[0];}
+function inclCats(){var r=S.draft.room,p=planOf(r);if(!S.draft.bb||(S.draft.dest||'room')!=='room'||!r||room(r).status!=='occ')return null;return [0];}
+// HB/FB اتلغوا من المطعم: المشمول الفطار بس، وأي أكل تاني بيتحسب
+function eligibleCats(){return [0];}
 function effP(l){var c=inclCats();return c&&c.indexOf(catOf(l))>=0?0:l.p;}
 function cartHasBfast(){var c=eligibleCats();return (S.draft.dest||'room')==='room'&&!!S.draft.room&&room(S.draft.room).status==='occ'&&cartLines().some(function(l){return c.indexOf(catOf(l))>=0;});}
 function planChip(no){var p=planOf(no);return p?'<span class="chip c-ok">'+p+'</span>':'';}
@@ -540,7 +541,7 @@ function toastHtml(){
   var w=S.toast.wa.map(function(x){return '<a class="btn b-wa" target="_blank" rel="noopener" href="'+h(waLink(x.phone,x.text))+'">'+ICON.wa+' '+h(x.label)+'</a>';}).join('');
   return '<div class="toast" role="status"><span>'+h(S.toast.msg)+'</span>'+w+'</div>';
 }
-function soundHint(){return urgentForMe()&&!S.sound?'<p class="hint">دوس على السماعة فوق عشان يشتغل صوت التنبيه</p>':'';}
+function soundHint(){if(!urgentForMe())return '';if(!S.sound)return '<p class="hint">دوس على السماعة فوق عشان يشتغل صوت التنبيه</p>';if(!audioOk)return '<p class="hint">دوس في أي حتة على الشاشة عشان الجرس يشتغل</p>';if(Date.now()<snoozeUntil)return '<p class="hint">الجرس ساكت دقيقتين · هيرن تاني لوحده لو جه حاجة جديدة</p>';return '<p class="hint">الجرس بيرن · دوس في أي حتة على الشاشة يسكت دقيقتين</p>';}
 function waBtn(label,phone,text){return '<a class="btn b-wa" target="_blank" rel="noopener" href="'+h(waLink(phone,text))+'">'+ICON.wa+' '+h(label)+'</a>';}
 
 function vNoConfig(){
@@ -846,8 +847,8 @@ function vRestCart(){
     var pr=S.draft.room;
     extra=(occL.length?'<span class="sub">الغرف المشغولة بس: الحساب بيتسجّل على الغرفة ويظهر عند الريسبشن</span><div class="grid3">'+occL.map(rbtn).join('')+'</div>':'<p class="empty">مفيش غرف مشغولة دلوقتي · اختار ترابيزة أو تيك أواي</p>')+
       (pr&&room(pr).status!=='occ'?'<p class="err" style="margin:0">غرفة '+pr+' مبقتش مشغولة · اختار غرفة تانية</p>':'')+
-      (cartHasBfast()?(function(){var pl=planOf(S.draft.room),big=pl==='HB'||pl==='FB';
-        return '<button class="check" style="border:2px solid '+(S.draft.bb?'var(--ok)':'var(--line)')+';width:100%;text-align:start" data-a="bbToggle" aria-pressed="'+!!S.draft.bb+'"><span><b>'+(big?'الأكل مشمول في الإقامة ('+pl+')':'الفطار مشمول في الإقامة'+(pl?' ('+pl+')':''))+'</b><br><span class="sub">'+(pl==='HB'?'هاف بورد: الفطار والعشا مشمولين · الغدا بيتحسب، فلو ده غدا اقفل الاختيار ده':pl==='FB'?'فول بورد: كل الوجبات مشمولة':'الفطار بيروح للمطبخ عادي ومش بيتحسب على الغرفة')+' · المشروبات والشيشة بتتحسب دايماً</span></span><span class="chip '+(S.draft.bb?'c-ok':'c-grey')+'">'+(S.draft.bb?'✓ مشمول':'بيتحسب')+'</span></button>';})():'');
+      (cartHasBfast()?(function(){var pl=planOf(S.draft.room),big=false;
+        return '<button class="check" style="border:2px solid '+(S.draft.bb?'var(--ok)':'var(--line)')+';width:100%;text-align:start" data-a="bbToggle" aria-pressed="'+!!S.draft.bb+'"><span><b>'+(big?'الأكل مشمول في الإقامة ('+pl+')':'الفطار مشمول في الإقامة'+(pl?' ('+pl+')':''))+'</b><br><span class="sub">'+'الفطار بيروح للمطبخ عادي ومش بيتحسب على الغرفة · أي أكل تاني بيتحسب'+' · المشروبات والشيشة بتتحسب دايماً</span></span><span class="chip '+(S.draft.bb?'c-ok':'c-grey')+'">'+(S.draft.bb?'✓ مشمول':'بيتحسب')+'</span></button>';})():'');
     extra+='<span class="ttl">التوصيل فين؟</span><div class="picks" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+PLACES.map(function(x){var on=(S.draft.place||'room')===x[0];return '<button class="pick" data-a="ordPlace" data-p="'+x[0]+'" aria-pressed="'+on+'">'+x[2]+'</button>';}).join('')+'</div>';
   }else if(d==='table'){
     extra='<label class="f" for="otable">رقم الترابيزة<input class="inp ltr" id="otable" inputmode="numeric" maxlength="10"></label><span class="sub">الدفع كاش</span>';
@@ -1274,7 +1275,7 @@ var GUIDE={
  rec:['وصول النهارده: الغرف اللي جاية النهارده. لما النزيل يوصل دوس "وصل · تشيك إن". النزيل اللي من غير حجز: "تسكين من غير حجز".','الغرف المشغولة ← الغرفة: طلب نظافة، تمديد الإقامة، نوع الحجز، نقل، بلاغ صيانة، الخروج.','المطعم والتلاجة واستلام غسيل: كله بيتسجّل على حساب الغرفة.','حسابات الغرف: المبلغ المطلوب من كل غرفة. لما النزيل يدفع دوس "الحساب اتدفع".','السيستم هو المرجع: أي تشيك إن أو تمديد أو نقل أو خروج سجّله على السيستم كمان، وإلا هيرجع زي السيستم في التحديث كل ساعة.','آخر الشيفت: تسليم الشيفت.'],
  hk:['التوزيع: الغرف اللي محتاجة نظافة أو تشيك. دوس على اسم العاملة عشان توزّع.','الوصول: الغرف اللي جاية النهارده ولازم تتشيّك قبل النزيل.','المراجعة: لما العاملة تخلّص راجع الغرفة ودوس "راجعتها" أو "ترجع تتعاد".','الصيانة: البلاغات المفتوحة. الغرف: حالة كل الغرف.','التقارير: كل اللي حصل في أي يوم.'],
  work:['الغرفة الجديدة بترن. دوسي "استلمت · هبدأ فيها".','لما تخلّصي دوسي "الغرفة جاهزة" وعلّمي على الشيك ليست، ولو لقيتي حاجة للنزيل اكتبيها.','لو النزيل رافض النظافة دوسي "النزيل رافض النظافة / DND".','لو فيه عطل دوسي "بلّغ عن صيانة".','الغسيل والتلاجة: من الزراير تحت.'],
- rest:['المطعم: اختار الأصناف، وبعدين "مراجعة الطلب"، واختار غرفة أو ترابيزة أو تيك أواي.','غرف BB وHB وFB: الأكل المشمول بيتحسب صفر لوحده. الغدا لنزيل HB اقفل "مشمول".','لما الطلب يجهز بيرن عندك. دوس "استلمته واتقدّم".','الإلغاء: قبل ما المطبخ يستلم بس. بعدها من المدير.'],
+ rest:['المطعم: اختار الأصناف، وبعدين "مراجعة الطلب"، واختار غرفة أو ترابيزة أو تيك أواي.','الفطار المشمول في الإقامة بيتحسب صفر لوحده. أي أكل تاني (غدا أو عشا) بيتحسب على الغرفة.','لما الطلب يجهز بيرن عندك. دوس "استلمته واتقدّم".','الإلغاء: قبل ما المطبخ يستلم بس. بعدها من المدير.'],
  kit:['الطلب الجديد بيرن. دوس "استلمت · هنبدأ".','كل 15 دقيقة بيفكّرك لحد ما تدوس "الطلب جاهز".','"الطلب جاهز" بيرن عند الويتر.'],
  lnd:['الغسيل الجديد بيرن. دوس "استلمت الغسيل".','لما يخلص دوس "الغسيل جاهز"، وبعد ما يطلع للغرفة "اتسلّم للغرفة".'],
  mnt:['البلاغ الجديد بيرن. دوس "استلمت · رايح أصلّح".','كل 15 دقيقة بيفكّرك لحد ما تدوس "اتصلحت".','بعد "اتصلحت" الغرفة بتروح للهاوس كيبنج تتنضف قبل ما تتسكّن.'],
@@ -1284,7 +1285,7 @@ var GTITLE={rec:'الريسبشن',hk:'مدير الهاوس كيبنج',work:'�
 function vHelp(){
   var a=areas();
   return top('دليل الاستخدام','','pin')+'<div class="stack">'+a.filter(function(x){return GUIDE[x];}).map(function(x){return '<div class="card"><span class="ttl">'+GTITLE[x]+'</span>'+GUIDE[x].map(function(t,i){return '<div class="row" style="align-items:flex-start;border-top:1px solid var(--line);padding-top:8px"><span class="chip c-soft">'+(i+1)+'</span><span class="grow" style="font-size:14px">'+h(t)+'</span></div>';}).join('')+'</div>';}).join('')+
-   '<div class="card"><span class="ttl">للكل</span><div class="row" style="align-items:flex-start;padding-top:4px"><span class="grow" style="font-size:14px">دوس على السماعة 🔇 مرة بعد الدخول عشان الجرس يشتغل، وخلّي الأبلكيشن مفتوح وانت في الشيفت. من 👤 حسابي تغيّر اسمك ورقمك السري.</span></div></div></div>';
+   '<div class="card"><span class="ttl">للكل</span><div class="row" style="align-items:flex-start;padding-top:4px"><span class="grow" style="font-size:14px">الجرس شغال لوحده كل ما تفتح الأبلكيشن (دوس في أي حتة على الشاشة مرة أول ما تفتح). لو الجرس بيرن دوس في أي حتة على الشاشة يسكت دقيقتين، ولو جه حاجة جديدة يرن تاني. السماعة فوق بتقفل الجرس خالص. خلّي الأبلكيشن مفتوح وانت في الشيفت. من 👤 حسابي تغيّر اسمك ورقمك السري.</span></div></div></div>';
 }
 
 // ----- export (admin) -----
@@ -1761,14 +1762,33 @@ app.addEventListener('submit',function(ev){
 });
 
 // ---------- sound ----------
+var audioOk=false,snoozeUntil=0,lastUrg=0;
+function getAudio(){try{if(!audio){audio=new Audio('ring.mp4');audio.preload='auto';}}catch(e){}return audio;}
+function stopRing(){try{audio&&audio.pause();}catch(e){}}
 function toggleSound(){
-  if(S.sound){S.sound=false;try{audio&&audio.pause();}catch(e){}render();return;}
-  try{if(!audio){audio=new Audio('ring.mp4');audio.preload='auto';}}catch(e){}
-  S.sound=true;ticks=0;render();ring();
+  if(S.sound){S.sound=false;try{localStorage.setItem('vkSound','0');}catch(e){}stopRing();render();return;}
+  getAudio();S.sound=true;snoozeUntil=0;try{localStorage.setItem('vkSound','1');}catch(e){}ticks=0;render();ring();
 }
-function ring(){if(!S.sound||!audio||!urgentForMe())return;try{audio.currentTime=0;var p=audio.play();if(p&&p.catch)p.catch(function(){});}catch(e){}}
+function ring(){
+  var u=urgentForMe();if(u>lastUrg)snoozeUntil=0;lastUrg=u;
+  if(!S.sound||!u||Date.now()<snoozeUntil)return;
+  var a=getAudio();if(!a)return;
+  try{a.muted=false;a.currentTime=0;var p=a.play();if(p&&p.then)p.then(function(){audioOk=true;},function(){audioOk=false;});else audioOk=true;}catch(e){}
+}
+// أول لمسة على الشاشة بتفتح الصوت (المتصفح مش بيسمح بالصوت قبل أول لمسة)
+// ولو الجرس بيرن: أي لمسة أو أي زرار (ومنهم زراير الصوت لو الجهاز بيبعتها) يسكّته دقيقتين
+function userTouch(e){
+  var a=getAudio(),ringing=a&&!a.paused&&!a.ended;
+  if(!audioOk){if(a){try{a.muted=true;var p=a.play();var done=function(){try{a.pause();a.currentTime=0;}catch(x){}a.muted=false;audioOk=true;ring();};if(p&&p.then)p.then(done,function(){a.muted=false;});else done();}catch(x){}}return;}
+  if(S.sound&&urgentForMe()&&(ringing||Date.now()>=snoozeUntil)){
+    var onBell=e&&e.target&&e.target.closest&&e.target.closest('[data-a="sound"]');
+    if(!onBell){snoozeUntil=Date.now()+120000;stopRing();}
+  }
+}
+['pointerdown','keydown'].forEach(function(t){document.addEventListener(t,userTouch,{capture:true,passive:true});});
 setInterval(function(){
   S.now=Date.now();ticks++;
+  var uNow=urgentForMe();if(uNow>lastUrg){snoozeUntil=0;}lastUrg=uNow;
   if(S.uid&&db&&S.prepDay&&S.prepDay!==today())listenPrep();
   if(ticks%4===0)ring();
   var inForm=document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
