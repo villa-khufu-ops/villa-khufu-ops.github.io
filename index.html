@@ -268,9 +268,9 @@ function dayDiff(a,b){return Math.round((Date.parse(b)-Date.parse(a))/86400000);
 function fmt(d){if(!d)return'—';var p=d.split('-');return(+p[2])+' '+MONTHS[+p[1]-1];}
 // last Aiosell pull: the hourly sync stamps prep/{tomorrow}.syncAt (that doc becomes today's after midnight)
 function syncLine(){var a=Math.max((S.prep[today()]||{}).syncAt||0,(S.prep[tomorrow()]||{}).syncAt||0);
-  if(!a)return '<p class="sub" style="margin:0;text-align:center">آخر تحديث من Aiosell: لسه ما اتسجّلش</p>';
+  if(!a)return '<p class="sub" style="margin:0;text-align:center">آخر تحديث للبرنامج: مستني أول تحديث</p>';
   var old=S.now-a>2*3600000,d=new Date(a),ds=iso(d)===today()?'النهارده':fmt(iso(d));
-  return '<p class="sub" style="margin:0;text-align:center'+(old?';color:var(--warn);font-weight:700':'')+'">آخر تحديث من Aiosell: '+ds+' الساعة '+hm(a)+' · من '+ago(S.now-a)+(old?' · السحب متأخر، اتأكد إن الكمبيوتر وChrome شغالين':'')+'</p>';}
+  return '<p class="sub" style="margin:0;text-align:center'+(old?';color:var(--warn);font-weight:700':'')+'">آخر تحديث للبرنامج: '+ds+' الساعة '+hm(a)+' · من '+ago(S.now-a)+(old?' · التحديث متأخر، اتأكد إن الكمبيوتر وChrome شغالين':'')+'</p>';}
 function rel(d){var n=dayDiff(today(),d);return n===0?'النهارده':n===1?'بكرة':fmt(d);}
 function nights(n){return n===1?'ليلة':n===2?'ليلتين':n+' ليالي';}
 function ago(ms){var m=Math.max(0,Math.floor(ms/60000));return m<1?'دلوقتي':m<60?m+' د':Math.floor(m/60)+' س';}
