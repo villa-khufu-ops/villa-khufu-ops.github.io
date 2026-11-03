@@ -9,8 +9,15 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/staff/$(request.auth.uid))
         && staffDoc().data.active == true;
     }
-    function isAdmin() { return isStaff() && staffDoc().data.role == 'admin'; }
+    function role() { return staffDoc().data.role; }
+    function isAdmin() { return isStaff() && role() == 'admin'; }
+    function hasRole(rs) { return isStaff() && role() in rs; }
     function setupDone() { return exists(/databases/$(database)/documents/meta/setup); }
+    // which fields this update changes
+    function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
+    function onlyKeys(ks) { return changed().hasOnly(ks); }
+    function same(k) { return !(k in changed()); }
+    function byMe() { return request.resource.data.by == request.auth.uid; }
 
     // تعرف الصفحة منه إذا كان أول تشغيل ولا لأ
     match /meta/setup {
@@ -27,15 +34,127 @@ service cloud.firestore {
                         && getAfter(/databases/$(database)/documents/meta/setup) != null
                         && request.resource.data.role == 'admin')
                     || isAdmin();
-      allow update, delete: if isAdmin();
+      // المدير يعدّل أي حساب · الموظف يغيّر اسمه بس
+      allow update: if isAdmin()
+        || (isStaff() && request.auth.uid == uid && onlyKeys(['name']));
+      allow delete: if isAdmin();
     }
 
+    // الغرف: المدير والريسبشن ومدير وسوبر فايزر الهاوس كيبنج كل حاجة ·
+    // العاملة مهمتها بس (أو توقف الغرفة صيانة) · الفني يرجّع الغرفة بعد التصليح
     match /rooms/{no} {
-      allow read, write: if isStaff();
+      allow read: if isStaff();
+      allow create: if isAdmin();
+      allow update: if isAdmin()
+        || hasRole(['rec', 'hkm', 'hks'])
+        || (hasRole(['hk']) && onlyKeys(['task', 'status'])
+            && (same('status') || request.resource.data.status == 'maint')
+            && (same('task') || (request.resource.data.task is map
+                                 && request.resource.data.task.w == request.auth.uid)))
+        || (hasRole(['mnt']) && onlyKeys(['status'])
+            && request.resource.data.status in ['clean', 'maint']);
+      allow delete: if false;
     }
 
     match /maint/{id} {
-      allow read, write: if isStaff();
+      allow read: if isStaff();
+      allow create: if isStaff() && byMe();
+      allow update: if isAdmin()
+        || (hasRole(['rec', 'hkm', 'hks', 'mnt'])
+            && onlyKeys(['open', 'fixedAt', 'fixedBy', 'ackAt', 'ackBy', 'next']));
+      allow delete: if isAdmin();
+    }
+
+    // سجل الحركة للتقارير: كل موظف يضيف باسمه بس، والمدير بس يعدّل أو يمسح
+    match /log/{id} {
+      allow read: if isStaff();
+      allow create: if isStaff() && byMe();
+      allow update, delete: if isAdmin();
+    }
+
+    // طلبات المطعم والتلاجة
+    match /orders/{id} {
+      allow read: if isStaff();
+      allow create: if isStaff() && byMe();
+      allow update: if isAdmin()
+        // الريسبشن: التحصيل · نقل الحساب · التقديم · إلغاء قبل ما المطبخ يستلم
+        || (hasRole(['rec'])
+            && onlyKeys(['paid', 'paidAt', 'paidBy', 'room', 'st', 'servedAt', 'servedBy', 'cancelAt', 'cancelBy'])
+            && (same('st') || request.resource.data.st == 'served'
+                || (resource.data.st == 'new' && request.resource.data.st == 'cancel')))
+        // مدير المطعم: المطبخ والتقديم والإلغاء في أي وقت
+        || (hasRole(['restm'])
+            && onlyKeys(['st', 'ackAt', 'ackBy', 'next', 'readyAt', 'servedAt', 'servedBy', 'cancelAt', 'cancelBy', 'paid']))
+        // الويتر: التقديم · إلغاء قبل ما المطبخ يستلم
+        || (hasRole(['rest'])
+            && onlyKeys(['st', 'servedAt', 'servedBy', 'cancelAt', 'cancelBy', 'paid'])
+            && (request.resource.data.st == 'served'
+                || (resource.data.st == 'new' && request.resource.data.st == 'cancel')))
+        // المطبخ: استلام وجاهز بس
+        || (hasRole(['kit'])
+            && onlyKeys(['st', 'ackAt', 'ackBy', 'next', 'readyAt'])
+            && request.resource.data.st in ['prep', 'ready']);
+      allow delete: if isAdmin();
+    }
+
+    // فواتير المغسلة
+    match /laundry/{id} {
+      allow read: if isStaff();
+      allow create: if isStaff() && byMe();
+      allow update: if isAdmin()
+        || (hasRole(['rec'])
+            && onlyKeys(['paid', 'paidAt', 'paidBy', 'room', 'st', 'ackAt', 'ackBy', 'readyAt', 'doneAt', 'doneBy', 'cancelAt', 'cancelBy']))
+        || (hasRole(['lnd', 'hkm', 'hks', 'hk'])
+            && onlyKeys(['st', 'ackAt', 'ackBy', 'readyAt', 'doneAt', 'doneBy', 'cancelAt', 'cancelBy', 'paid'])
+            && (same('paid') || (resource.data.st == 'new' && request.resource.data.st == 'cancel')));
+      allow delete: if isAdmin();
+    }
+
+    // حاجات لازم الريسبشن يسجّلها على Aiosell
+    match /aio/{id} {
+      allow read: if isStaff();
+      allow create: if isStaff() && byMe();
+      allow update: if isAdmin() || (hasRole(['rec']) && onlyKeys(['done', 'doneAt', 'doneBy']));
+      allow delete: if isAdmin();
+    }
+
+    // المفقودات
+    match /lost/{id} {
+      allow read: if isStaff();
+      allow create: if isStaff() && byMe();
+      allow update: if isAdmin() || (hasRole(['rec', 'hkm', 'hks']) && onlyKeys(['st', 'retAt', 'retBy']));
+      allow delete: if isAdmin();
+    }
+
+    // تجهيز شغل بكرة: توزيع الهاوس كيبنج ووصول بكرة من Aiosell
+    match /prep/{day} {
+      allow read: if isStaff();
+      allow create, update: if hasRole(['admin', 'hkm', 'hks']);
+      allow delete: if isAdmin();
+    }
+
+    // طلبات النزلاء من الـ QR: أي حد يبعت طلب لغرفة مشغولة بس، والريسبشن والمدير بس اللي يشوفوها ويردّوا عليها
+    match /greq/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['room', 'type', 'items', 'tour', 'note', 'at', 'st'])
+        && request.resource.data.room is string && request.resource.data.room.size() == 3
+        && request.resource.data.type in ['food', 'tour']
+        && request.resource.data.st == 'new'
+        && request.resource.data.at is number
+        && request.resource.data.items is list && request.resource.data.items.size() <= 40
+        && request.resource.data.note is string && request.resource.data.note.size() <= 200
+        && exists(/databases/$(database)/documents/rooms/$(request.resource.data.room))
+        && get(/databases/$(database)/documents/rooms/$(request.resource.data.room)).data.status == 'occ';
+      allow read: if hasRole(['admin', 'rec']);
+      allow update: if hasRole(['admin', 'rec']) && onlyKeys(['st', 'doneAt', 'doneBy']);
+      allow delete: if isAdmin();
+    }
+
+    // تسليم الشيفت
+    match /shift/{id} {
+      allow read: if hasRole(['admin', 'rec']);
+      allow create: if hasRole(['admin', 'rec']) && byMe();
+      allow update: if false;
+      allow delete: if isAdmin();
     }
   }
 }
