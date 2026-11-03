@@ -327,7 +327,7 @@ var ICON={
 };
 
 // ---------- state ----------
-var S={chats:[],chat:null,chatMsgs:[],greq:[],tdraft:{},g:{tid:'',msgs:[],room:'',tab:'food',cat:0,cart:{},tour:null,pax:2,sent:null,err:'',busy:false},ready:false,setup:null,uid:null,staff:{},rooms:{},maint:[],orders:[],bills:[],laundry:[],lbills:[],ldraft:{room:null,pieces:4},cart:{},prep:{},preDone:{},prepDay:'',aio:[],lost:[],ck:{},mcart:{},mdraft:{room:null},draft:{dest:'room',room:null},view:'home',p:{},toast:null,err:'',sound:false,now:Date.now(),busy:false};
+var S={chats:[],chat:null,chatMsgs:[],greq:[],tdraft:{},g:{tid:'',msgs:[],room:'',tab:'',cat:0,cart:{},tour:null,pax:2,sent:null,err:'',busy:false},ready:false,setup:null,uid:null,staff:{},rooms:{},maint:[],orders:[],bills:[],laundry:[],lbills:[],ldraft:{room:null,pieces:4},cart:{},prep:{},preDone:{},prepDay:'',aio:[],lost:[],ck:{},mcart:{},mdraft:{room:null},draft:{dest:'room',room:null},view:'home',p:{},toast:null,err:'',sound:false,now:Date.now(),busy:false};
 var app=document.getElementById('app');
 var audio=null,ticks=0,toastTimer=null,unsubs=[];
 var cfg=window.FIREBASE_CONFIG||{};
@@ -908,8 +908,19 @@ function vGuest(){
   if(!G.room)return wrap('<div class="card" style="gap:12px;align-items:center;text-align:center"><img src="apple-touch-icon.png" alt="" width="120" height="120" style="border-radius:50%"><span class="ttl" style="font-size:18px">Welcome! What is your room number?</span>'+
     '<input class="inp ltr" id="groom" inputmode="numeric" maxlength="3" placeholder="e.g. 110" style="font-size:22px;text-align:center" aria-label="Room number">'+
     (G.err?'<p class="err" role="alert">'+h(G.err)+'</p>':'')+'<button class="btn b-main" data-a="gRoom">Continue</button></div>');
-  if(G.sent)return wrap('<div class="card" style="align-items:center;text-align:center;gap:10px"><b style="font-size:20px">Thank you! ✓</b><span>Your request was sent to reception. They will confirm it with you shortly.</span>'+(G.sent==='tour'?'<span class="sub">The tour price will be confirmed by reception.</span>':'')+'<button class="btn b-main" data-a="gAgain">Back to the menu</button></div>');
-  var tabs='<div class="tabs" role="tablist" style="grid-template-columns:1fr 1fr 1fr"><button role="tab" aria-selected="'+(G.tab==='food')+'" data-a="gTab" data-t="food">Restaurant</button><button role="tab" aria-selected="'+(G.tab==='tour')+'" data-a="gTab" data-t="tour">Tours</button><button role="tab" aria-selected="'+(G.tab==='chat')+'" data-a="gTab" data-t="chat">Chat'+(gUnread()?' <span class="cnt">'+gUnread()+'</span>':'')+'</button></div>';
+  if(G.sent)return wrap('<div class="card" style="align-items:center;text-align:center;gap:10px"><b style="font-size:20px">Thank you! ✓</b><span>Your request was sent to reception. They will confirm it with you shortly.</span>'+(G.sent==='tour'?'<span class="sub">The tour price will be confirmed by reception.</span>':'')+'<button class="btn b-main" data-a="gAgain">Back to home</button></div>');
+  // after the room number: a home screen with two big icons, each opens its list
+  var ic=function(svg){return '<span style="width:84px;height:84px;border-radius:50%;background:var(--soft);color:var(--accent);display:flex;align-items:center;justify-content:center">'+svg+'</span>';};
+  var IC_FOOD='<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3v7a2 2 0 0 0 4 0V3M7 10v11M17 3c-2 1.5-3 4-3 7h3v11"/></svg>';
+  var IC_TOUR='<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 20h20M4 20l6-12 3 5 2-3 5 10"/><circle cx="17" cy="5" r="2"/></svg>';
+  if(!G.tab){var un=gUnread();
+    return wrap('<p class="ttl" style="font-size:18px;margin:4px 0">How can we help you?</p>'+
+     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
+     '<button class="card" style="align-items:center;text-align:center;gap:10px;padding:22px 10px" data-a="gTab" data-t="food">'+ic(IC_FOOD)+'<b style="font-size:19px">Restaurant</b><span class="sub">Order food &amp; drinks to your room</span></button>'+
+     '<button class="card" style="align-items:center;text-align:center;gap:10px;padding:22px 10px" data-a="gTab" data-t="tour">'+ic(IC_TOUR)+'<b style="font-size:19px">Tours</b><span class="sub">Book a trip with our team</span></button></div>'+
+     '<button class="btn b-line" style="min-height:52px" data-a="gTab" data-t="chat">Chat with reception'+(un?' <span class="cnt">'+un+'</span>':'')+'</button>');}
+  var tabs='<button class="btn b-line" style="min-height:44px;width:auto;align-self:flex-start" data-a="gHome">← Back</button>'+
+   '<p class="ttl" style="font-size:20px;margin:0">'+(G.tab==='food'?'Restaurant':G.tab==='tour'?'Tours':'Chat with reception')+'</p>';
   var err=G.err?'<p class="err" role="alert">'+h(G.err)+'</p>':'';
   if(G.tab==='chat'){G.seen=G.msgs.length;
     var ms=G.msgs.length?G.msgs.map(function(m){var me=m.from==='guest';return '<div style="align-self:'+(me?'flex-end':'flex-start')+';max-width:82%;background:'+(me?'var(--accent)':'var(--surface)')+';color:'+(me?'var(--on-accent)':'var(--ink)')+';border:1px solid var(--line);border-radius:16px;padding:8px 12px"><div style="white-space:pre-wrap;word-break:break-word">'+h(m.text)+'</div><div style="font-size:11px;opacity:.7;margin-top:2px">'+(me?'You':'Reception')+' · '+hm(m.at).replace(' ص',' am').replace(' م',' pm')+'</div></div>';}).join(''):'<p class="sub" style="text-align:center">Send a message to reception: questions, requests, anything you need.</p>';
@@ -922,7 +933,7 @@ function vGuest(){
        '<label class="f" for="gdate">Preferred date<input class="inp" id="gdate" type="date" min="'+today()+'" value="'+tomorrow()+'"></label>'+
        '<label class="f" for="gnoteT">Notes (optional)<input class="inp" id="gnoteT" maxlength="200" placeholder="e.g. pick-up time, language"></label>'+
        '<span class="sub">Reception will contact you with the price and pick-up time.</span></div>'+err+
-       '<button class="btn b-main" style="min-height:56px" data-a="gSendTour"'+(G.busy?' disabled':'')+'>Send request to reception</button><button class="btn b-line" data-a="gTourBack">All tours</button>');}
+       '<button class="btn b-main" style="min-height:56px" data-a="gSendTour"'+(G.busy?' disabled':'')+'>Send request to reception</button><button class="btn b-line" data-a="gTourBack">← All tours</button>');}
     return wrap(tabs+TOURS.map(function(x){return '<button class="card" style="text-align:left;gap:6px" data-a="gTour" data-i="'+x[0]+'"><span class="ttl">'+x[0]+'. '+h(x[1])+'</span><span class="sub">'+h(x[3])+'</span><span class="chip c-soft" style="align-self:flex-start">Request this tour</span></button>';}).join(''));
   }
   var ci=Math.min(G.cat||0,MENU.length-1),c=MENU[ci];
@@ -964,7 +975,8 @@ function guestAct(a,b){
   if(a==='gRoom'){var v=((document.getElementById('groom')||{}).value||'').trim();if(v.length<3)v=('000'+v).slice(-3);if(!META[v]){G.err='Please enter a valid room number.';render();return;}G.room=v;G.err='';try{sessionStorage.setItem('vkRoom',v);}catch(e){}gOpenRoom();render();return;}
   if(a==='gRoomChange'){G.room='';G.sent=null;if(gChatUnsub){try{gChatUnsub();}catch(e){}gChatUnsub=null;}G.tid='';G.msgs=[];G.seen=0;render();return;}
   if(a==='gChatSend'){gChatSend();return;}
-  if(a==='gAgain'){G.sent=null;render();return;}
+  if(a==='gAgain'){G.sent=null;G.tab='';render();return;}
+  if(a==='gHome'){G.tab='';G.tour=null;G.err='';render();window.scrollTo(0,0);return;}
   if(a==='gTab'){G.tab=b.dataset.t;G.err='';render();window.scrollTo(0,0);return;}
   if(a==='gCat'){G.cat=+b.dataset.i;render();return;}
   if(a==='gQ'){var k=b.dataset.k;G.cart[k]=Math.max(0,Math.min(20,(G.cart[k]||0)+(+b.dataset.d)));if(!G.cart[k])delete G.cart[k];render();return;}
