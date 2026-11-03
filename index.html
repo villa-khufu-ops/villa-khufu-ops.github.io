@@ -414,7 +414,9 @@ function cartHasBfast(){var c=eligibleCats();return (S.draft.dest||'room')==='ro
 function planChip(no){var p=planOf(no);return p?'<span class="chip c-ok">'+p+'</span>':'';}
 function cartTotal(){return cartLines().reduce(function(s,l){return s+l.q*effP(l);},0);}
 function money(n){return '$'+(Math.round((n||0)*100)/100);}
-function destTxt(o){return o.dest==='room'?'غرفة '+o.room:o.dest==='table'?'ترابيزة '+o.table:'تيك أواي';}
+var PLACES=[['room','In my room','في الغرفة'],['roof','Rooftop','على الروف'],['pool','By the pool','عند حمام السباحة'],['out','Outside the hotel','بره الفندق']];
+function placeAr(k){var p=PLACES.filter(function(x){return x[0]===k;})[0];return p?p[2]:'';}
+function destTxt(o){return (o.dest==='room'?'غرفة '+o.room:o.dest==='table'?'ترابيزة '+o.table:'تيك أواي')+(o.place&&o.place!=='room'?' · '+placeAr(o.place):'');}
 function ordUrgentKit(o){return o.st==='new'||(o.st==='prep'&&S.now>=(o.next||0));}
 function kitchenStaff(){return staffBy(function(s){return s.role==='kit'||s.role==='restm';});}
 function waiters(){return staffBy(function(s){return s.role==='rest'||s.role==='restm';});}
@@ -780,6 +782,7 @@ function vRestCart(){
       (pr&&room(pr).status!=='occ'?'<p class="err" style="margin:0">غرفة '+pr+' مبقتش مشغولة · اختار غرفة تانية</p>':'')+
       (cartHasBfast()?(function(){var pl=planOf(S.draft.room),big=pl==='HB'||pl==='FB';
         return '<button class="check" style="border:2px solid '+(S.draft.bb?'var(--ok)':'var(--line)')+';width:100%;text-align:start" data-a="bbToggle" aria-pressed="'+!!S.draft.bb+'"><span><b>'+(big?'الأكل مشمول في الإقامة ('+pl+')':'الفطار مشمول في الإقامة'+(pl?' ('+pl+')':''))+'</b><br><span class="sub">'+(pl==='HB'?'هاف بورد: الفطار والعشا مشمولين · الغدا بيتحسب، فلو ده غدا اقفل الاختيار ده':pl==='FB'?'فول بورد: كل الوجبات مشمولة':'الفطار بيروح للمطبخ عادي ومش بيتحسب على الغرفة')+' · المشروبات والشيشة بتتحسب دايماً</span></span><span class="chip '+(S.draft.bb?'c-ok':'c-grey')+'">'+(S.draft.bb?'✓ مشمول':'بيتحسب')+'</span></button>';})():'');
+    extra+='<span class="ttl">التوصيل فين؟</span><div class="picks" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+PLACES.map(function(x){var on=(S.draft.place||'room')===x[0];return '<button class="pick" data-a="ordPlace" data-p="'+x[0]+'" aria-pressed="'+on+'">'+x[2]+'</button>';}).join('')+'</div>';
   }else if(d==='table'){
     extra='<label class="f" for="otable">رقم الترابيزة<input class="inp ltr" id="otable" inputmode="numeric" maxlength="10"></label><span class="sub">الدفع كاش</span>';
   }else extra='<span class="sub">الدفع كاش</span>';
@@ -886,7 +889,7 @@ function vRecGreq(){
    '<p class="sub" style="margin:0">النزيل بعت الطلبات دي من الـ QR. الطلب مش بيتحسب لحد ما تفتحه وتبعته إنت. لو مش منطقي (الغرفة غلط مثلاً) اتصل بالغرفة أو ارفضه.</p>'+
    (l.length?l.map(function(g){var r=room(g.room),oc=r&&r.status==='occ',body;
      if(g.type==='tour'){var t=tourById(g.tour&&g.tour.id)||[];body='<span class="ttl" style="display:block">رحلة: '+h(t[2]||'')+'</span><span class="sub" style="display:block">'+(g.tour&&g.tour.pax||1)+' أفراد'+(g.tour&&g.tour.date?' · يوم '+fmt(g.tour.date):'')+'</span>';}
-     else{var tot=(g.items||[]).reduce(function(s,i){return s+(i.p||0)*(i.q||0);},0);body='<span class="ttl" style="display:block">مطعم · <span class="money">'+money(tot)+'</span></span><span class="ltr" style="display:block;text-align:right;font-size:13px">'+h((g.items||[]).map(function(i){return i.q+'× '+i.n;}).join('، '))+'</span>';}
+     else{var tot=(g.items||[]).reduce(function(s,i){return s+(i.p||0)*(i.q||0);},0);body='<span class="ttl" style="display:block">مطعم · <span class="money">'+money(tot)+'</span>'+(g.place?' · <span class="chip c-warn">'+h(placeAr(g.place))+'</span>':'')+'</span><span class="ltr" style="display:block;text-align:right;font-size:13px">'+h((g.items||[]).map(function(i){return i.q+'× '+i.n;}).join('، '))+'</span>';}
      return '<div class="card"><div class="row" style="align-items:flex-start"><span class="badge'+(oc?' occ':'')+'"><small>غرفة</small><b>'+h(g.room)+'</b></span><span class="grow">'+body+(g.note?'<span class="sub" style="display:block;color:var(--warn);font-weight:700">ملاحظة: '+h(g.note)+'</span>':'')+'<span class="sub" style="display:block">من '+ago(S.now-g.at)+'</span></span></div>'+
       (oc?'':'<p class="err" style="margin:0">غرفة '+h(g.room)+' مش مشغولة دلوقتي · اتأكد من النزيل</p>')+
       '<div class="row" style="gap:8px">'+(oc?'<button class="btn b-main" data-a="'+(g.type==='tour'?'gqTour':'gqFood')+'" data-id="'+h(g.id)+'">'+(g.type==='tour'?'حدّد السعر وسجّل':'افتح الطلب وابعته للمطبخ')+'</button>':'')+'<button class="btn b-line" style="width:auto" data-a="gqRej" data-id="'+h(g.id)+'">رفض</button></div></div>';}).join(''):'<p class="empty">مفيش طلبات جديدة</p>')+'</div>';
@@ -951,7 +954,8 @@ function vGuest(){
     return '<div class="card" style="gap:8px"><div class="row" style="align-items:flex-start"><span class="grow"><span class="ttl">'+h(it[0])+'</span>'+(it[2]?'<span class="sub" style="display:block">'+h(it[2])+'</span>':'')+'</span><b class="money" style="font-size:16px">'+money(it[1])+'</b></div>'+
      (q?'<div class="qty" style="align-self:flex-start"><button data-a="gQ" data-k="'+k+'" data-d="-1" aria-label="Less">−</button><b>'+q+'</b><button data-a="gQ" data-k="'+k+'" data-d="1" aria-label="More">+</button></div>':'<button class="btn b-line" style="min-height:42px;width:auto;align-self:flex-start;color:var(--accent);border-color:var(--accent)" data-a="gQ" data-k="'+k+'" data-d="1">+ Add</button>')+'</div>';}).join('');
   var n=gCount();
-  var send=n?'<label class="f" for="gnoteF">Notes for the kitchen (optional)<input class="inp" id="gnoteF" maxlength="200" placeholder="e.g. no onions"></label><span class="sub">Breakfast or meals included in your stay will not be charged. Reception confirms every order.</span>'+err+
+  var gpl=G.place||'room',places='<span class="ttl">Where should we serve it?</span><div class="picks" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+PLACES.map(function(x){return '<button class="pick" data-a="gPlace" data-p="'+x[0]+'" aria-pressed="'+(gpl===x[0])+'">'+x[1]+'</button>';}).join('')+'</div>';
+  var send=n?places+'<label class="f" for="gnoteF">Notes for the kitchen (optional)<input class="inp" id="gnoteF" maxlength="200" placeholder="e.g. no onions"></label><span class="sub">Breakfast or meals included in your stay will not be charged. Reception confirms every order.</span>'+err+
     '<button class="btn b-main cartbar" data-a="gSendFood"'+(G.busy?' disabled':'')+'><span>'+n+' item'+(n>1?'s':'')+' · <span class="money">'+money(gTotal())+'</span></span><span>Send order</span></button>':'';
   return wrap(tabs+chips+items+send);
 }
@@ -988,6 +992,7 @@ function guestAct(a,b){
   if(a==='gHome'){G.tab='';G.tour=null;G.err='';render();window.scrollTo(0,0);return;}
   if(a==='gTab'){G.tab=b.dataset.t;G.err='';render();window.scrollTo(0,0);return;}
   if(a==='gCat'){G.cat=+b.dataset.i;render();return;}
+  if(a==='gPlace'){G.place=b.dataset.p;render();return;}
   if(a==='gQ'){var k=b.dataset.k;G.cart[k]=Math.max(0,Math.min(20,(G.cart[k]||0)+(+b.dataset.d)));if(!G.cart[k])delete G.cart[k];render();return;}
   if(a==='gTour'){G.tour=+b.dataset.i;G.pax=2;G.err='';render();window.scrollTo(0,0);return;}
   if(a==='gTourBack'){G.tour=null;render();return;}
@@ -995,7 +1000,7 @@ function guestAct(a,b){
   if(a==='gSendTour'){var d=(document.getElementById('gdate')||{}).value||'';var t=tourById(G.tour);
     gSend({tour:{id:t[0],pax:G.pax,date:d},items:[],note:((document.getElementById('gnoteT')||{}).value||'').trim().slice(0,200)},'tour');return;}
   if(a==='gSendFood'){var it=Object.keys(G.cart).slice(0,40).map(function(k){var x=itemAt(k);return {k:k,n:x.n,p:x.p,q:G.cart[k]};});if(!it.length)return;
-    gSend({items:it,note:((document.getElementById('gnoteF')||{}).value||'').trim().slice(0,200)},'food');return;}
+    gSend({items:it,place:G.place||'room',note:((document.getElementById('gnoteF')||{}).value||'').trim().slice(0,200)},'food');return;}
 }
 function gqSet(id,st){if(!db||!id)return;db.collection('greq').doc(id).set({st:st,doneAt:Date.now(),doneBy:S.uid},{merge:true}).catch(function(e){flash(e&&e.code==='permission-denied'?'لازم تحديث قواعد Firebase (Rules) الأول':'ما اتحفظش، جرّب تاني');});}
 function gqById(id){return S.greq.filter(function(g){return g.id===id;})[0];}
@@ -1397,6 +1402,7 @@ app.addEventListener('click',function(ev){
   if(a==='cat'){S.p.cat=+b.dataset.i;render();window.scrollTo(0,0);return;}
   if(a==='q'){var k=b.dataset.k;S.cart[k]=Math.max(0,(S.cart[k]||0)+(+b.dataset.d));if(!S.cart[k])delete S.cart[k];render();return;}
   if(a==='dest'){S.draft.dest=b.dataset.d;S.err='';render();return;}
+  if(a==='ordPlace'){S.draft.place=b.dataset.p;render();return;}
   if(a==='setNote'){var gv=((document.getElementById('gnote')||{}).value||'').trim().slice(0,150),ro2=room(no);if(gv===(ro2.notes||''))return;
     upd(no,{notes:gv||null});logEv('note',no,{reason:gv?'طلب خاص: '+gv:'اتشال الطلب الخاص'});
     flash(gv?'طلب غرفة '+no+' اتبعت للهاوس كيبنج':'اتشال الطلب الخاص',gv?waFor(hkManagers(),'طلب خاص · غرفة '+no+': '+gv):[]);return;}
@@ -1411,7 +1417,7 @@ app.addEventListener('click',function(ev){
     var L=cartLines();if(!L.length||!db)return;
     var dd=S.draft.dest||'room',o={d:today(),at:now,by:S.uid,dest:dd,items:L.map(function(l){var e=effP(l);var it={n:l.n,p:e,q:l.q};if(e!==l.p){it.inc=true;it.list=l.p;it.plan=planOf(S.draft.room)||'BB';}return it;}),total:cartTotal(),st:'new',next:0,
       note:((document.getElementById('onote')||{}).value||'').trim().slice(0,200)};
-    if(dd==='room'){var rn=S.draft.room;if(!rn||!META[rn]){S.err='اختار الغرفة';render();return;}if(room(rn).status!=='occ'){S.err='غرفة '+rn+' مش مشغولة · مينفعش يتحمّل عليها طلب';render();return;}o.room=rn;o.pay='room';o.paid=false;o.stayIn=room(rn).in||null;}
+    if(dd==='room'){var rn=S.draft.room;if(!rn||!META[rn]){S.err='اختار الغرفة';render();return;}if(room(rn).status!=='occ'){S.err='غرفة '+rn+' مش مشغولة · مينفعش يتحمّل عليها طلب';render();return;}o.room=rn;o.pay='room';o.paid=false;o.stayIn=room(rn).in||null;if(S.draft.place&&S.draft.place!=='room')o.place=S.draft.place;}
     else if(dd==='table'){var tb=((document.getElementById('otable')||{}).value||'').trim();if(!tb){S.err='اكتب رقم الترابيزة';render();return;}o.table=tb.slice(0,10);o.pay='cash';o.paid=true;}
     else{o.pay='cash';o.paid=true;}
     o.no=S.orders.filter(function(x){return isFood(x)&&x.d===o.d;}).reduce(function(m,x){return Math.max(m,x.no||0);},0)+1;
@@ -1461,7 +1467,7 @@ app.addEventListener('click',function(ev){
   if(a==='gqTour'){var gt=gqById(b.dataset.id);if(!gt)return;S.tdraft={id:gt.tour&&gt.tour.id,room:gt.room,pax:(gt.tour&&gt.tour.pax)||1,date:gt.tour&&gt.tour.date,greq:gt.id};go('tour');
     var tn=document.getElementById('tnote');if(tn&&gt.note)tn.value=gt.note;return;}
   if(a==='gqFood'){var gf=gqById(b.dataset.id);if(!gf)return;S.cart={};(gf.items||[]).forEach(function(i){if(itemAt(i.k))S.cart[i.k]=Math.min(20,i.q||1);});
-    S.draft={dest:'room',room:gf.room,bb:room(gf.room).status==='occ'&&!!planOf(gf.room)&&planOf(gf.room)!=='RO',greq:gf.id};go('rest-cart');
+    S.draft={dest:'room',room:gf.room,bb:room(gf.room).status==='occ'&&!!planOf(gf.room)&&planOf(gf.room)!=='RO',greq:gf.id,place:gf.place||null};go('rest-cart');
     var on=document.getElementById('onote');if(on&&gf.note)on.value=gf.note;return;}
   if(a==='qrPrint'){try{window.print();}catch(e){}return;}
   if(a==='cxOn'){if(!isAdminU())return;S.p.cx=b.dataset.id;render();return;}
