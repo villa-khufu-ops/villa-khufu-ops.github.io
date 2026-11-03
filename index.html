@@ -918,7 +918,7 @@ function vGuest(){
     return wrap('<p class="ttl" style="font-size:18px;margin:4px 0">How can we help you?</p>'+
      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
      '<button class="card" style="align-items:center;text-align:center;gap:10px;padding:22px 10px" data-a="gTab" data-t="food">'+ic(IC_FOOD)+'<b style="font-size:19px">Restaurant</b><span class="sub">Order food &amp; drinks to your room</span></button>'+
-     '<button class="card" style="align-items:center;text-align:center;gap:10px;padding:22px 10px" data-a="gTab" data-t="tour">'+ic(IC_TOUR)+'<b style="font-size:19px">Tours</b><span class="sub">Book a trip with our team</span></button></div>'+
+     '<button class="card" style="align-items:center;text-align:center;gap:10px;padding:22px 10px" data-a="gTab" data-t="tour"><img src="tours.jpg" alt="Pyramids and Sphinx" width="84" height="84" style="border-radius:50%;object-fit:cover;flex:none"><b style="font-size:19px">Tours</b><span class="sub">Book a trip with our team</span></button></div>'+
      '<button class="card" style="flex-direction:row;align-items:center;gap:14px;padding:16px" data-a="gTab" data-t="chat">'+ic(IC_CHAT).replace('84px;height:84px','64px;height:64px')+'<span class="grow" style="text-align:left"><b style="font-size:19px">Customer Service</b>'+(un?' <span class="cnt">'+un+'</span>':'')+'<br><span class="sub">Chat with reception · questions &amp; requests</span></span></button>');}
   var tabs='<button class="btn b-line" style="min-height:44px;width:auto;align-self:flex-start" data-a="gHome">← Back</button>'+
    '<p class="ttl" style="font-size:20px;margin:0">'+(G.tab==='food'?'Restaurant':G.tab==='tour'?'Tours':'Customer Service')+'</p>';
