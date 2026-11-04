@@ -543,6 +543,10 @@ function top(title,sub,backTo,extra){
 }
 function soundBtn(){return '<button class="ib'+(S.sound?' on':'')+'" data-a="sound" aria-label="'+(S.sound?'كتم صوت التنبيه':'تشغيل صوت التنبيه')+'">'+(S.sound?ICON.sound:ICON.mute)+'</button>';}
 function toastHtml(){
+  var ac=(S.view===homeOf()&&S.view!=='home')?attCard():'';
+  return toastOnly()+ac;
+}
+function toastOnly(){
   if(!S.toast)return '';
   var w=S.toast.wa.map(function(x){return '<a class="btn b-wa" target="_blank" rel="noopener" href="'+h(waLink(x.phone,x.text))+'">'+ICON.wa+' '+h(x.label)+'</a>';}).join('');
   return '<div class="toast" role="status"><span>'+h(S.toast.msg)+'</span>'+w+'</div>';
@@ -593,10 +597,11 @@ function vHome(){
   if(a.indexOf('mnt')>=0)tiles+=big('mnt','الصيانة','البلاغات المفتوحة',ICON.wrench.replace('width="18" height="18"','width="28" height="28"'),false,urg('mnt'));
   if(a.indexOf('kit')>=0)tiles+=big('kit','المطبخ','الطلبات الجاية من المنيو',ICON.pot,false,urg('kit'));
   if(a.indexOf('hk')>=0)tiles+=big('daily','التقارير','تقرير النظافة والخروج لكل غرفة بالتاريخ',ICON.report,false);
+  if(a.indexOf('users')>=0)tiles+=big('att-all','حضور الموظفين','مين موجود · ساعات كل موظف بالشهر',ICON.users,false);
   if(a.indexOf('users')>=0)tiles+=big('eod','تقرير آخر اليوم','الدخول والخروج · النظافة · الإيراد · الحسابات المفتوحة',ICON.report,false);
   if(a.indexOf('users')>=0)tiles+=big('users','المستخدمين','الحسابات وأرقام الواتساب',ICON.users,false);
   return top('أهلاً، '+m.name,ROLES[m.role].label,null,soundBtn()+'<button class="ib" data-a="go" data-v="pin" aria-label="حسابي · الاسم والرقم السري">'+ICON.user+'</button><button class="ib" data-a="logout" aria-label="تسجيل خروج">'+ICON.out+'</button>')+
-   '<div class="stack">'+toastHtml()+(a.indexOf('users')>=0?syncAlert():'')+tiles+soundHint()+'</div>';
+   '<div class="stack">'+toastHtml()+(a.indexOf('users')>=0?syncAlert():'')+attCard()+tiles+soundHint()+'</div>';
 }
 function tipList(groups){var o=groups.filter(function(g){return g[1].length;}).map(function(g){return '<small>'+g[0]+'</small>'+g[1].map(function(n){return '<b>'+h(n)+'</b>';}).join('');}).join('');return '<div class="tip" role="tooltip">'+(o||'مفيش')+'</div>';}
 function big(v,l,d,ic,main,n){return '<button class="big'+(main?' main':'')+(n?' pulse':'')+'" data-a="go" data-v="'+v+'"><span class="ic">'+ic+'</span><span class="grow"><span class="l">'+l+(n?' <span class="cnt">'+n+'</span>':'')+'</span><span class="d">'+d+'</span></span></button>';}
@@ -952,6 +957,101 @@ function vTour(){
    '<button class="btn b-main" style="min-height:58px" data-a="tSave">تسجيل الرحلة على حساب الغرفة</button></div>';
 }
 
+
+// ---------- attendance (GPS, inside the hotel only) ----------
+var ATT_R=300;
+function geoDist(a,b,c,d){var R=6371000,t=Math.PI/180,x=(c-a)*t,y=(d-b)*t,q=Math.sin(x/2)*Math.sin(x/2)+Math.cos(a*t)*Math.cos(c*t)*Math.sin(y/2)*Math.sin(y/2);return 2*R*Math.asin(Math.sqrt(q));}
+function hrs(ms){var m=Math.max(0,Math.round(ms/60000));return Math.floor(m/60)+' س '+pad(m%60)+' د';}
+function attOpen(){return (S.att||[]).filter(function(x){return x.st==='open';}).sort(function(a,b){return b.inAt-a.inAt;})[0]||null;}
+function shiftMs(x){return (x.outAt||S.now)-x.inAt;}
+function weekStart(){var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+1)%7));return iso(d);} // week starts Saturday
+function sumMs(l,from){return l.filter(function(x){return x.d>=from;}).reduce(function(s,x){return s+shiftMs(x);},0);}
+function getPos(ok){
+  if(!navigator.geolocation){flash('الموبايل ده مش بيدعم تحديد المكان');return;}
+  S.attBusy=true;render();
+  navigator.geolocation.getCurrentPosition(function(p){S.attBusy=false;ok(p.coords);},function(e){S.attBusy=false;
+    flash(e&&e.code===1?'لازم تسمح بالموقع (Location) للأبلكيشن عشان تسجّل الحضور':'مش قادر أحدد مكانك، اطلع في مكان مفتوح وجرّب تاني');},{enableHighAccuracy:true,timeout:20000,maximumAge:0});
+}
+function inHotel(c){var g=S.geo;if(!g||g.lat==null)return {ok:false,msg:'المدير لسه ما حددش مكان الفندق'};
+  var d=geoDist(g.lat,g.lng,c.latitude,c.longitude),r=g.r||ATT_R,acc=Math.min(c.accuracy||0,150);
+  return d-acc<=r?{ok:true,d:d}:{ok:false,msg:'إنت بعيد عن الفندق ('+Math.round(d)+' متر) · الحضور والانصراف من جوه الفندق بس'};}
+function monthStart(){return today().slice(0,8)+'01';}
+function attCard(){
+  if(!S.uid||!meDoc())return '';
+  var o=attOpen(),l=S.att||[];
+  if(!S.geo||S.geo.lat==null)return isAdminU()?'<div class="card"><span class="ttl">الحضور والانصراف</span><span class="sub">عشان يشتغل: اقف جوه الفندق ودوس الزرار ده مرة واحدة</span><button class="btn b-main" data-a="geoSet">'+ICON.bed+' حدّد مكان الفندق من هنا</button></div>':'';
+  var msg=S.attMsg?'<div class="card" role="status" style="background:'+(S.attMsg.ok?'var(--ok-bg);color:var(--ok);border:2px solid var(--ok)':'var(--warn-bg);color:var(--warn);border:2px solid var(--warn)')+'"><span class="ttl" style="font-size:17px">'+h(S.attMsg.t)+'</span>'+(S.attMsg.s?'<span style="font-size:14px;font-weight:700">'+h(S.attMsg.s)+'</span>':'')+'</div>':'';
+  if(S.attNoPerm)return msg+'<div class="card" style="border:2px solid var(--warn)"><span class="ttl">الحضور محتاج إذن الموقع</span><span class="sub">الحضور والانصراف بيتسجلوا لوحدهم لما توصل الفندق وتمشي منه، بس لازم تسمح للأبلكيشن بالموقع (Location)</span><button class="btn b-main" data-a="attNow">اسمح بالموقع</button></div>';
+  var line=o?'في الفندق من '+hm(o.inAt)+' · بقالك '+hrs(S.now-o.inAt):'مش في الفندق دلوقتي';
+  return msg+'<button class="card" style="text-align:start;border:2px solid '+(o?'var(--ok)':'var(--line)')+'" data-a="go" data-v="att"><span class="ttl">'+(o?'✓ ':'')+line+'</span><span class="sub">النهارده: '+hrs(sumMs(l,today()))+' · الشهر ده: '+hrs(sumMs(l,monthStart()))+' · دوس تشوف ساعاتك</span></button>';
+}
+var attLast=0;
+function attSay(ok,t,sub){S.attMsg={ok:ok,t:t,s:sub};render();clearTimeout(S.attMsgT);S.attMsgT=setTimeout(function(){S.attMsg=null;render();},15000);}
+function autoAtt(force){
+  if(!db||!S.uid||!meDoc()||!S.geo||S.geo.lat==null||!S.attLoaded)return;
+  if(document.visibilityState==='hidden'||S.attBusy)return;
+  if(!force&&Date.now()-attLast<4*60000)return;
+  if(!navigator.geolocation)return;
+  attLast=Date.now();S.attBusy=true;
+  navigator.geolocation.getCurrentPosition(function(p){S.attBusy=false;S.attNoPerm=false;var c=p.coords,g=S.geo,r=g.r||ATT_R,acc=Math.min(c.accuracy||0,150),d=geoDist(g.lat,g.lng,c.latitude,c.longitude),now=Date.now(),o=attOpen();
+    var inside=d-acc<=r,outside=d-acc>r&&(c.accuracy||0)<=200;
+    var closeAt=function(x){return x.lastAt&&now-x.lastAt>15*60000?x.lastAt:now;};
+    // an old shift left open (app was closed when he left): close it at the last time he was seen inside
+    if(o&&o.lastAt&&now-o.lastAt>8*3600000){var ot=o.lastAt;db.collection('att').doc(o.id).set({outAt:ot,st:'closed',auto:true},{merge:true});o.st='closed';o.outAt=ot;o=null;}
+    if(inside){
+      if(!o){db.collection('att').add({uid:S.uid,d:today(),inAt:now,lastAt:now,inLat:c.latitude,inLng:c.longitude,inAcc:Math.round(c.accuracy||0),st:'open'}).then(function(){attSay(true,'إنت دلوقتي في الفندق · اتسجّل وصولك الساعة '+hm(now)+' ✓','النهارده لحد دلوقتي: '+hrs(sumMs(S.att||[],today()))+' · الشهر ده: '+hrs(sumMs(S.att||[],monthStart())));}).catch(function(e){if(e&&e.code==='permission-denied')attSay(false,'الحضور محتاج تحديث قواعد Firebase (Rules)');});}
+      else db.collection('att').doc(o.id).set({lastAt:now,lastLat:c.latitude,lastLng:c.longitude,lastAcc:Math.round(c.accuracy||0)},{merge:true}).catch(function(){});
+    }else if(outside&&o){
+      var t=closeAt(o);
+      db.collection('att').doc(o.id).set({outAt:t,outLat:c.latitude,outLng:c.longitude,outAcc:Math.round(c.accuracy||0),st:'closed'},{merge:true}).then(function(){
+        var l=(S.att||[]).map(function(x){return x.id===o.id?Object.assign({},x,{outAt:t}):x;});
+        attSay(true,'إنت مشيت من الفندق · اتسجّل انصرافك الساعة '+hm(t),'اشتغلت النهارده '+hrs(sumMs(l,today()))+' · الشهر ده '+hrs(sumMs(l,monthStart())));}).catch(function(){});
+    }
+    render();
+  },function(e){S.attBusy=false;if(e&&e.code===1){S.attNoPerm=true;render();}},{enableHighAccuracy:true,timeout:20000,maximumAge:0});
+}
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')autoAtt(true);});
+setInterval(function(){autoAtt(false);},60000);
+setInterval(function(){if(!attLast)autoAtt(true);},3000); // first check as soon as login + data are ready
+function attRows(l,showName){
+  return l.slice().sort(function(a,b){return b.inAt-a.inAt;}).map(function(x){var long=!x.outAt&&S.now-x.inAt>16*3600000;
+    return '<div class="row" style="border-top:1px solid var(--line);padding-top:6px;align-items:flex-start"><span class="grow"><span style="font-size:14px;font-weight:700">'+(showName?h(wname(x.uid))+' · ':'')+fmt(x.d)+'</span><br><span class="sub">حضور '+hm(x.inAt)+' · '+(x.outAt?'انصراف '+hm(x.outAt)+(x.closedBy?' (المدير)':''):(long?'<b style="color:var(--warn)">نسي يسجّل انصراف</b>':'لسه حاضر'))+'</span>'+
+     (showName&&!x.outAt?'<span class="row" style="gap:6px;margin-top:4px"><input class="inp" style="max-width:130px;min-height:40px" type="time" id="ao_'+x.id+'" aria-label="وقت الانصراف"><button class="btn b-line" style="width:auto;min-height:40px" data-a="attClose" data-id="'+x.id+'">قفّل الوردية</button></span>':'')+
+     '</span><b style="font-size:14px;white-space:nowrap">'+hrs(shiftMs(x))+'</b></div>';}).join('');
+}
+function vAtt(){
+  var l=S.att||[],m0=today().slice(0,8)+'01';
+  var mine=l.filter(function(x){return x.d>=m0;});
+  return top('ساعات شغلي',(meDoc()||{}).name||'',homeOf())+'<div class="stack">'+toastHtml()+attCard()+
+   '<div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="stat c-ok"><b style="font-size:16px">'+hrs(sumMs(l,today()))+'</b><span>النهارده</span></div><div class="stat c-info"><b style="font-size:16px">'+hrs(sumMs(l,weekStart()))+'</b><span>الأسبوع ده (من السبت)</span></div><div class="stat"><b style="font-size:16px">'+hrs(sumMs(l,m0))+'</b><span>الشهر ده</span></div></div>'+
+   '<div class="card"><span class="ttl">الورديات الشهر ده · '+mine.length+'</span>'+(mine.length?attRows(mine,false):'<span class="sub">مفيش ورديات الشهر ده</span>')+'</div>'+
+   '<span class="sub">الحضور والانصراف بيتسجلوا لوحدهم بموقع الموبايل: أول ما تفتح الأبلكيشن وإنت في الفندق يتسجل وصولك، ولما تفتحه بعد ما تمشي يتسجل انصرافك على آخر وقت كنت فيه في الفندق. خلّي الأبلكيشن مفتوح وإنت في الشغل.</span></div>';
+}
+function loadAttAll(month){
+  S.attAll={month:month,loading:true};render();
+  var from=month+'-01',d=new Date(+month.slice(0,4),+month.slice(5,7),1),to=iso(d);
+  db.collection('att').where('d','>=',from).get().then(function(sn){var l=[];sn.forEach(function(x){var v=Object.assign({id:x.id},x.data());if(v.d<to)l.push(v);});
+    if(S.attAll&&S.attAll.month===month){S.attAll={month:month,list:l};render();}}).catch(function(e){if(S.attAll&&S.attAll.month===month){S.attAll={month:month,err:e&&e.code==='permission-denied'?'لازم تضيف قواعد الحضور في Firebase (Rules) الأول':'ما قدرتش أحمّل الحضور'};render();}});
+}
+function vAttAll(){
+  var month=(S.attAll&&S.attAll.month)||today().slice(0,7);
+  if(!S.attAll||S.attAll.month!==month)setTimeout(function(){loadAttAll(month);},0);
+  var g=S.geo||{};
+  var head=top('حضور الموظفين','ساعات الشغل بالشهر','home')+'<div class="stack">'+toastHtml()+
+   '<label class="f" for="attm">الشهر<input class="inp" id="attm" type="month" value="'+month+'" max="'+today().slice(0,7)+'"></label>';
+  var setup='<div class="card"><span class="ttl">مكان الفندق</span><span class="sub">'+(g.lat!=null?'متحدد · الحضور مسموح لحد '+(g.r||ATT_R)+' متر من المكان ده':'لسه ما اتحددش')+'</span><button class="btn b-line" data-a="geoSet">'+(g.lat!=null?'حدّده تاني من مكاني دلوقتي':'حدّد مكان الفندق من مكاني دلوقتي')+'</button>'+
+   '<div class="picks" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+[150,300,500].map(function(r){return '<button class="pick" data-a="geoR" data-r="'+r+'" aria-pressed="'+((g.r||ATT_R)===r)+'">'+r+' متر</button>';}).join('')+'</div></div>';
+  if(!S.attAll||S.attAll.loading)return head+'<p class="hint">بيحمّل…</p>'+setup+'</div>';
+  if(S.attAll.err)return head+'<p class="err">'+h(S.attAll.err)+'</p>'+setup+'</div>';
+  var L=S.attAll.list,by={};L.forEach(function(x){(by[x.uid]=by[x.uid]||[]).push(x);});
+  var now=L.filter(function(x){return !x.outAt;});
+  var ids=Object.keys(by).sort(function(a,b){return sumMs(by[b],'')-sumMs(by[a],'');});
+  var open=S.p.u;
+  var rows=ids.map(function(u){var l=by[u];return '<div class="card"><button class="row" style="background:none;border:0;padding:0;text-align:start;color:inherit;font:inherit;width:100%" data-a="go" data-v="att-all" data-u="'+h(open===u?'':u)+'"><span class="grow"><span class="ttl">'+h(wname(u))+'</span><br><span class="sub">'+l.length+' وردية'+(l.some(function(x){return !x.outAt;})?' · حاضر دلوقتي':'')+'</span></span><b style="font-size:16px">'+hrs(sumMs(l,''))+'</b></button>'+(open===u?attRows(l,true):'')+'</div>';}).join('');
+  return head+
+   '<div class="card"><span class="ttl">موجودين دلوقتي · '+now.length+'</span>'+(now.length?'<span class="sub">'+h(now.map(function(x){return wname(x.uid)+' من '+hm(x.inAt);}).join(' · '))+'</span>':'<span class="sub">محدش مسجّل حضور</span>')+'</div>'+
+   (rows||'<p class="empty">مفيش ورديات في الشهر ده</p>')+setup+'</div>';
+}
 // ---------- end of day report (reception / manager) ----------
 function loadEod(date){
   S.eod={date:date,loading:true};render();
@@ -1531,7 +1631,7 @@ function installCard(){
 function vPin(){
   var m=meDoc()||{};
   return top('حسابي',(m.name||'')+' · @'+(m.username||''),homeOf())+'<div class="stack">'+toastHtml()+
-  '<button class="btn b-main" data-a="go" data-v="help">'+ICON.report+' دليل الاستخدام لوظيفتك</button>'+
+  attCard()+'<button class="btn b-main" data-a="go" data-v="help">'+ICON.report+' دليل الاستخدام لوظيفتك</button>'+
   installCard()+pushCard()+
   '<form class="card" id="nameForm"><span class="ttl">تغيير الاسم</span><label class="f" for="nn">الاسم اللي بيظهر للموظفين<input class="inp" id="nn" value="'+h(m.name||'')+'" maxlength="40" required></label><button class="btn b-main" type="submit">حفظ الاسم</button></form>'+
   '<form class="card" id="pinForm"><span class="ttl">تغيير الرقم السري</span>'+
@@ -1563,8 +1663,8 @@ function vUserForm(){
 }
 
 // ---------- render ----------
-var VIEWS={eod:vEod,'rec-inv':vInv,'rec-chats':vRecChats,'rec-chat':vRecChat,tour:vTour,'rec-greq':vRecGreq,qr:vQr,daily:vDaily,home:vHome,rec:vRec,'rec-arr':vRecArr,'rec-in':vRecIn,'rec-form':vRecForm,'rec-occ':vRecOcc,'rec-room':vRecRoom,'rec-move':vRecMove,hk:vHk,'hk-room':vHkRoom,work:vWork,report:vReport,users:vUsers,'user-form':vUserForm,pin:vPin,rest:vRest,'rec-acc':vRecAcc,'hk-tmr':vHkTmr,mnt:vMnt,'rec-aio':vRecAio,'rec-lost':vRecLost,'rec-shift':vRecShift,help:vHelp,'rec-mpick':vRecMPick,'rec-rep':vRecRep,'rec-acc-room':vRecAccRoom,mini:vMini,lnd:vLnd,'lnd-new':vLndNew,'rest-cart':vRestCart,'rest-orders':vRestOrders,kit:vKit};
-var NEED={eod:'rec','rec-inv':'rec','rec-chats':'rec','rec-chat':'rec',tour:'rec','rec-greq':'rec',qr:'rec','hk-tmr':'hk',mnt:'mnt','rec-aio':'rec','rec-lost':'rec','rec-shift':'rec','rec-mpick':'rec','rec-rep':'rec','rec-acc':'rec','rec-acc-room':'rec',mini:['rec','hk','work'],lnd:['lnd','rec','hk','work'],'lnd-new':['lnd','rec','hk','work'],rest:['rest','rec'],'rest-cart':['rest','rec'],'rest-orders':['rest','rec','kit'],kit:'kit',daily:'hk',rec:'rec','rec-arr':'rec','rec-in':'rec','rec-form':'rec','rec-occ':'rec','rec-room':'rec','rec-move':'rec',hk:'hk','hk-room':'hk',work:'work',users:'users','user-form':'users'};
+var VIEWS={att:vAtt,'att-all':vAttAll,eod:vEod,'rec-inv':vInv,'rec-chats':vRecChats,'rec-chat':vRecChat,tour:vTour,'rec-greq':vRecGreq,qr:vQr,daily:vDaily,home:vHome,rec:vRec,'rec-arr':vRecArr,'rec-in':vRecIn,'rec-form':vRecForm,'rec-occ':vRecOcc,'rec-room':vRecRoom,'rec-move':vRecMove,hk:vHk,'hk-room':vHkRoom,work:vWork,report:vReport,users:vUsers,'user-form':vUserForm,pin:vPin,rest:vRest,'rec-acc':vRecAcc,'hk-tmr':vHkTmr,mnt:vMnt,'rec-aio':vRecAio,'rec-lost':vRecLost,'rec-shift':vRecShift,help:vHelp,'rec-mpick':vRecMPick,'rec-rep':vRecRep,'rec-acc-room':vRecAccRoom,mini:vMini,lnd:vLnd,'lnd-new':vLndNew,'rest-cart':vRestCart,'rest-orders':vRestOrders,kit:vKit};
+var NEED={'att-all':'users',eod:'rec','rec-inv':'rec','rec-chats':'rec','rec-chat':'rec',tour:'rec','rec-greq':'rec',qr:'rec','hk-tmr':'hk',mnt:'mnt','rec-aio':'rec','rec-lost':'rec','rec-shift':'rec','rec-mpick':'rec','rec-rep':'rec','rec-acc':'rec','rec-acc-room':'rec',mini:['rec','hk','work'],lnd:['lnd','rec','hk','work'],'lnd-new':['lnd','rec','hk','work'],rest:['rest','rec'],'rest-cart':['rest','rec'],'rest-orders':['rest','rec','kit'],kit:'kit',daily:'hk',rec:'rec','rec-arr':'rec','rec-in':'rec','rec-form':'rec','rec-occ':'rec','rec-room':'rec','rec-move':'rec',hk:'hk','hk-room':'hk',work:'work',users:'users','user-form':'users'};
 function current(){
   if(!configured)return vNoConfig;
   if(GQ)return vGuest;
@@ -1592,7 +1692,15 @@ app.addEventListener('click',function(ev){
   var a=b.dataset.a,no=b.dataset.n,now=Date.now();
   if(GQ){ev.preventDefault();guestAct(a,b);return;}
   var me=meDoc();
-  if(a==='go'){var p={};if(no)p.no=no;if(b.dataset.u)p.u=b.dataset.u;if(b.dataset.c)p.confirm=true;if(b.dataset.b)p.back=b.dataset.b;if(b.dataset.v==='hk')p.tab=S.lastTab||'assign';if(b.dataset.v==='daily')S.daily=null;if(b.dataset.v==='rec-rep')S.rrep=null;if(b.dataset.v==='eod')S.eod=null;if(b.dataset.v==='rec-inv')S.inv=null;if(b.dataset.v==='rec-shift')S.shift=null;go(b.dataset.v,p);return;}
+  if(a==='go'){var p={};if(no)p.no=no;if(b.dataset.u)p.u=b.dataset.u;if(b.dataset.c)p.confirm=true;if(b.dataset.b)p.back=b.dataset.b;if(b.dataset.v==='hk')p.tab=S.lastTab||'assign';if(b.dataset.v==='daily')S.daily=null;if(b.dataset.v==='rec-rep')S.rrep=null;if(b.dataset.v==='eod')S.eod=null;if(b.dataset.v==='att-all'&&!b.dataset.u&&S.view!=='att-all')S.attAll=null;if(b.dataset.v==='rec-inv')S.inv=null;if(b.dataset.v==='rec-shift')S.shift=null;go(b.dataset.v,p);return;}
+  if(a==='attNow'){S.attNoPerm=false;autoAtt(true);render();return;}
+  if(a==='geoSet'){if(!isAdminU())return;getPos(function(c){if((c.accuracy||999)>100){flash('دقة الموقع ضعيفة ('+Math.round(c.accuracy)+' متر) · اطلع في مكان مفتوح جوه الفندق وجرّب تاني');return;}
+    db.collection('geo').doc('hotel').set({lat:c.latitude,lng:c.longitude,r:(S.geo&&S.geo.r)||ATT_R,acc:Math.round(c.accuracy||0),at:Date.now(),by:S.uid}).then(function(){flash('مكان الفندق اتحفظ ✓');}).catch(function(e){flash(e&&e.code==='permission-denied'?'لازم تضيف قواعد الحضور في Firebase (Rules) الأول':'ما اتحفظش');});});return;}
+  if(a==='geoR'){if(!isAdminU()||!S.geo)return;db.collection('geo').doc('hotel').set({r:+b.dataset.r},{merge:true}).then(function(){flash('المسافة بقت '+b.dataset.r+' متر');});return;}
+  if(a==='attClose'){if(!isAdminU())return;var x=(S.attAll&&S.attAll.list||[]).filter(function(y){return y.id===b.dataset.id;})[0];if(!x)return;
+    var tv=(document.getElementById('ao_'+x.id)||{}).value;if(!tv){flash('اكتب وقت الانصراف الأول');return;}
+    var dd=new Date(x.d+'T'+tv);var ot=dd.getTime();if(ot<=x.inAt)ot+=86400000;
+    db.collection('att').doc(x.id).set({outAt:ot,st:'closed',closedBy:S.uid},{merge:true}).then(function(){x.outAt=ot;x.st='closed';x.closedBy=S.uid;flash('الوردية اتقفلت');render();}).catch(function(){flash('ما اتقفلتش');});return;}
   if(a==='logout'){auth&&auth.signOut();S.view='home';S.err='';return;}
   if(a==='sound'){toggleSound();return;}
   if(a==='tab'){S.p.tab=b.dataset.t;if(S.view==='hk')S.lastTab=b.dataset.t;render();return;}
@@ -1777,6 +1885,7 @@ app.addEventListener('click',function(ev){
 app.addEventListener('change',function(ev){
   if(ev.target&&ev.target.id==='rdate'&&ev.target.value){loadDaily(ev.target.value);}
   if(ev.target&&ev.target.id==='eoddate'&&ev.target.value){loadEod(ev.target.value);}
+  if(ev.target&&ev.target.id==='attm'&&ev.target.value){loadAttAll(ev.target.value);}
 });
 app.addEventListener('submit',function(ev){
   ev.preventDefault();var f=ev.target;
@@ -1922,6 +2031,8 @@ function listenPrep(){
 function stopListening(){prepUnsubs.forEach(function(u){try{u();}catch(e){}});prepUnsubs=[];unsubs.forEach(function(u){try{u();}catch(e){}});unsubs=[];S.staff={};S.rooms={};S.maint=[];S.orders=[];S.bills=[];S.laundry=[];S.lbills=[];S.aio=[];S.lost=[];S.greq=[];S.chats=[];S.staffLoaded=false;}
 function listen(){
   stopListening();
+  unsubs.push(db.collection('geo').doc('hotel').onSnapshot(function(sn){var had=S.geo&&S.geo.lat!=null;S.geo=sn.exists?sn.data():null;render();if(!had)autoAtt(true);},function(){}));
+  unsubs.push(db.collection('att').where('uid','==',S.uid).onSnapshot(function(sn){var l=[];sn.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.att=l;var first=!S.attLoaded;S.attLoaded=true;render();if(first)autoAtt(true);},function(){}));
   unsubs.push(db.collection('staff').onSnapshot(function(snap){var o={};snap.forEach(function(d){o[d.id]=d.data();});S.staff=o;S.staffLoaded=true;render();},function(){S.staffLoaded=true;render();}));
   unsubs.push(db.collection('rooms').onSnapshot(function(snap){var o={},before=urgentForMe();snap.forEach(function(d){o[d.id]=d.data();});S.rooms=o;render();if(urgentForMe()>before)ring();applyPre();},function(){}));
   unsubs.push(db.collection('maint').where('open','==',true).onSnapshot(function(snap){var before=urgentForMe(),l=[];snap.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.maint=l.sort(function(a,b){return b.at-a.at;});render();if(urgentForMe()>before)ring();},function(){}));
