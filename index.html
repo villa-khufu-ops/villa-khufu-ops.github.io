@@ -450,6 +450,16 @@ function cartCount(){return cartLines().reduce(function(s,l){return s+l.q;},0);}
 // meal plans: RO room only · BB breakfast · HB breakfast + dinner · FB all meals (drinks & shisha always charged)
 var PLANS={RO:'من غير وجبات',BB:'فطار (BB)',HB:'هاف بورد · فطار + عشا (HB)',FB:'فول بورد · كل الوجبات (FB)'};
 var FOODCATS=[0,1,2,3,4,5,6,7,8,9];
+var PAYM={cash:'كاش',HB:'الأكل على الهاف بورد',FB:'الأكل على الفول بورد'};
+function payBtns(action,no,food,total,extra){
+  var pl=planOf(no),mk=function(m,lbl,cls){return '<button class="btn '+cls+'" data-a="'+action+'" data-n="'+no+'" data-m="'+m+'">'+lbl+(pl===m?' · ده نوع حجزه':'')+'</button>';};
+  if(!food)return mk('cash','اتدفع كاش · '+money(total)+(extra||''),'b-ok');
+  var rest=total-food;
+  return '<span class="sub" style="font-weight:700;color:inherit">الأكل '+money(food)+' اتقفل إزاي؟</span>'+
+   mk('cash','كاش · كله '+money(total),'b-ok')+
+   mk('HB','الأكل على الهاف بورد'+(rest?' · والباقي كاش '+money(rest):''),pl==='HB'?'b-main':'b-line')+
+   mk('FB','الأكل على الفول بورد'+(rest?' · والباقي كاش '+money(rest):''),pl==='FB'?'b-main':'b-line');
+}
 function planOf(no){var p=String((room(no)||{}).plan||'').toUpperCase();return PLANS[p]?p:'';}
 function catOf(l){return +String(l.k).split('-')[0];}
 function inclCats(){var r=S.draft.room,p=planOf(r);if(!S.draft.bb||(S.draft.dest||'room')!=='room'||!r||room(r).status!=='occ')return null;return [0];}
@@ -738,7 +748,8 @@ function vRecRoom(){
     (lb.some(function(o){return o.st!=='done';})?'<span style="font-size:13px;font-weight:700">فيه غسيل للغرفة دي لسه في المغسلة</span>':'')+
     '<span style="font-size:13px">حصّل المبلغ من النزيل الأول. لما تدوس "حصّلت" الشيكات هتتقفل والغرفة هتتبعت للهاوس كيبنج تنظيف كامل.</span>'+
     '<button class="btn" style="background:#fff;color:#B42318" data-a="go" data-v="rec-acc-room" data-n="'+no+'">🧾 عرض الشيكات بالتفصيل</button>'+
-    '<button class="btn b-ok" data-a="doOut" data-n="'+no+'">حصّلت '+money(due)+' · سجّل الخروج</button>'+
+    (planOf(no)?'<span style="font-size:14px;font-weight:700">نوع الحجز: '+h(PLANS[planOf(no)])+'</span>':'')+
+    '<div class="stack" style="gap:8px;background:#fff;color:var(--ink);border-radius:12px;padding:10px">'+payBtns('doOut',no,bsum,due,' · سجّل الخروج')+'</div>'+
     '<button class="btn b-line" style="background:transparent;color:#fff;border-color:#fff" data-a="go" data-v="rec-room" data-n="'+no+'">رجوع</button></div>':
    S.p.confirm?
    '<div class="card" style="border:2px solid var(--warn)"><span class="ttl">متأكد إن غرفة '+no+' خرجت؟</span>'+(due?'<span class="chip c-warn" style="align-self:flex-start;font-size:13px;white-space:normal">عليه '+parts.join(' + ')+(parts.length>1?' = <span class="money">'+money(due)+'</span>':'')+' · اتأكد إنه اتدفع</span>':'')+(lb.some(function(o){return o.st!=='done';})?'<span class="sub" style="color:var(--warn);font-weight:700">فيه غسيل للغرفة دي لسه في المغسلة</span>':'')+'<span class="sub">الغرفة هتتبعت للهاوس كيبنج عشان تتنضف</span><div class="row"><button class="btn b-main" data-a="doOut" data-n="'+no+'">أيوه، خرجت</button><button class="btn b-line" data-a="go" data-v="rec-room" data-n="'+no+'">لأ</button></div></div>':
@@ -758,6 +769,18 @@ function vRecMove(){
 }
 
 // ----- housekeeping manager -----
+function hkAttCard(){
+  if(!attTodayUn&&db){setTimeout(listenAttToday,0);return '';}
+  if(!S.attToday)return '';
+  var ws=workers();if(!ws.length)return '';
+  var L=S.attToday;
+  var rows=ws.map(function(u){var l=L.filter(function(x){return x.uid===u;}).sort(function(a,b){return a.inAt-b.inAt;}),o=l.filter(function(x){return !x.outAt;})[0],last=l[l.length-1];
+    var st=!l.length?['لسه ماوصلتش','c-warn']:o?['وصلت '+hm(l[0].inAt)+' · في الفندق','c-ok']:['وصلت '+hm(l[0].inAt)+' · مشيت '+hm(last.outAt),'c-grey'];
+    var tot=l.reduce(function(s,x){return s+((x.outAt||S.now)-x.inAt);},0);
+    return '<div class="row" style="border-top:1px solid var(--line);padding-top:6px"><span class="grow" style="font-weight:700;font-size:14px">'+h(wname(u))+'</span><span class="chip '+st[1]+'">'+st[0]+'</span>'+(l.length?'<span class="sub" style="white-space:nowrap">'+hrs(tot)+'</span>':'')+'</div>';}).join('');
+  var here=ws.filter(function(u){return L.some(function(x){return x.uid===u&&!x.outAt;});}).length;
+  return '<div class="card"><span class="ttl">حضور الهاوس كيبنج النهارده · '+here+' من '+ws.length+' في الفندق</span>'+rows+'</div>';
+}
 function vHk(){
   var tab=S.p.tab||'assign';
   var need=allNos().filter(needs);
@@ -767,6 +790,7 @@ function vHk(){
   var tabs=[['assign','التوزيع',un.length],['review','المراجعة',rv.length],['maint','الصيانة',mt.length],['arr','الوصول',arrivals().filter(function(no){return !arrReady(room(no));}).length],['rooms','الغرف',0]].map(function(t){
     return '<button role="tab" aria-selected="'+(tab===t[0])+'" data-a="tab" data-t="'+t[0]+'">'+t[1]+(t[2]?' <span class="cnt"'+(t[0]==='review'?' style="background:var(--info)"':t[0]==='maint'?' style="background:var(--grey)"':t[0]==='arr'?' style="background:var(--ok)"':'')+'>'+t[2]+'</span>':'')+'</button>';}).join('');
   var banners=syncLine();
+  if(tab==='assign')banners+=hkAttCard();
   if(un.length)banners+='<button class="alert pulse" data-a="tab" data-t="assign" role="alert">'+ICON.bell+'<span><b>'+un.length+' غرفة محتاجة تتوزع</b><span>غرف '+un.join('، ')+'</span></span></button>';
   var sp=allNos().filter(function(no){var r=room(no);return r.status==='occ'?!!r.notes:!!(r.arrival&&r.arrival.in&&r.arrival.in<=today()&&r.arrival.notes);});
   if(sp.length)banners+='<div class="card" style="background:var(--warn-bg);color:var(--warn);border:2px solid var(--warn)"><span class="ttl">'+ICON.bell+' طلبات خاصة من النزلاء · '+sp.length+'</span>'+sp.map(function(no){var r=room(no),x=r.status==='occ'?r.notes:r.arrival.notes;return '<div class="row" style="border-top:1px solid var(--line);padding-top:6px"><span class="badge" style="width:44px;height:44px"><b style="font-size:14px">'+no+'</b></span><span class="grow" style="font-size:13px;font-weight:700">'+h(x)+(r.status==='occ'?'':' · وصول')+'</span></div>';}).join('')+'</div>';
@@ -1001,7 +1025,13 @@ function attCard(){
   var line=o?'في الفندق من '+hm(o.inAt)+' · بقالك '+hrs(S.now-o.inAt):'مش في الفندق دلوقتي';
   return msg+'<button class="card" style="text-align:start;border:2px solid '+(o?'var(--ok)':'var(--line)')+'" data-a="go" data-v="att"><span class="ttl">'+(o?'✓ ':'')+line+'</span><span class="sub">النهارده: '+hrs(sumMs(l,today()))+' · الشهر ده: '+hrs(sumMs(l,monthStart()))+' · دوس تشوف ساعاتك</span></button>';
 }
-var attLast=0;
+var attLast=0,attTodayUn=null,attTodayD='';
+function listenAttToday(){
+  if(attTodayUn){try{attTodayUn();}catch(e){}}
+  attTodayD=today();
+  attTodayUn=db.collection('att').where('d','==',attTodayD).onSnapshot(function(sn){var l=[];sn.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.attToday=l;render();},function(){S.attToday=null;});
+  unsubs.push(function(){if(attTodayUn){try{attTodayUn();}catch(e){}attTodayUn=null;}});
+}
 function attSay(ok,t,sub){S.attMsg={ok:ok,t:t,s:sub};render();clearTimeout(S.attMsgT);S.attMsgT=setTimeout(function(){S.attMsg=null;render();},15000);}
 function autoAtt(force){
   if(!db||!S.uid||!meDoc()||!S.geo||S.geo.lat==null||!S.attLoaded)return;
@@ -1027,7 +1057,7 @@ function autoAtt(force){
   },function(e){S.attBusy=false;if(e&&e.code===1){S.attNoPerm=true;render();}},{enableHighAccuracy:true,timeout:20000,maximumAge:0});
 }
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')autoAtt(true);});
-setInterval(function(){autoAtt(false);},60000);
+setInterval(function(){autoAtt(false);if(attTodayUn&&attTodayD!==today())listenAttToday();},60000);
 setInterval(function(){if(!attLast)autoAtt(true);},3000); // first check as soon as login + data are ready
 function attRows(l,showName){
   return l.slice().sort(function(a,b){return b.inAt-a.inAt;}).map(function(x){var long=!x.outAt&&S.now-x.inAt>16*3600000;
@@ -1081,6 +1111,7 @@ function eodCalc(E){
   var R={cin:uniq('checkin'),cout:uniq('checkout'),done:uniq('done'),ok:uniq('approve'),rev:{food:0,mini:0,tour:0,wash:0},paid:0,onRoom:0,n:{food:0,mini:0,tour:0,wash:0}};
   E.ord.forEach(function(o){if(o.st==='cancel'||o.void)return;var k=o.kind==='mini'?'mini':o.kind==='tour'?'tour':'food',v=o.total||0;R.rev[k]+=v;R.n[k]++;if(o.paid)R.paid+=v;else R.onRoom+=v;});
   E.lnd.forEach(function(o){if(o.st==='cancel'||o.void)return;var v=o.price||0;R.rev.wash+=v;R.n.wash++;if(o.paid)R.paid+=v;else R.onRoom+=v;});
+  R.hb=0;R.fb=0;E.log.forEach(function(e){var f=e.type==='paid'?(e.food||0):e.type==='checkout'?(e.boardFood||0):0;if(e.method==='HB')R.hb+=f;if(e.method==='FB')R.fb+=f;});
   R.total=R.rev.food+R.rev.mini+R.rev.tour+R.rev.wash;return R;
 }
 function eodText(date,R,A){
@@ -1114,7 +1145,8 @@ function vEod(){
     row('الرحلات ('+R.n.tour+')','<span class="money">'+money(R.rev.tour)+'</span>')+
     row('المغسلة ('+R.n.wash+')','<span class="money">'+money(R.rev.wash)+'</span>')+
     row('الإجمالي','<span class="money">'+money(R.total)+'</span>',1)+
-    row('اتدفع','<span class="money">'+money(R.paid)+'</span>')+row('على حساب الغرف','<span class="money">'+money(R.onRoom)+'</span>')+'</div>'+
+    row('اتدفع','<span class="money">'+money(R.paid)+'</span>')+row('على حساب الغرف','<span class="money">'+money(R.onRoom)+'</span>')+
+    (R.hb||R.fb?row('أكل اتقفل على الهاف بورد','<span class="money">'+money(R.hb)+'</span>')+row('أكل اتقفل على الفول بورد','<span class="money">'+money(R.fb)+'</span>'):'')+'</div>'+
    (date===today()?'<div class="card"><span class="ttl">الحسابات المفتوحة دلوقتي · '+money(Atot)+'</span>'+(ks.length?ks.map(function(k){var a=A[k],p=[];if(a.food)p.push('مطعم '+money(a.food));if(a.mini)p.push('تلاجة '+money(a.mini));if(a.tour)p.push('رحلات '+money(a.tour));if(a.wash)p.push('غسيل '+money(a.wash));return row('غرفة '+k+(room(k).status!=='occ'?' · خرجت':''),'<span class="money">'+money(a.total)+'</span>')+'<span class="sub" style="display:block">'+h(p.join(' · '))+'</span>';}).join(''):'<span class="sub">مفيش حسابات مفتوحة</span>')+'</div>':'')+
    '<span class="sub">اتعمل '+fmt(today())+' الساعة '+hm(S.now)+' · '+h((meDoc()||{}).name||'')+'</span></div>';
   var txt=eodText(date,R,A);
@@ -1333,7 +1365,7 @@ function vRecAccRoom(){
      (cx?'<div class="row" style="width:100%;gap:8px"><span class="sub grow" style="color:var(--warn);font-weight:700">تشيل '+money(val)+' من الحساب؟</span><button class="btn b-warn" style="width:auto;min-height:40px" data-a="voidCharge" data-id="'+h(o.id)+'" data-c2="'+it.c+'" data-n="'+no+'">أيوه، شيله</button><button class="btn b-line" style="width:auto;min-height:40px" data-a="cxOff">لأ</button></div>':
       (isAdminU()?'<button class="btn b-line" style="width:auto;min-height:36px;font-size:12px;padding:0 10px" data-a="cxOn" data-id="'+h(o.id)+'">إلغاء</button>':''))+'</div>';}).join('');
   var pay=S.p.confirm?
-   '<div class="card" style="border:2px solid var(--ok)"><span class="ttl">اتدفع '+money(a.total)+' من غرفة '+no+'؟</span><div class="row"><button class="btn b-ok" data-a="accPaid" data-n="'+no+'">أيوه، اتدفع</button><button class="btn b-line" data-a="go" data-v="rec-acc-room" data-n="'+no+'">لأ</button></div></div>':
+   '<div class="card" style="border:2px solid var(--ok)"><span class="ttl">قفل حساب غرفة '+no+' · '+money(a.total)+'</span>'+(planOf(no)?'<span class="chip c-info" style="align-self:flex-start">نوع الحجز: '+h(PLANS[planOf(no)])+'</span>':'')+payBtns('accPaid',no,a.food||0,a.total)+'<button class="btn b-line" data-a="go" data-v="rec-acc-room" data-n="'+no+'">رجوع</button></div>':
    '<button class="btn b-ok" data-a="go" data-v="rec-acc-room" data-n="'+no+'" data-c="1">'+ICON.check+' الحساب اتدفع</button>';
   return top('حساب غرفة '+no,r.status==='occ'?'مشغولة · '+fmt(r.in)+' ← '+fmt(r.out):'مش مشغولة دلوقتي','rec-acc')+'<div class="stack">'+toastHtml()+
    '<div class="hero"><span class="cat">المطلوب من الغرفة</span><strong class="money" style="font-size:32px">'+money(a.total)+'</strong><div class="cols"><span><small>مطعم</small><strong class="money">'+money(a.food)+'</strong></span><span><small>تلاجة</small><strong class="money">'+money(a.mini)+'</strong></span><span><small>غسيل</small><strong class="money">'+money(a.wash)+'</strong></span>'+(a.tour?'<span><small>رحلات</small><strong class="money">'+money(a.tour)+'</strong></span>':'')+'</div></div>'+
@@ -1367,7 +1399,8 @@ function rrRow(r){
     t=e.type==='move'?'النزيل اتنقل لغرفة '+(e.to||''):(LOGTXT[e.type]||e.type);
     if(e.type==='assign'&&e.w)det='على '+wname(e.w);
     if(e.type==='done'&&e.w)by=wname(e.w);
-    if(e.type==='paid'){amt=money(e.amount);cls='c-ok';}
+    if(e.type==='paid'){amt=money(e.amount);cls='c-ok';if(e.method&&e.method!=='cash')det=PAYM[e.method]+' '+money(e.food||0);else if(e.method)det='كاش';}
+    if(e.type==='checkout'&&e.method&&e.method!=='cash')det=(det?det+' · ':'')+PAYM[e.method]+' '+money(e.boardFood||0);
     if(e.type==='extend')det='من '+fmt(e.from)+' لـ '+fmt(e.to);
     if(e.type==='plan')det=(e.from||'—')+' ← '+e.to;
     if(e.type==='done'&&e.lost)det='لقت: '+e.lost;
@@ -1812,10 +1845,10 @@ app.addEventListener('click',function(ev){
     S.p.cx=null;flash('اتشال '+money(isL?vo.price:vo.total)+' من حساب غرفة '+no);return;
   }
   if(a==='accPaid'){
-    var AA=openAccounts()[no];if(!AA)return;
+    var AA=openAccounts()[no];if(!AA)return;var pm=b.dataset.m||'cash';
     AA.items.forEach(function(it){if(it.c==='l')lUpd(it.o.id,{paid:true,paidAt:now,paidBy:S.uid});else ordUpd(it.o.id,{paid:true,paidAt:now,paidBy:S.uid});});
-    logEv('paid',no,{amount:AA.total,reason:'تحصيل حساب'});
-    go('rec-acc');flash('اتسجّل دفع '+money(AA.total)+' من غرفة '+no);return;
+    logEv('paid',no,{amount:AA.total,method:pm,food:AA.food||0,cash:pm==='cash'?AA.total:AA.total-(AA.food||0),reason:'تحصيل حساب · '+PAYM[pm]});
+    go('rec-acc');flash('غرفة '+no+' اتقفل حسابها · '+(pm==='cash'?'كاش '+money(AA.total):PAYM[pm]+' '+money(AA.food||0)+((AA.total-(AA.food||0))?' · كاش '+money(AA.total-(AA.food||0)):'')));return;
   }
   if(a==='lp'){S.ldraft.pieces=Math.max(1,Math.min(99,(S.ldraft.pieces||1)+(+b.dataset.d)));render();return;}
   if(a==='lpSet'){S.ldraft.pieces=+b.dataset.v;render();return;}
@@ -1851,10 +1884,11 @@ app.addEventListener('click',function(ev){
   if(a==='issue'){S.p.issue=b.dataset.i;S.err='';render();return;}
   if(a==='cleanOn'){logEv('cleanReq',no,{reason:'طلب نظافة من الريسبشن'});upd(no,{cleanReq:now});flash('طلب نظافة غرفة '+no+' اتبعت للهاوس كيبنج',waFor(hkManagers(),'طلب نظافة · غرفة '+no+' (من الريسبشن)'));return;}
   if(a==='cleanOff'){logEv('cleanCancel',no);var r0=room(no);var pt={cleanReq:null};if(r0.task&&r0.status==='occ')pt.task=null;upd(no,pt);flash('اتلغى طلب نظافة غرفة '+no);return;}
-  if(a==='doOut'){var bl=roomOrdersAll(no);bl.forEach(function(o){ordUpd(o.id,{paid:true,paidAt:now,paidBy:S.uid});});
+  if(a==='doOut'){var pmO=b.dataset.m||'cash';var bl=roomOrdersAll(no);bl.forEach(function(o){ordUpd(o.id,{paid:true,paidAt:now,paidBy:S.uid});});
     var lbl=roomLBill(no);lbl.forEach(function(o){lUpd(o.id,{paid:true,paidAt:now,paidBy:S.uid});});
     aioTodo(no,'تشيك آوت');
-    logEv('checkout',no,{reason:'خروج · تنظيف كامل',food:billSum(bl),laundry:lbl.reduce(function(s,o){return s+(o.price||0);},0)});
+    var foodO=billSum(roomBill(no));
+    logEv('checkout',no,{reason:'خروج · تنظيف كامل',food:billSum(bl),laundry:lbl.reduce(function(s,o){return s+(o.price||0);},0),method:pmO,boardFood:pmO==='cash'?0:foodO});
     var oT=room(no).task,pOut={status:'clean',in:null,out:null,sofa:false,cleanReq:null,plan:null,coHold:null,coAt:now,cleanAt:null};
     if(oT&&oT.w){pOut.task={w:oT.w,st:'new',at:now,ackAt:0,next:0,doneAt:0};logEv('assign',no,{w:oT.w,reason:'خروج · تنظيف كامل'});}else if(oT)pOut.task=null;
     upd(no,pOut);go('rec-occ');flash('غرفة '+no+' خرجت واتبعتت للهاوس كيبنج'+aioNote(),waFor(hkManagers(),'غرفة '+no+' خرجت · محتاجة تنظيف كامل'));return;}
@@ -2050,6 +2084,7 @@ function listenPrep(){
 function stopListening(){prepUnsubs.forEach(function(u){try{u();}catch(e){}});prepUnsubs=[];unsubs.forEach(function(u){try{u();}catch(e){}});unsubs=[];S.staff={};S.rooms={};S.maint=[];S.orders=[];S.bills=[];S.laundry=[];S.lbills=[];S.aio=[];S.lost=[];S.greq=[];S.chats=[];S.staffLoaded=false;}
 function listen(){
   stopListening();
+  attTodayUn=null;S.attToday=null;
   unsubs.push(db.collection('geo').doc('hotel').onSnapshot(function(sn){var had=S.geo&&S.geo.lat!=null;S.geo=sn.exists?sn.data():null;render();if(!had)autoAtt(true);},function(){}));
   unsubs.push(db.collection('att').where('uid','==',S.uid).onSnapshot(function(sn){var l=[];sn.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.att=l;var first=!S.attLoaded;S.attLoaded=true;render();if(first)autoAtt(true);},function(){}));
   unsubs.push(db.collection('staff').onSnapshot(function(snap){var o={};snap.forEach(function(d){o[d.id]=d.data();});S.staff=o;S.staffLoaded=true;render();},function(){S.staffLoaded=true;render();}));
