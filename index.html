@@ -149,9 +149,14 @@ textarea.inp{padding:12px 14px;min-height:84px;resize:none}
 .items{display:flex;flex-direction:column;gap:2px;font-size:16px;font-weight:700;direction:ltr;text-align:right}
 .money{font-weight:800;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
 @media print{body *{visibility:hidden}.qrcard,.qrcard *,.printme,.printme *{visibility:visible}.qrcard,.printme{position:absolute;left:0;top:0;width:100%;border:none;box-shadow:none}.noprint{display:none!important}}
+#verTag{position:fixed;bottom:6px;left:8px;z-index:50;font:700 12px/1.2 system-ui,sans-serif;background:var(--card,#fff);color:var(--accent,#7a4b12);border:1.5px solid currentColor;border-radius:999px;padding:4px 10px;opacity:.92;pointer-events:none;direction:rtl}
+#verTag:empty{display:none}
+#verNew{position:fixed;top:0;left:0;right:0;z-index:60;display:none;background:#1d7a3a;color:#fff;border:0;font:800 16px/1.4 system-ui,sans-serif;padding:14px 16px;text-align:center;cursor:pointer;direction:rtl}
+@media print{#verTag,#verNew{display:none!important}}
 </style>
 </head>
 <body>
+<div id="verTag" aria-hidden="true"></div><button id="verNew" type="button"></button>
 <div id="app" dir="rtl"><p class="hint" style="padding-top:40px">بيحمّل…</p></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1949,6 +1954,24 @@ function current(){
   return VIEWS[S.view]||vHome;
 }
 var APP_VER='2026.11.09';
+var APP_NAME='المرتبات';
+// ---------- version badge + "new version" banner: anyone can tell at a glance whether an upload reached their phone ----------
+(function(){
+  var guest=/[?&]guest/.test(location.search);
+  try{var t=document.getElementById('verTag');if(t&&!guest)t.textContent='نسخة '+APP_VER+' · '+APP_NAME;}catch(e){}
+  var nb=document.getElementById('verNew');
+  if(nb)nb.addEventListener('click',function(){nb.textContent='بيحدّث…';try{if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration)navigator.serviceWorker.getRegistration().then(function(r){if(r)r.update();});}catch(e){}setTimeout(function(){location.reload();},400);});
+  var last=0;
+  function check(){
+    if(guest||Date.now()-last<60000||!window.fetch)return;last=Date.now();
+    fetch('index.html?v='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():'';}).then(function(t){
+      var m=/APP_VER='([0-9.]+)'/.exec(t||''),n=/APP_NAME='([^']*)'/.exec(t||'');
+      if(m&&m[1]>APP_VER&&nb){nb.textContent='⬆️ في نسخة جديدة '+m[1]+(n?' · '+n[1]:'')+' — دوس هنا عشان تحدّث';nb.style.display='block';}
+    }).catch(function(){});
+  }
+  setTimeout(check,4000);setInterval(check,5*60000);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)check();});
+})();
 var lastHtml='',errN=0,errSeen={};
 function logErr(msg,src,line){
   try{msg=String(msg||'').slice(0,300);if(!msg||errSeen[msg]||errN>=8||!db||!S.uid)return;errSeen[msg]=1;errN++;
