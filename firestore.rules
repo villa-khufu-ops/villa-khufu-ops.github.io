@@ -46,7 +46,7 @@ service cloud.firestore {
       allow read: if isStaff();
       allow create: if isAdmin();
       allow update: if isAdmin()
-        || hasRole(['rec', 'hkm', 'hks'])
+        || hasRole(['rec', 'hkm', 'hks', 'shiftm'])
         || (hasRole(['hk']) && onlyKeys(['task', 'status'])
             && (same('status') || request.resource.data.status == 'maint')
             && (same('task') || (request.resource.data.task is map
@@ -60,7 +60,7 @@ service cloud.firestore {
       allow read: if isStaff();
       allow create: if isStaff() && byMe();
       allow update: if isAdmin()
-        || (hasRole(['rec', 'hkm', 'hks', 'mnt'])
+        || (hasRole(['rec', 'hkm', 'hks', 'mnt', 'shiftm'])
             && onlyKeys(['open', 'fixedAt', 'fixedBy', 'ackAt', 'ackBy', 'next']));
       allow delete: if isAdmin();
     }
@@ -78,12 +78,12 @@ service cloud.firestore {
       allow create: if isStaff() && byMe();
       allow update: if isAdmin()
         // الريسبشن: التحصيل · نقل الحساب · التقديم · إلغاء قبل ما المطبخ يستلم
-        || (hasRole(['rec'])
+        || (hasRole(['rec', 'shiftm'])
             && onlyKeys(['paid', 'paidAt', 'paidBy', 'room', 'st', 'servedAt', 'servedBy', 'cancelAt', 'cancelBy'])
             && (same('st') || request.resource.data.st == 'served'
                 || (resource.data.st == 'new' && request.resource.data.st == 'cancel')))
         // مدير المطعم: المطبخ والتقديم والإلغاء في أي وقت
-        || (hasRole(['restm'])
+        || (hasRole(['restm', 'shiftm'])
             && onlyKeys(['st', 'ackAt', 'ackBy', 'next', 'readyAt', 'servedAt', 'servedBy', 'cancelAt', 'cancelBy', 'paid']))
         // الويتر: التقديم · إلغاء قبل ما المطبخ يستلم
         || (hasRole(['rest'])
@@ -102,9 +102,9 @@ service cloud.firestore {
       allow read: if isStaff();
       allow create: if isStaff() && byMe();
       allow update: if isAdmin()
-        || (hasRole(['rec'])
+        || (hasRole(['rec', 'shiftm'])
             && onlyKeys(['paid', 'paidAt', 'paidBy', 'room', 'st', 'ackAt', 'ackBy', 'readyAt', 'doneAt', 'doneBy', 'cancelAt', 'cancelBy']))
-        || (hasRole(['lnd', 'hkm', 'hks', 'hk'])
+        || (hasRole(['lnd', 'hkm', 'hks', 'hk', 'shiftm'])
             && onlyKeys(['st', 'ackAt', 'ackBy', 'readyAt', 'doneAt', 'doneBy', 'cancelAt', 'cancelBy', 'paid'])
             && (same('paid') || (resource.data.st == 'new' && request.resource.data.st == 'cancel')));
       allow delete: if isAdmin();
@@ -114,7 +114,7 @@ service cloud.firestore {
     match /aio/{id} {
       allow read: if isStaff();
       allow create: if isStaff() && byMe();
-      allow update: if isAdmin() || (hasRole(['rec']) && onlyKeys(['done', 'doneAt', 'doneBy']));
+      allow update: if isAdmin() || (hasRole(['rec', 'shiftm']) && onlyKeys(['done', 'doneAt', 'doneBy']));
       allow delete: if isAdmin();
     }
 
@@ -122,14 +122,14 @@ service cloud.firestore {
     match /lost/{id} {
       allow read: if isStaff();
       allow create: if isStaff() && byMe();
-      allow update: if isAdmin() || (hasRole(['rec', 'hkm', 'hks']) && onlyKeys(['st', 'retAt', 'retBy']));
+      allow update: if isAdmin() || (hasRole(['rec', 'hkm', 'hks', 'shiftm']) && onlyKeys(['st', 'retAt', 'retBy']));
       allow delete: if isAdmin();
     }
 
     // تجهيز شغل بكرة: توزيع الهاوس كيبنج ووصول بكرة من Aiosell
     match /prep/{day} {
       allow read: if isStaff();
-      allow create, update: if hasRole(['admin', 'hkm', 'hks']);
+      allow create, update: if hasRole(['admin', 'hkm', 'hks', 'shiftm']);
       allow delete: if isAdmin();
     }
 
@@ -144,15 +144,15 @@ service cloud.firestore {
         && request.resource.data.note is string && request.resource.data.note.size() <= 200
         && exists(/databases/$(database)/documents/rooms/$(request.resource.data.room))
         && get(/databases/$(database)/documents/rooms/$(request.resource.data.room)).data.status == 'occ';
-      allow read: if hasRole(['admin', 'rec']);
-      allow update: if hasRole(['admin', 'rec']) && onlyKeys(['st', 'doneAt', 'doneBy']);
+      allow read: if hasRole(['admin', 'rec', 'shiftm']);
+      allow update: if hasRole(['admin', 'rec', 'shiftm']) && onlyKeys(['st', 'doneAt', 'doneBy']);
       allow delete: if isAdmin();
     }
 
     // شات النزلاء: كل محادثة ليها رقم سري عشوائي هو اللي بيفتحها، والريسبشن والمدير بيشوفوا الكل
     match /chats/{tid} {
       allow get: if true;
-      allow list: if hasRole(['admin', 'rec']);
+      allow list: if hasRole(['admin', 'rec', 'shiftm']);
       allow create: if tid.size() >= 20
         && request.resource.data.keys().hasOnly(['room', 'at', 'last', 'lastFrom', 'lastText', 'open', 'unread'])
         && request.resource.data.room is string && request.resource.data.room.size() == 3
@@ -160,7 +160,7 @@ service cloud.firestore {
         && request.resource.data.lastText is string && request.resource.data.lastText.size() <= 80
         && exists(/databases/$(database)/documents/rooms/$(request.resource.data.room))
         && get(/databases/$(database)/documents/rooms/$(request.resource.data.room)).data.status == 'occ';
-      allow update: if hasRole(['admin', 'rec'])
+      allow update: if hasRole(['admin', 'rec', 'shiftm'])
         || (onlyKeys(['last', 'lastFrom', 'lastText', 'open', 'unread'])
             && request.resource.data.lastFrom == 'guest' && request.resource.data.open == true
             && request.resource.data.lastText is string && request.resource.data.lastText.size() <= 80);
@@ -171,7 +171,7 @@ service cloud.firestore {
           && request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 500
           && request.resource.data.at is number
           && ((request.resource.data.from == 'guest' && request.resource.data.keys().hasOnly(['from', 'text', 'at']))
-              || (request.resource.data.from == 'rec' && hasRole(['admin', 'rec']) && request.resource.data.by == request.auth.uid));
+              || (request.resource.data.from == 'rec' && hasRole(['admin', 'rec', 'shiftm']) && request.resource.data.by == request.auth.uid));
         allow update: if false;
         allow delete: if isAdmin();
       }
@@ -179,10 +179,90 @@ service cloud.firestore {
 
     // تسليم الشيفت
     match /shift/{id} {
-      allow read: if hasRole(['admin', 'rec']);
-      allow create: if hasRole(['admin', 'rec']) && byMe();
+      allow read: if hasRole(['admin', 'rec', 'shiftm']);
+      allow create: if hasRole(['admin', 'rec', 'shiftm']) && byMe();
       allow update: if false;
       allow delete: if isAdmin();
+    }
+
+    // أجهزة الإشعارات: كل موظف يسجّل جهازه باسمه ووظيفته بس، والمدير يشوفهم
+    match /push/{tok} {
+      allow read: if isAdmin();
+      allow create, update: if isStaff()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role == role()
+        && request.resource.data.keys().hasOnly(['uid', 'role', 'at', 'ua']);
+      allow delete: if isAdmin() || (isStaff() && resource.data.uid == request.auth.uid);
+    }
+
+    // الحضور والانصراف التلقائي بالموقع: كل موظف يسجل لنفسه بس، والمدير ومدير وسوبر فايزر الهاوس كيبنج يشوفوا الحضور
+    match /att/{id} {
+      allow read: if hasRole(['admin', 'hkm', 'hks', 'shiftm']) || (isStaff() && resource.data.uid == request.auth.uid);
+      allow create: if isStaff() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.st == 'open'
+        && request.resource.data.keys().hasOnly(['uid', 'd', 'inAt', 'lastAt', 'inLat', 'inLng', 'inAcc', 'st'])
+        && request.resource.data.inAt is number
+        && request.resource.data.inAt > request.time.toMillis() - 300000
+        && request.resource.data.inAt < request.time.toMillis() + 300000;
+      allow update: if isAdmin()
+        || (isStaff() && resource.data.uid == request.auth.uid && resource.data.st == 'open'
+            && onlyKeys(['lastAt', 'lastLat', 'lastLng', 'lastAcc', 'outAt', 'outLat', 'outLng', 'outAcc', 'st', 'auto'])
+            && (
+              (request.resource.data.st == 'open'
+                && request.resource.data.lastAt is number
+                && request.resource.data.lastAt > request.time.toMillis() - 300000
+                && request.resource.data.lastAt < request.time.toMillis() + 300000)
+              || (request.resource.data.st == 'closed'
+                && request.resource.data.outAt is number
+                && request.resource.data.outAt >= resource.data.inAt
+                && request.resource.data.outAt < request.time.toMillis() + 300000)
+            ));
+      allow delete: if isAdmin();
+    }
+
+    // مكان الفندق للحضور: المدير بس يحدده
+    match /geo/{id} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    // سجل أخطاء الأبلكيشن: أي موظف يسجّل خطأ حصل عنده، والمدير بس يشوف ويمسح
+    // المرتب: المدير بس يكتبه · كل موظف يشوف مرتبه هو بس
+    match /pay/{uid} {
+      allow read: if isAdmin() || (isStaff() && request.auth.uid == uid);
+      allow write: if isAdmin();
+    }
+
+    // الجزاءات والإضافي: المدير بس يسجلها · الموظف يشوف بتاعته بس
+    match /adj/{id} {
+      allow read: if isAdmin() || (isStaff() && resource.data.uid == request.auth.uid);
+      allow create: if isAdmin() && byMe()
+        && request.resource.data.type in ['pen', 'add']
+        && request.resource.data.amt is number && request.resource.data.amt > 0;
+      allow delete: if isAdmin();
+    }
+
+    match /errs/{id} {
+      allow create: if isStaff() && request.resource.data.uid == request.auth.uid;
+      allow read, delete: if isAdmin();
+    }
+
+    // المصاريف: الريسبشن والمديرين والمحاسب بيدخلوها · المحاسب يراجع · المدير يوافق بعد المراجعة
+    match /exp/{id} {
+      allow read: if hasRole(['admin', 'acc']) || (isStaff() && (resource.data.by == request.auth.uid || resource.data.get('emp', '') == request.auth.uid));
+      allow create: if hasRole(['admin', 'rec', 'hkm', 'restm', 'acc', 'shiftm']) && byMe()
+        && request.resource.data.st == 'new'
+        && request.resource.data.amt is number && request.resource.data.amt > 0
+        && request.resource.data.cat in ['fixed', 'var', 'tour', 'adv', 'buy'];
+      allow update: if
+        (hasRole(['acc']) && resource.data.st == 'new'
+          && onlyKeys(['st', 'chkBy', 'chkAt', 'rejBy', 'rejAt', 'rejWhy'])
+          && request.resource.data.st in ['checked', 'rej'])
+        || (isAdmin()
+          && onlyKeys(['st', 'okBy', 'okAt', 'rejBy', 'rejAt', 'rejWhy'])
+          && ((request.resource.data.st == 'ok' && resource.data.st == 'checked')
+              || request.resource.data.st == 'rej'));
+      allow delete: if isAdmin() || (isStaff() && resource.data.by == request.auth.uid && resource.data.st == 'new');
     }
   }
 }
