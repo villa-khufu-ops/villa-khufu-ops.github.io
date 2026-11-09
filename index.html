@@ -639,6 +639,7 @@ function vBlocked(){
 function vHome(){
   var m=meDoc(),a=areas(),tiles='';
   if(a.indexOf('rec')>=0)tiles+=big('rec','الريسبشن','وصول النهارده · خروج · نقل · طلب نظافة',ICON.desk,true);
+  if(a.indexOf('exp')>=0){expListen();tiles+=big('exp','الحسابات والمصاريف','ثابتة · متغيرة · رحلات · سلف · مشتريات'+(expTodo()?' · '+expTodo()+' مستني موافقتك':''),ICON.cash,!!expTodo());}
   if(a.indexOf('hk')>=0)tiles+=big('hk','الهاوس كيبنج','توزيع · مراجعة · صيانة',ICON.broom,false,urg('hk'));
   if(a.indexOf('work')>=0)tiles+=big('work','غرفي','الغرف اللي عليا',ICON.bed,false,urg('work'));
   if(a.indexOf('rest')>=0)tiles+=big('rest','المطعم','المنيو · طلب للمطبخ والريسبشن',ICON.food,false,urg('rest'));
@@ -646,9 +647,7 @@ function vHome(){
   if(a.indexOf('mnt')>=0)tiles+=big('mnt','الصيانة','البلاغات المفتوحة',ICON.wrench.replace('width="18" height="18"','width="28" height="28"'),false,urg('mnt'));
   if(a.indexOf('kit')>=0)tiles+=big('kit','المطبخ','الطلبات الجاية من المنيو',ICON.pot,false,urg('kit'));
   if(a.indexOf('hk')>=0)tiles+=big('daily','التقارير','تقرير النظافة والخروج لكل غرفة بالتاريخ',ICON.report,false);
-  if(a.indexOf('exp')>=0){expListen();}
-  if(myRole()==='shiftm')tiles+=big('exp','المصاريف','دخّل مصروف · سلفة · مشتريات',ICON.cash,false);
-  if(a.indexOf('exp')>=0)tiles+=big('exp','المصاريف','ثابتة · متغيرة · رحلات · سلف · مشتريات'+(expTodo()?' · '+expTodo()+' مستني موافقتك':''),ICON.cash,!!expTodo());
+  if(myRole()==='shiftm')tiles+=big('exp','الحسابات والمصاريف','دخّل مصروف · سلفة · مشتريات',ICON.cash,false);
   if(a.indexOf('users')>=0)tiles+=big('errs','أخطاء الأبلكيشن','أي مشكلة حصلت على موبايل أي موظف'+((S.errs||[]).length?' · '+S.errs.length:''),ICON.bell,false);
   if(a.indexOf('users')>=0)tiles+=big('pay-all','ورقة المرتبات','كل الاستاف · المرتب · الحضور · الإضافي · الجزاءات · السلف',ICON.cash,false);
   if(a.indexOf('users')>=0)tiles+=big('att-all','حضور الموظفين','مين موجود · ساعات كل موظف بالشهر',ICON.users,false);
@@ -679,7 +678,7 @@ function vRec(){
   big('rec-occ','الغرف المشغولة','خروج · نقل · طلب نظافة',ICON.out,false)+
   (function(){var A=openAccounts(),ks=Object.keys(A),tot=ks.reduce(function(s,k){return s+A[k].total;},0);return big('rec-acc','حسابات الغرف',ks.length?ks.length+' غرفة عليها حساب · '+money(tot):'مفيش حسابات مفتوحة',ICON.cash,false);})()+
   big('eod','تقرير آخر اليوم','الدخول والخروج · النظافة · الإيراد · الحسابات المفتوحة',ICON.report,false)+
-  big('exp','المصاريف','دخّل مصروف · سلفة · مشتريات',ICON.cash,false)+
+  big('exp','الحسابات والمصاريف','دخّل مصروف · سلفة · مشتريات',ICON.cash,false)+
   big('rec-rep','تقرير غرفة','اختار الغرفة والتاريخ · كل اللي حصل فيها',ICON.report,false)+
   big('rec-shift','تسليم الشيفت','الفلوس اللي اتحصّلت · المفتوح · ملاحظات للي بعدك',ICON.users,false)+
   big('rec-lost','المفقودات',S.lost.length?S.lost.length+' حاجة محفوظة عندنا':'مفيش مفقودات محفوظة',ICON.bed,false)+
@@ -1182,7 +1181,7 @@ function vExp(){
   var sums=EXPCAT.map(function(c){var a=T.ok.filter(function(x){return x.cat===c[0]&&x.cur!=='USD';}).reduce(function(s,x){return s+x.amt;},0),u=T.ok.filter(function(x){return x.cat===c[0]&&x.cur==='USD';}).reduce(function(s,x){return s+x.amt;},0);
     return '<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding-top:6px"><span style="font-size:14px">'+c[1]+'</span><b style="font-size:14px">'+egp(a)+(u?' + '+money(u):'')+'</b></div>';}).join('');
   var totE=T.ok.filter(function(x){return x.cur!=='USD';}).reduce(function(s,x){return s+x.amt;},0),totU=T.ok.filter(function(x){return x.cur==='USD';}).reduce(function(s,x){return s+x.amt;},0);
-  return top('المصاريف',r==='acc'?'المحاسب: راجع المصاريف':r==='admin'?'وافق على المصاريف بعد مراجعة المحاسب':'دخّل المصاريف · المحاسب يراجع والمدير يوافق',homeOf())+'<div class="stack">'+toastHtml()+
+  return top('الحسابات والمصاريف',r==='acc'?'المحاسب: راجع المصاريف':r==='admin'?'وافق على المصاريف بعد مراجعة المحاسب':'دخّل المصاريف · المحاسب يراجع والمدير يوافق',homeOf())+'<div class="stack">'+toastHtml()+
    '<button class="btn b-main" data-a="go" data-v="exp-new">+ مصروف جديد</button>'+
    '<div class="chips" role="tablist">'+tabs.map(function(t){return '<button role="tab" aria-selected="'+(tab===t[0])+'" data-a="go" data-v="exp" data-tab="'+t[0]+'">'+t[1]+(T[t[0]].length?' · '+T[t[0]].length:'')+'</button>';}).join('')+'</div>'+
    (tab==='ok'||tab==='rej'||tab==='all'?'<label class="f" for="expm">الشهر<input class="inp" id="expm" type="month" value="'+month+'" max="'+today().slice(0,7)+'"></label>':'')+
@@ -1894,7 +1893,7 @@ function installCard(){
 function vPin(){
   var m=meDoc()||{};
   return top('حسابي',(m.name||'')+' · @'+(m.username||''),homeOf())+'<div class="stack">'+toastHtml()+
-  attCard()+(canExpAdd()&&['hkm','restm','shiftm'].indexOf(m.role)>=0?'<button class="btn b-line" data-a="go" data-v="exp">'+ICON.cash+' المصاريف · دخّل مصروف</button>':'')+'<button class="btn b-main" data-a="go" data-v="pay">'+ICON.cash+' صفحة مرتبي · الحضور · السلف · الإضافي والجزاءات</button>'+'<button class="btn b-main" data-a="go" data-v="help">'+ICON.report+' دليل الاستخدام لوظيفتك</button>'+
+  attCard()+(canExpAdd()&&['hkm','restm','shiftm'].indexOf(m.role)>=0?'<button class="btn b-line" data-a="go" data-v="exp">'+ICON.cash+' الحسابات والمصاريف · دخّل مصروف</button>':'')+'<button class="btn b-main" data-a="go" data-v="pay">'+ICON.cash+' صفحة مرتبي · الحضور · السلف · الإضافي والجزاءات</button>'+'<button class="btn b-main" data-a="go" data-v="help">'+ICON.report+' دليل الاستخدام لوظيفتك</button>'+
   installCard()+pushCard()+
   '<form class="card" id="nameForm"><span class="ttl">تغيير الاسم</span><label class="f" for="nn">الاسم اللي بيظهر للموظفين<input class="inp" id="nn" value="'+h(m.name||'')+'" maxlength="40" required></label><button class="btn b-main" type="submit">حفظ الاسم</button></form>'+
   '<form class="card" id="pinForm"><span class="ttl">تغيير الرقم السري</span>'+
@@ -1953,8 +1952,8 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.09';
-var APP_NAME='المرتبات';
+var APP_VER='2026.11.09.2';
+var APP_NAME='الحسابات';
 // ---------- version badge + "new version" banner: anyone can tell at a glance whether an upload reached their phone ----------
 (function(){
   var guest=/[?&]guest/.test(location.search);
