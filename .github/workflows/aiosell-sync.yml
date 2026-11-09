@@ -1,0 +1,100 @@
+# Villa Khufu – reads Aiosell (READ ONLY) and updates the operations app every 10 minutes.
+# Replaces the laptop sync. Log-ins live in Settings › Secrets and variables › Actions:
+#   AIOSELL_USER, AIOSELL_PASS  – the Aiosell login
+#   APP_USER, APP_PASS          – an app account (username like in the app) that the sync uses
+name: Aiosell sync
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: 'Test run only (read Aiosell, write nothing)'
+        type: boolean
+        default: true
+
+concurrency:
+  group: aiosell-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      # until the log-ins are added in Secrets, every run just stops here quietly
+      - name: Check log-ins
+        id: chk
+        env:
+          A: ${{ secrets.AIOSELL_USER }}
+          B: ${{ secrets.AIOSELL_PASS }}
+          C: ${{ secrets.APP_USER }}
+          D: ${{ secrets.APP_PASS }}
+        run: |
+          if [ -n "$A" ] && [ -n "$B" ] && [ -n "$C" ] && [ -n "$D" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else echo "Secrets are not set yet – skipping"; fi
+
+      - if: steps.chk.outputs.ok == 'true'
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: sync
+
+      - if: steps.chk.outputs.ok == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cache browser
+        if: steps.chk.outputs.ok == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-1.48.2-chromium
+
+      - name: Install
+        if: steps.chk.outputs.ok == 'true'
+        working-directory: sync
+        run: |
+          npm install --no-audit --no-fund --silent playwright@1.48.2
+          npx playwright install --with-deps chromium > /dev/null
+
+      # the encrypted browser session from the last run, so Aiosell isn't logged in to every 10 minutes
+      - name: Restore session
+        if: steps.chk.outputs.ok == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: sync/.state
+          key: session-${{ github.run_id }}
+          restore-keys: session-
+
+      - name: Sync
+        if: steps.chk.outputs.ok == 'true'
+        env:
+          AIOSELL_USER: ${{ secrets.AIOSELL_USER }}
+          AIOSELL_PASS: ${{ secrets.AIOSELL_PASS }}
+          APP_USER: ${{ secrets.APP_USER }}
+          APP_PASS: ${{ secrets.APP_PASS }}
+        run: node sync/sync.js ${{ (github.event_name == 'workflow_dispatch' && inputs.dry) && '--dry' || '' }}
+
+      - name: Save session
+        if: always() && steps.chk.outputs.ok == 'true' && hashFiles('sync/.state/session.enc') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: sync/.state
+          key: session-${{ github.run_id }}
+
+      # only the empty login form and the page layout (tables removed) – no guest data
+      - name: Troubleshooting files
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: troubleshooting
+          path: |
+            sync/login-page.png
+            sync/login-failed.png
+            sync/debug-aiosell.html
+          if-no-files-found: ignore
+          retention-days: 3

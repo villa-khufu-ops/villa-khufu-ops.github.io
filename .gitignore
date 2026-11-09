@@ -1,0 +1,5 @@
+sync/.state/
+sync/node_modules/
+sync/*.png
+sync/debug-aiosell.html
+sync/package*.json
