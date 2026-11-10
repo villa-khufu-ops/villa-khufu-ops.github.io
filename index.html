@@ -151,12 +151,13 @@ textarea.inp{padding:12px 14px;min-height:84px;resize:none}
 @media print{body *{visibility:hidden}.qrcard,.qrcard *,.printme,.printme *{visibility:visible}.qrcard,.printme{position:absolute;left:0;top:0;width:100%;border:none;box-shadow:none}.noprint{display:none!important}}
 #verTag{position:fixed;bottom:6px;left:8px;z-index:50;font:700 12px/1.2 system-ui,sans-serif;background:var(--card,#fff);color:var(--accent,#7a4b12);border:1.5px solid currentColor;border-radius:999px;padding:4px 10px;opacity:.92;pointer-events:none;direction:rtl}
 #verTag:empty{display:none}
+#netBar{position:fixed;left:0;right:0;bottom:0;z-index:55;display:none;background:#b3261e;color:#fff;font:800 15px/1.4 system-ui,sans-serif;padding:12px 16px;text-align:center;direction:rtl}
 #verNew{position:fixed;top:0;left:0;right:0;z-index:60;display:none;background:#1d7a3a;color:#fff;border:0;font:800 16px/1.4 system-ui,sans-serif;padding:14px 16px;text-align:center;cursor:pointer;direction:rtl}
 @media print{#verTag,#verNew{display:none!important}}
 </style>
 </head>
 <body>
-<div id="verTag" aria-hidden="true"></div><button id="verNew" type="button"></button>
+<div id="verTag" aria-hidden="true"></div><button id="verNew" type="button"></button><div id="netBar" role="status"></div>
 <div id="app" dir="rtl"><p class="hint" style="padding-top:40px">بيحمّل…</p></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1952,8 +1953,18 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.09.2';
-var APP_NAME='الحسابات';
+var APP_VER='2026.11.10';
+var APP_NAME='النت';
+// ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
+var NET={off:!navigator.onLine,pendSince:0,t:null};
+function netShow(){var el=document.getElementById('netBar');if(!el)return;
+  var late=NET.pendSince&&Date.now()-NET.pendSince>12000,msg='';
+  if(NET.off)msg='📵 مفيش نت · اللي بتعمله متسجّل على الموبايل بس ولسه ما وصلش لحد · هيتبعت لوحده أول ما النت يرجع';
+  else if(late)msg='⏳ لسه ما اتبعتش · النت ضعيف · سيب الأبلكيشن مفتوح لحد ما الشريط ده يختفي';
+  el.textContent=msg;el.style.display=msg?'block':'none';}
+function netPend(p){if(p&&!NET.pendSince){NET.pendSince=Date.now();clearTimeout(NET.t);NET.t=setTimeout(netShow,12500);}if(!p)NET.pendSince=0;netShow();}
+window.addEventListener('offline',function(){NET.off=true;netShow();});
+window.addEventListener('online',function(){NET.off=false;netShow();});
 // ---------- version badge + "new version" banner: anyone can tell at a glance whether an upload reached their phone ----------
 (function(){
   var guest=/[?&]guest/.test(location.search);
@@ -2372,7 +2383,7 @@ function listen(){
   unsubs.push(db.collection('geo').doc('hotel').onSnapshot(function(sn){var had=S.geo&&S.geo.lat!=null;S.geo=sn.exists?sn.data():null;render();if(!had)autoAtt(true);},function(){}));
   unsubs.push(db.collection('att').where('uid','==',S.uid).onSnapshot(function(sn){var l=[];sn.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.att=l;var first=!S.attLoaded;S.attLoaded=true;render();if(first)autoAtt(true);},function(){}));
   unsubs.push(db.collection('staff').onSnapshot(function(snap){var o={};snap.forEach(function(d){o[d.id]=d.data();});S.staff=o;S.staffLoaded=true;render();},function(){S.staffLoaded=true;render();}));
-  unsubs.push(db.collection('rooms').onSnapshot(function(snap){var o={},before=urgentForMe();snap.forEach(function(d){o[d.id]=d.data();});S.rooms=o;render();if(urgentForMe()>before)ring();applyPre();},function(){}));
+  unsubs.push(db.collection('rooms').onSnapshot({includeMetadataChanges:true},function(snap){netPend(snap.metadata.hasPendingWrites);if(snap.metadata.hasPendingWrites===S.lastPend&&S.roomsOnce&&!snap.docChanges().length)return;S.lastPend=snap.metadata.hasPendingWrites;S.roomsOnce=true;var o={},before=urgentForMe();snap.forEach(function(d){o[d.id]=d.data();});S.rooms=o;render();if(urgentForMe()>before)ring();applyPre();},function(){}));
   unsubs.push(db.collection('maint').where('open','==',true).onSnapshot(function(snap){var before=urgentForMe(),l=[];snap.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.maint=l.sort(function(a,b){return b.at-a.at;});render();if(urgentForMe()>before)ring();},function(){}));
   // restaurant orders of the last 36 hours, and every room bill that isn't paid yet
   unsubs.push(db.collection('orders').where('at','>=',Date.now()-36*3600000).onSnapshot(function(snap){var l=[],before=urgentForMe();snap.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.orders=l;render();if(urgentForMe()>before)ring();},function(){}));
