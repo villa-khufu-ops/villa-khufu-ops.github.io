@@ -1018,7 +1018,7 @@ function vLndNew(){
 }
 
 // ----- transfers (reception): car + people + price, charged to the room like a tour -----
-var CARS=[['sedan','سيدان','Sedan',3],['xpander','اكسبندر','Xpander',5],['hiace','هاي اس','HiAce',12],['coaster','كوستر','Coaster',25],['bus','اتوبيس','Bus',50]];
+var CARS=[['sedan','سيدان','Sedan',3],['xpander','اكسبندر','Xpander',5],['hiace','هاي اس','HiAce',12],['coaster','كوستر','Coaster',20],['bus','اتوبيس','Bus',40]];
 function carOf(k){return CARS.filter(function(c){return c[0]===k;})[0]||null;}
 function trKeep(){var D=S.trd||{},g=function(i){var e=document.getElementById(i);return e?e.value:null;},v;if((v=g('trdate'))!=null)D.date=v;if((v=g('trtime'))!=null)D.time=v;if((v=g('trfrom'))!=null)D.from=v;if((v=g('trto'))!=null)D.to=v;if((v=g('trprice'))!=null)D.price=v;if((v=g('trnote'))!=null)D.note=v;S.trd=D;}
 function vTransfer(){
@@ -1975,7 +1975,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.11.3';
+var APP_VER='2026.11.11.4';
 var APP_NAME='الانتقالات';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
