@@ -847,7 +847,8 @@ function vHk(){
       var state=!t?'مش متوزعة لسه':t.st==='dnd'?'النزيل رافض النظافة / DND · '+wname(t.w):t.st==='new'?'اتبعتت لـ'+wname(t.w)+' · مستنية تستلم':t.st==='redo'?'رجعت لـ'+wname(t.w)+' تعيدها':t.st==='review'?wname(t.w)+' خلّصت · مستنية مراجعتك':wname(t.w)+' شغالة عليها';
       var gi=roomGuest(r);
       return '<div class="card'+(!t?' flash':'')+'"><div class="row"><span class="badge"><small>غرفة</small><b>'+no+'</b></span><span class="grow"><span class="ttl">'+reason+'</span><br><span style="font-size:12px;font-weight:600;opacity:.85">'+h(state)+'</span>'+(gi?'<br><span style="font-size:12px;font-weight:800">'+h(gi)+'</span>':'')+'</span></div><div class="picks">'+
-      ws.map(function(u){return '<button class="pick" data-a="assign" data-n="'+no+'" data-u="'+h(u)+'" aria-pressed="'+(!!t&&t.w===u)+'">'+h(wname(u))+'</button>';}).join('')+'</div></div>';
+      ws.map(function(u){return '<button class="pick" data-a="assign" data-n="'+no+'" data-u="'+h(u)+'" aria-pressed="'+(!!t&&t.w===u)+'">'+h(wname(u))+'</button>';}).join('')+'</div>'+
+        (isAdminU()?'<button class="btn b-ok" style="margin-top:8px" data-a="mgrDone" data-n="'+no+'">'+ICON.check+' تم التنظيف والمراجعة</button>':'')+'</div>';
     }).join(''):'<p class="empty">مفيش غرف محتاجة تنظيف</p>');
   }else if(tab==='review'){
     body=rv.length?rv.map(function(no){var r=room(no),t=r.task;return '<div class="card" style="border:2px solid var(--info)"><div class="row"><span class="badge info"><small>غرفة</small><b>'+no+'</b></span><span class="grow"><span class="ttl">'+h(wname(t.w))+' خلّصت التنظيف</span><br><span class="sub">'+h(reasonOf(r))+' · من '+ago(S.now-t.doneAt)+'</span></span></div>'+(t.check?'<span class="sub">✓ الشيك ليست: '+t.check+'/'+CHECK.length+'</span>':'')+(t.lost?'<span class="note" style="color:var(--warn);font-weight:700">لقت حاجة للنزيل: '+h(t.lost)+'</span>':'')+'<button class="btn b-ok" data-a="approve" data-n="'+no+'">'+ICON.check+' راجعتها · الغرفة جاهزة</button><button class="btn b-warn" data-a="redo" data-n="'+no+'">ترجع تتعاد</button></div>';}).join(''):'<p class="empty">مفيش غرف مستنية مراجعة</p>';
@@ -1954,8 +1955,8 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.11';
-var APP_NAME='عدد الغرف';
+var APP_VER='2026.11.11.2';
+var APP_NAME='تم التنظيف';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
 function netShow(){var el=document.getElementById('netBar');if(!el)return;
@@ -2196,6 +2197,8 @@ app.addEventListener('click',function(ev){
   }
   if(a==='assign'){var u=b.dataset.u;logEv('assign',no,{w:u});upd(no,{task:{w:u,st:'new',at:now,ackAt:0,next:0,doneAt:0}});
     flash('غرفة '+no+' اتوزعت على '+wname(u),waFor([u],'غرفة '+no+' اتوزعت عليكي للنظافة · افتحي الأبلكيشن ودوسي استلمت'));return;}
+  if(a==='mgrDone'){if(!isAdminU())return;var tm=room(no).task;
+    if(!tm||tm.st!=='review')logEv('done',no,{note:'سجّلها المدير'+(tm?' بدل '+wname(tm.w):'')});a='approve';}
   if(a==='approve'){var r1=room(no);logEv('approve',no);var p1={task:null,cleanReq:null};if(r1.status==='clean'){p1.status='free';p1.cleanAt=now;}if(r1.status==='free')p1.cleanAt=now;
     var forArr=r1.status!=='occ'&&r1.arrival&&r1.arrival.in<=today();
     if(forArr)p1.arrival=Object.assign({},r1.arrival,{ready:true,readyAt:now});
