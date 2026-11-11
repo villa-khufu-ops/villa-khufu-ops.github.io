@@ -687,7 +687,7 @@ function vRec(){
   (function(){var o=S.orders.filter(function(x){return isFood(x)&&x.d===today()&&x.st!=='cancel';});return big('rest','المطعم','طلب جديد · '+o.length+' طلب النهارده',ICON.food,false);})()+
   big('mini','التلاجة','مياه · سوفت درينك · شوكولاتة · على حساب الغرفة',ICON.fridge,false)+
   big('tour','الرحلات','حجز رحلة للنزيل · السعر بتحدده إنت · على حساب الغرفة',ICON.report,false)+
-  big('transfer','الانتقالات','عربية للنزيل · سيدان · اكسبندر · هاي اس · كوستر · اتوبيس · على حساب الغرفة',ICON.out,false)+
+  big('transfer','انتقالات وعربيات','عربية للنزيل · سيدان · اكسبندر · هاي اس · كوستر · اتوبيس · على حساب الغرفة',ICON.out,false)+
   big('rec-chats','شات النزلاء',chatUnread()?chatUnread()+' رسالة جديدة':'الرسايل اللي النزلاء بيبعتوها من الـ QR',ICON.bell,false,chatUnread())+
   big('rec-greq','طلبات النزلاء (QR)',S.greq.length?S.greq.length+' طلب مستني ردّك':'الطلبات اللي النزلاء بيبعتوها من الـ QR',ICON.bell,false,S.greq.length)+
   big('qr','QR النزلاء','اطبع الـ QR · النزيل يطلب أكل أو رحلة من موبايله',ICON.report,false)+
@@ -1024,7 +1024,7 @@ function trKeep(){var D=S.trd||{},g=function(i){var e=document.getElementById(i)
 function vTransfer(){
   var D=S.trd=S.trd||{},car=carOf(D.car),cap=car?car[3]:5,pax=Math.min(D.pax||1,cap),occL=allNos().filter(function(no){return room(no).status==='occ';}).sort();
   var rooms=occL.length?'<div class="grid3">'+occL.map(function(no){var sel=D.room===no;return '<button class="room'+(sel?' sel':' occ')+'" style="min-height:56px" data-a="trRoom" data-n="'+no+'" aria-pressed="'+sel+'"><b>'+no+'</b></button>';}).join('')+'</div>':'<p class="empty">مفيش غرف مشغولة دلوقتي</p>';
-  return top('الانتقالات','عربية للنزيل · على حساب الغرفة','rec')+'<div class="stack">'+toastHtml()+
+  return top('انتقالات وعربيات','عربية للنزيل · على حساب الغرفة','rec')+'<div class="stack">'+toastHtml()+
    '<span class="ttl">نوع العربية</span><div class="picks" style="grid-template-columns:1fr 1fr">'+CARS.map(function(c){return '<button class="pick" style="min-height:64px" data-a="trCar" data-k="'+c[0]+'" aria-pressed="'+(D.car===c[0])+'"><b style="font-size:17px">'+c[1]+'</b><br><span class="sub" style="color:inherit;opacity:.85">لحد '+c[3]+' أفراد</span></button>';}).join('')+'</div>'+
    '<div class="card"><div class="row"><span class="ttl grow">عدد الأفراد'+(car?' <span class="sub">(أقصى '+cap+')</span>':'')+'</span><div class="qty"><button data-a="trPax" data-d="1" aria-label="زيادة">+</button><b>'+pax+'</b><button data-a="trPax" data-d="-1" aria-label="تقليل">−</button></div></div></div>'+
    '<span class="ttl">الغرفة</span><span class="sub">الغرف المشغولة بس · الانتقال بيتسجّل على حساب الغرفة</span>'+rooms+
@@ -1975,8 +1975,8 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.11.4';
-var APP_NAME='الانتقالات';
+var APP_VER='2026.11.11.5';
+var APP_NAME='انتقالات وعربيات';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
 function netShow(){var el=document.getElementById('netBar');if(!el)return;
