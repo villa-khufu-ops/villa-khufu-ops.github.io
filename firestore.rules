@@ -226,14 +226,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // سجل أخطاء الأبلكيشن: أي موظف يسجّل خطأ حصل عنده، والمدير بس يشوف ويمسح
     // المرتب: المدير بس يكتبه · كل موظف يشوف مرتبه هو بس
     match /pay/{uid} {
       allow read: if isAdmin() || (isStaff() && request.auth.uid == uid);
       allow write: if isAdmin();
     }
 
-    // الجزاءات والإضافي: المدير بس يسجلها · الموظف يشوف بتاعته بس
     // الإضافي والجزاءات: المدير لكل الناس · مديرة الهاوس كيبنج لفريقها · مدير المطعم للمطعم والمطبخ
     // الموظف يشوف بتاعته بس · المدير اللي سجّل يشوف ويمسح اللي سجّله
     function teamRole(uid) { return get(/databases/$(database)/documents/staff/$(uid)).data.role; }
@@ -252,6 +250,7 @@ service cloud.firestore {
       allow delete: if isAdmin() || (isStaff() && resource.data.by == request.auth.uid);
     }
 
+    // سجل أخطاء الأبلكيشن: أي موظف يسجّل خطأ حصل عنده، والمدير بس يشوف ويمسح
     match /errs/{id} {
       allow create: if isStaff() && request.resource.data.uid == request.auth.uid;
       allow read, delete: if isAdmin();
