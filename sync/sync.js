@@ -15,6 +15,7 @@ const DIR = __dirname;
 const STATE = path.join(DIR, '.state', 'session.enc');
 const ENV = process.env;
 const AIOSELL_URL = 'https://pms.aiosell.com/reports/bc25795482';
+const PUSH_URL = 'https://script.google.com/macros/s/AKfycbxxsljca60rNfE7R-3LLixkoW6SSsJamPLITTp4AwCWv_XbmmkFfOB6-jvEledGnjB-/exec';
 const APP_URL = 'https://villa-khufu-ops.github.io/';
 const DRY = process.argv.includes('--dry');
 
@@ -491,6 +492,12 @@ async function runOnce() {
     }
     const rep = await applyToApp(ctx, rows, tmr);
     log(summary(rep));
+    // tell housekeeping managers which rooms just checked out, so they can hand them out for cleaning
+    if (!DRY && rep.out && rep.out.length && typeof fetch === 'function') {
+      for (const no of rep.out) {
+        try { await fetch(PUSH_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ k: 'co', id: String(no) }) }); } catch (_) {}
+      }
+    }
     await saveState(ctx);
   } finally {
     if (ctx) await ctx.close().catch(() => {});

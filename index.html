@@ -1989,8 +1989,8 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.11.8';
-var APP_NAME='تنبيه الانتقال';
+var APP_VER='2026.11.12';
+var APP_NAME='إشعار الخروج';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
 function netShow(){var el=document.getElementById('netBar');if(!el)return;
@@ -2243,14 +2243,14 @@ app.addEventListener('click',function(ev){
     logEv('checkout',no,{reason:'خروج · تنظيف كامل',food:billSum(bl),laundry:lbl.reduce(function(s,o){return s+(o.price||0);},0),method:pmO,boardFood:pmO==='cash'?0:foodO});
     var oT=room(no).task,pOut={status:'clean',in:null,out:null,sofa:false,cleanReq:null,plan:null,coHold:null,coAt:now,cleanAt:null};
     if(oT&&oT.w){pOut.task={w:oT.w,st:'new',at:now,ackAt:0,next:0,doneAt:0};logEv('assign',no,{w:oT.w,reason:'خروج · تنظيف كامل'});}else if(oT)pOut.task=null;
-    upd(no,pOut);go('rec-occ');flash('غرفة '+no+' خرجت واتبعتت للهاوس كيبنج'+aioNote(),waFor(hkManagers(),'غرفة '+no+' خرجت · محتاجة تنظيف كامل'));return;}
+    upd(no,pOut);setTimeout(function(){pushEvt('co',no);},1500);go('rec-occ');flash('غرفة '+no+' خرجت واتبعتت للهاوس كيبنج'+aioNote(),waFor(hkManagers(),'غرفة '+no+' خرجت · محتاجة تنظيف كامل'));return;}
   if(a==='doMove'){
     var from=S.p.no,to=S.p.target,r=room(from);
     if(!to||room(to).status!=='free'){S.err='الغرفة دي مبقتش فاضية، اختار غيرها';S.p.target=null;render();return;}
     roomOrdersAll(from).forEach(function(o){ordUpd(o.id,{room:to});});
     roomLBill(from).forEach(function(o){lUpd(o.id,{room:to});});
     upd(to,{status:'occ',in:r.in,out:r.out,sofa:false,cleanReq:null,task:null,plan:r.plan||null});
-    upd(from,{status:'clean',in:null,out:null,sofa:false,cleanReq:null,task:null,plan:null});
+    upd(from,{status:'clean',in:null,out:null,sofa:false,cleanReq:null,task:null,plan:null,coAt:now});setTimeout(function(){pushEvt('co',from);},1500);
     logEv('move',from,{to:to,reason:'خروج · تنظيف كامل'});aioTodo(from,'نقل النزيل لغرفة '+to);go('rec-room',{no:to});flash('النزيل اتنقل من '+from+' لـ '+to+' · غرفة '+from+' اتبعتت للهاوس كيبنج',waFor(hkManagers(),'نقل نزيل من غرفة '+from+' لغرفة '+to+' · غرفة '+from+' محتاجة تنظيف'));return;
   }
   if(a==='assign'){var u=b.dataset.u;logEv('assign',no,{w:u});upd(no,{task:{w:u,st:'new',at:now,ackAt:0,next:0,doneAt:0}});
