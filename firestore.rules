@@ -234,12 +234,22 @@ service cloud.firestore {
     }
 
     // الجزاءات والإضافي: المدير بس يسجلها · الموظف يشوف بتاعته بس
+    // الإضافي والجزاءات: المدير لكل الناس · مديرة الهاوس كيبنج لفريقها · مدير المطعم للمطعم والمطبخ
+    // الموظف يشوف بتاعته بس · المدير اللي سجّل يشوف ويمسح اللي سجّله
+    function teamRole(uid) { return get(/databases/$(database)/documents/staff/$(uid)).data.role; }
+    function myTeam(uid) {
+      return (hasRole(['hkm']) && teamRole(uid) in ['hk', 'hks'])
+          || (hasRole(['restm']) && teamRole(uid) in ['rest', 'kit']);
+    }
     match /adj/{id} {
-      allow read: if isAdmin() || (isStaff() && resource.data.uid == request.auth.uid);
-      allow create: if isAdmin() && byMe()
+      allow read: if isAdmin()
+        || (isStaff() && (resource.data.uid == request.auth.uid || resource.data.by == request.auth.uid));
+      allow create: if byMe()
+        && (isAdmin() || myTeam(request.resource.data.uid))
+        && request.resource.data.uid != request.auth.uid
         && request.resource.data.type in ['pen', 'add']
         && request.resource.data.amt is number && request.resource.data.amt > 0;
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || (isStaff() && resource.data.by == request.auth.uid);
     }
 
     match /errs/{id} {
