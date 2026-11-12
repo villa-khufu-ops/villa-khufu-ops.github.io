@@ -1108,11 +1108,28 @@ function vTrRep(){
   }else{
     list=R.list.filter(function(o){return (o.tour.date||'').slice(0,7)===month;});
     var tot2=list.reduce(function(s,o){return s+(o.total||0);},0);
-    body='<label class="f noprint" for="trmon">الشهر<input class="inp" id="trmon" type="month" value="'+month+'"></label>'+
+    var m3=[0,1,2].map(function(i){var d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);return iso(d).slice(0,7);});
+    body='<div class="picks noprint" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+m3.map(function(m){return '<button class="pick" data-a="trMonPick" data-v="'+m+'" aria-pressed="'+(month===m)+'">'+m+'</button>';}).join('')+'</div>'+
+      '<label class="f noprint" for="trmon">أو أي شهر تاني<input class="inp" id="trmon" type="month" value="'+month+'"></label>'+
       '<div class="card"><div class="row" style="justify-content:space-between"><span class="ttl">إجمالي '+month+'</span><b style="font-size:18px">'+money(tot2)+'</b></div><span class="sub">'+list.length+' مشوار</span></div>'+
       '<div class="printme stack">'+(list.length?(tab==='car'?trGroup(list,function(o){return o.tour.car;},function(k){var c=carOf(k);return c?c[1]+' (لحد '+c[3]+' أفراد)':k;}):trGroup(list,function(o){return o.tour.driver||'';},function(k){return k==='—'?'بدون سواق محدد (هاي اس · كوستر · اتوبيس)':'السواق: '+k;})):'<p class="empty">مفيش انتقالات الشهر ده</p>')+'</div>';
   }
-  return head+body+'<button class="btn b-line noprint" data-a="eodPrint">اطبع</button></div>';
+  return head+body+'<div class="row noprint" style="gap:8px"><button class="btn b-main" data-a="trXls">⬇️ Excel آخر 3 شهور</button><button class="btn b-line" data-a="eodPrint">اطبع</button></div>'+
+   '<span class="sub">كل الانتقالات محفوظة على الأبلكيشن ومش بتتمسح · تقدر تفتح أي يوم أو شهر قديم</span></div>';
+}
+function trExport(){
+  var R=S.trR;if(!R||!R.list)return;var d=new Date();d.setDate(1);d.setMonth(d.getMonth()-2);var from=iso(d);
+  var l=R.list.filter(function(o){return (o.tour.date||'')>=from;}).sort(function(a,b){return (a.tour.date+a.tour.time).localeCompare(b.tour.date+b.tour.time);});
+  var head=['التاريخ','الساعة','الغرفة','العربية','السواق','الأفراد','من','إلى','السعر $','الحالة','ملاحظة'];
+  var rows=l.map(function(o){var t=o.tour,c=carOf(t.car);return [t.date,t.time||'',o.room,c?c[1]:(t.ar||''),t.driver||'',t.pax||1,t.from||'',t.to||'',o.total||0,o.paid?'اتدفع':'على الغرفة',o.note||''];});
+  var sum=function(keyFn){var g={};l.forEach(function(o){var k=keyFn(o)||'—';g[k]=g[k]||[0,0,0];g[k][0]++;g[k][1]+=o.tour.pax||1;g[k][2]+=o.total||0;});return Object.keys(g).map(function(k){return [k].concat(g[k]);});};
+  var name='انتقالات-فيلا-خوفو-'+from.slice(0,7)+'-لحد-'+today();
+  loadXLSX().then(function(X){var wb=X.utils.book_new();
+    var w=X.utils.aoa_to_sheet([head].concat(rows));w['!cols']=head.map(function(){return {wch:13};});X.utils.book_append_sheet(wb,w,'كل الانتقالات');
+    X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([['العربية','مشاوير','أفراد','الإيراد $']].concat(sum(function(o){var c=carOf(o.tour.car);return c?c[1]:o.tour.car;}))),'العربيات');
+    X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([['السواق','مشاوير','أفراد','الإيراد $']].concat(sum(function(o){return o.tour.driver||'بدون سواق محدد';}))),'السواقين');
+    X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([['اليوم','مشاوير','أفراد','الإيراد $']].concat(sum(function(o){return o.tour.date;}).sort(function(a,b){return a[0].localeCompare(b[0]);}))),'يومي');
+    wb.Workbook={Views:[{RTL:true}]};X.writeFile(wb,name+'.xlsx');flash('اتنزّل '+name+'.xlsx');}).catch(function(){flash('ما قدرتش أنزّل الملف، اتأكد من النت');});
 }
 
 // ----- tours (reception) -----
@@ -2054,7 +2071,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.12.5';
+var APP_VER='2026.11.12.6';
 var APP_NAME='إشعار حجز الانتقال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
@@ -2202,6 +2219,8 @@ app.addEventListener('click',function(ev){
   if(a==='trCar'){trKeep();S.trd.car=b.dataset.k;if(DRIVER_CARS.indexOf(b.dataset.k)<0)S.trd.driver=null;var cc=carOf(b.dataset.k);if((S.trd.pax||1)>cc[3])S.trd.pax=cc[3];S.err='';render();return;}
   if(a==='trPax'){trKeep();var cp=(carOf(S.trd.car)||[0,0,0,5])[3];S.trd.pax=Math.max(1,Math.min(cp,(S.trd.pax||1)+(+b.dataset.d)));if((S.trd.pax||1)>=cp&&+b.dataset.d>0&&S.trd.car)flash('أقصى عدد لل'+carOf(S.trd.car)[1]+' '+cp+' أفراد');render();return;}
   if(a==='trAck'){var TA=trAcks();var oo=(S.bills||[]).filter(function(x){return x.id===b.dataset.id;})[0];TA[b.dataset.id+':'+(oo?trStage(oo):'2')]=Date.now();Object.keys(TA).forEach(function(k){if(Date.now()-TA[k]>7*86400000)delete TA[k];});try{localStorage.setItem('vkTrAck',JSON.stringify(TA));}catch(e){}render();return;}
+  if(a==='trMonPick'){S.trMon=b.dataset.v;render();return;}
+  if(a==='trXls'){trExport();return;}
   if(a==='trTab'){S.trTab=b.dataset.t;render();return;}
   if(a==='trDayPick'){S.trDay=b.dataset.v;render();return;}
   if(a==='dPick'){var de=document.getElementById(b.dataset.f);if(de)de.value=b.dataset.v;var par=b.parentNode;if(par)Array.prototype.forEach.call(par.querySelectorAll('[data-a="dPick"]'),function(x){x.setAttribute('aria-pressed',String(x===b));});if(b.dataset.f==='tdate'&&S.tdraft)S.tdraft.date=b.dataset.v;if(b.dataset.f==='trdate'&&S.trd)S.trd.date=b.dataset.v;return;}
