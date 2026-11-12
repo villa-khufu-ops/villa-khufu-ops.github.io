@@ -2054,8 +2054,8 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.12.4';
-var APP_NAME='تقارير الانتقالات';
+var APP_VER='2026.11.12.5';
+var APP_NAME='إشعار حجز الانتقال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
 function netShow(){var el=document.getElementById('netBar');if(!el)return;
@@ -2230,7 +2230,7 @@ app.addEventListener('click',function(ev){
       tour:{tr:true,id:'tr-'+cr[0],car:cr[0],n:'Transfer · '+cr[2],ar:'انتقال · '+cr[1],pax:rpx,date:R0.date,time:(R0.time||'').slice(0,5),from:(R0.from||'').trim().slice(0,80),to:(R0.to||'').trim().slice(0,80),driver:DRIVER_CARS.indexOf(cr[0])>=0?R0.driver:null},
       items:[{n:'Transfer · '+cr[2],ar:'انتقال · '+cr[1],p:rt,q:1}],total:rt,st:'served',next:0,
       note:(R0.note||'').trim().slice(0,200),pay:'room',paid:false,stayIn:room(R0.room).in||null};
-    db.collection('orders').add(tro).catch(function(e){flash(e&&e.code==='permission-denied'?'ما اتسجّلش · لازم تحديث قواعد Firebase (Rules)':'ما اتسجّلش، اتأكد من النت وجرّب تاني');});
+    db.collection('orders').add(tro).then(function(r){if(r&&r.id)pushEvt('trbook',r.id);}).catch(function(e){flash(e&&e.code==='permission-denied'?'ما اتسجّلش · لازم تحديث قواعد Firebase (Rules)':'ما اتسجّلش، اتأكد من النت وجرّب تاني');});
     S.trd={};S.err='';go('rec');flash('انتقال '+cr[1]+(tro.tour.driver?' مع '+tro.tour.driver:'')+' · '+rpx+' أفراد اتسجّل على غرفة '+tro.room+' · '+money(rt));return;
   }
   if(a==='tSave'){
