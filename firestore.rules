@@ -250,6 +250,17 @@ service cloud.firestore {
       allow delete: if isAdmin() || (isStaff() && resource.data.by == request.auth.uid);
     }
 
+    // دفع جزء من حساب الغرفة: الريسبشن ومدير الشيفت والمدير يسجّلوه · بيتقفل لما الحساب كله يتدفع · المدير بس يلغيه
+    match /rpay/{id} {
+      allow read: if hasRole(['admin', 'rec', 'shiftm', 'acc']);
+      allow create: if hasRole(['admin', 'rec', 'shiftm']) && byMe()
+        && request.resource.data.amt is number && request.resource.data.amt > 0
+        && request.resource.data.done == false
+        && request.resource.data.method in ['cash', 'card'];
+      allow update: if hasRole(['admin', 'rec', 'shiftm']) && onlyKeys(['done', 'doneAt', 'doneBy']);
+      allow delete: if isAdmin();
+    }
+
     // سجل أخطاء الأبلكيشن: أي موظف يسجّل خطأ حصل عنده، والمدير بس يشوف ويمسح
     match /errs/{id} {
       allow create: if isStaff() && request.resource.data.uid == request.auth.uid;
