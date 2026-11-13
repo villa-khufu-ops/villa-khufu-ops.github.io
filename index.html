@@ -1203,10 +1203,12 @@ function autoAtt(force){
   if(!navigator.geolocation)return;
   attLast=Date.now();S.attBusy=true;
   navigator.geolocation.getCurrentPosition(function(p){S.attBusy=false;S.attNoPerm=false;var c=p.coords,g=S.geo,r=g.r||ATT_R,acc=Math.min(c.accuracy||0,150),d=geoDist(g.lat,g.lng,c.latitude,c.longitude),now=Date.now(),o=attOpen();
-    var inside=d-acc<=r,outside=d-acc>r&&(c.accuracy||0)<=200;
+    // "outside" only on a clear reading well away from the hotel, so a rough first GPS fix when the app opens can't end the shift
+    var inside=d-acc<=r,outside=d-acc>r+50&&(c.accuracy||0)<=100;
     var closeAt=function(x){return x.lastAt&&now-x.lastAt>15*60000?x.lastAt:now;};
-    // an old shift left open (app was closed when he left): close it at the last time he was seen inside
-    if(o&&o.lastAt&&now-o.lastAt>8*3600000){var ot=o.lastAt;db.collection('att').doc(o.id).set({outAt:ot,st:'closed',auto:true},{merge:true});o.st='closed';o.outAt=ot;o=null;}
+    // a shift still open 16 hours after it started (app was closed when he left): close it at the last time he was seen inside.
+    // Closing the app during work never splits the shift (night shifts across midnight too).
+    if(o&&o.lastAt&&now-o.inAt>16*3600000){var ot=o.lastAt;db.collection('att').doc(o.id).set({outAt:ot,st:'closed',auto:true},{merge:true});o.st='closed';o.outAt=ot;o=null;}
     if(inside){
       if(!o){db.collection('att').add({uid:S.uid,d:today(),inAt:now,lastAt:now,inLat:c.latitude,inLng:c.longitude,inAcc:Math.round(c.accuracy||0),st:'open'}).then(function(){attSay(true,'إنت دلوقتي في الفندق · اتسجّل وصولك الساعة '+hm(now)+' ✓','النهارده لحد دلوقتي: '+hrs(sumMs(S.att||[],today()))+' · الشهر ده: '+hrs(sumMs(S.att||[],monthStart())));}).catch(function(e){if(e&&e.code==='permission-denied')attSay(false,'الحضور محتاج تحديث قواعد Firebase (Rules)');});}
       else db.collection('att').doc(o.id).set({lastAt:now,lastLat:c.latitude,lastLng:c.longitude,lastAcc:Math.round(c.accuracy||0)},{merge:true}).catch(function(){});
@@ -2071,8 +2073,8 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.12.6';
-var APP_NAME='إشعار حجز الانتقال';
+var APP_VER='2026.11.13';
+var APP_NAME='إصلاح الحضور';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
 function netShow(){var el=document.getElementById('netBar');if(!el)return;
