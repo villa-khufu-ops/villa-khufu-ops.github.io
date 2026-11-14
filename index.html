@@ -155,6 +155,7 @@ textarea.inp{padding:12px 14px;min-height:84px;resize:none}
 #netBar{position:fixed;left:0;right:0;bottom:0;z-index:55;display:none;background:#b3261e;color:#fff;font:800 15px/1.4 system-ui,sans-serif;padding:12px 16px;text-align:center;direction:rtl}
 #verNew{position:fixed;top:0;left:0;right:0;z-index:60;display:none;background:#1d7a3a;color:#fff;border:0;font:800 16px/1.4 system-ui,sans-serif;padding:14px 16px;text-align:center;cursor:pointer;direction:rtl}
 @media print{#verTag,#verNew{display:none!important}}
+.mt td,.mt th{padding:6px 4px;vertical-align:top}
 </style>
 </head>
 <body>
@@ -1143,7 +1144,7 @@ function nightsCanon(m){return m?Object.keys(m).sort().map(function(k){return k+
 var mealSnapLast='';
 function mealSnap(){try{if(!db||!S.uid||!S.roomsOnce||['admin','hkm','hks','shiftm'].indexOf(myRole())<0)return;
   var t=today(),m=tonightMap(),c=nightsCanon(m);if(c===nightsCanon((S.prep[t]||{}).nights)||c===mealSnapLast)return;mealSnapLast=c;
-  var ref=db.collection('prep').doc(t);ref.set({nightsAt:Date.now()},{merge:true}).then(function(){return ref.update({nights:m});}).catch(function(){mealSnapLast='';});}catch(e){}}
+  db.collection('prep').doc(t).set({nights:m,nightsAt:Date.now()},{mergeFields:['nights','nightsAt']}).catch(function(){mealSnapLast='';});}catch(e){}}
 setInterval(mealSnap,60000);
 // nights we can work out from who is in the hotel now (stays already running, and booked arrivals)
 function nightsGuess(d){var t=today(),o={};Object.keys(S.rooms).forEach(function(no){var r=S.rooms[no];
@@ -1179,10 +1180,10 @@ function vMeals(){
   sum='<div class="card printme"><span class="ttl">الإجمالي من '+fmt(from)+' لحد '+fmt(to)+'</span>'+
     '<div class="row" style="gap:8px;flex-wrap:wrap">'+big2(T.pax,'ليالي الأفراد')+big2(T.rooms,'ليالي الغرف')+big2(T.bf,'فطار')+big2(T.main,'غدا أو عشا (هاف بورد)')+big2(T.fbx,'غدا (فول بورد)')+big2(T.fbx,'عشا (فول بورد)')+'</div>'+
     '<span class="sub">إجمالي الوجبات: '+(T.bf+T.main+2*T.fbx)+' وجبة</span></div>';
-  var plan='<div class="card printme"><span class="ttl">حسب نوع الحجز</span><table style="width:100%;border-collapse:collapse;font-size:14px"><tr style="text-align:right"><th>النوع</th><th>ليالي الغرف</th><th>ليالي الأفراد</th><th>فطار</th><th>غدا / عشا</th></tr>'+
+  var plan='<div class="card printme"><span class="ttl">حسب نوع الحجز</span><table class="mt" style="width:100%;border-collapse:collapse;font-size:14px"><tr style="text-align:right"><th>النوع</th><th>ليالي الغرف</th><th>ليالي الأفراد</th><th>فطار</th><th>غدا / عشا</th></tr>'+
     [['BB','فطار بس'],['HB','هاف بورد'],['FB','فول بورد'],['RO','من غير وجبات']].map(function(p){var b=T.by[p[0]],x=b[1];return '<tr style="border-top:1px solid var(--line,#ddd)"><td><b>'+p[1]+'</b> <span class="sub ltr">'+p[0]+'</span></td><td>'+b[0]+'</td><td>'+x+'</td><td>'+(x*MEALS[p[0]][0])+'</td><td>'+(p[0]==='HB'?x+' (غدا أو عشا)':p[0]==='FB'?x+' غدا + '+x+' عشا':'—')+'</td></tr>';}).join('')+'</table></div>';
   var srcTxt={live:'النهارده',saved:'',guess:'تقديري',future:'متوقع'};
-  var daily='<div class="card printme"><span class="ttl">يوم بيوم</span><table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="text-align:right"><th>الليلة</th><th>غرف</th><th>أفراد</th><th>BB</th><th>HB</th><th>FB</th><th>فطار</th><th>غدا/عشا</th></tr>'+
+  var daily='<div class="card printme"><span class="ttl">يوم بيوم</span><table class="mt" style="width:100%;border-collapse:collapse;font-size:13px"><tr style="text-align:right"><th>الليلة</th><th>غرف</th><th>أفراد</th><th>BB</th><th>HB</th><th>FB</th><th>فطار</th><th>غدا/عشا</th></tr>'+
     rows.map(function(r){return '<tr style="border-top:1px solid var(--line,#ddd)"><td>'+fmt(r.d)+(srcTxt[r.src]?' <span class="chip c-grey" style="font-size:11px">'+srcTxt[r.src]+'</span>':'')+'</td><td>'+r.rooms+'</td><td>'+r.pax+'</td><td>'+r.by.BB[1]+'</td><td>'+r.by.HB[1]+'</td><td>'+r.by.FB[1]+'</td><td>'+r.bf+'</td><td>'+(r.main+2*r.fbx)+'</td></tr>';}).join('')+'</table>'+
     '<span class="sub">BB / HB / FB هنا بعدد الأفراد · الفطار بيتقدّم الصبح بعد الليلة</span></div>';
   return head+sum+plan+daily+
