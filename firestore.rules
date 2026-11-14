@@ -261,6 +261,16 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // رسايل المدير لموظف: المدير بس يبعت · الموظف يشوف رسايله ويعلّم إنه قراها
+    match /msgs/{id} {
+      allow read: if isAdmin() || (isStaff() && resource.data.to == request.auth.uid);
+      allow create: if isAdmin() && byMe()
+        && request.resource.data.read == false
+        && request.resource.data.text is string && request.resource.data.text.size() <= 2000;
+      allow update: if isStaff() && resource.data.to == request.auth.uid && onlyKeys(['read', 'readAt']);
+      allow delete: if isAdmin();
+    }
+
     // سجل أخطاء الأبلكيشن: أي موظف يسجّل خطأ حصل عنده، والمدير بس يشوف ويمسح
     match /errs/{id} {
       allow create: if isStaff() && request.resource.data.uid == request.auth.uid;
