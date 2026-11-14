@@ -689,6 +689,7 @@ function vHome(){
   if(myRole()==='shiftm')tiles+=big('exp','الحسابات والمصاريف','دخّل مصروف · سلفة · مشتريات',ICON.cash,false);
   if(a.indexOf('users')>=0)tiles+=big('errs','أخطاء الأبلكيشن','أي مشكلة حصلت على موبايل أي موظف'+((S.errs||[]).length?' · '+S.errs.length:''),ICON.bell,false);
   if(adjCan())tiles+=big('adj-mgr','الإضافي والجزاءات',myRole()==='admin'?'لكل الموظفين':myRole()==='hkm'?'لفريق التنظيف':'لفريق المطعم والمطبخ',ICON.cash,false);
+  if(a.indexOf('users')>=0||['restm','kit','rec','shiftm'].indexOf(myRole())>=0)tiles+=big('meals','تقرير الوجبات','فطار · هاف بورد · فول بورد · عدد الأفراد والليالي',ICON.food,false);
   if(a.indexOf('users')>=0)tiles+=big('msg-new','رسالة لموظف','بتظهرله في الأبلكيشن لحد ما يقراها',ICON.bell,false);
   if(a.indexOf('users')>=0)tiles+=big('pay-all','ورقة المرتبات','كل الاستاف · المرتب · الحضور · الإضافي · الجزاءات · السلف',ICON.cash,false);
   if(a.indexOf('users')>=0)tiles+=big('att-all','حضور الموظفين','مين موجود · ساعات كل موظف بالشهر',ICON.users,false);
@@ -1131,6 +1132,73 @@ function trGroup(list,keyFn,label){var g={};list.forEach(function(o){var k=keyFn
   return Object.keys(g).sort(function(a,b){return g[b].length-g[a].length;}).map(function(k){var l=g[k],tot=l.reduce(function(s,o){return s+(o.total||0);},0),pax=l.reduce(function(s,o){return s+(o.tour.pax||1);},0);
     return '<div class="card"><div class="row" style="justify-content:space-between"><span class="ttl">'+h(label(k))+'</span><b style="font-size:18px">'+money(tot)+'</b></div><span class="sub">'+l.length+' مشوار · '+pax+' فرد</span>'+
       l.sort(function(a,b){return (a.tour.date+a.tour.time).localeCompare(b.tour.date+b.tour.time);}).map(function(o){return '<div class="row" style="border-top:1px solid var(--line);padding-top:6px"><span class="grow sub" style="color:var(--ink)">'+fmt(o.tour.date)+' '+h(o.tour.time||'')+' · غرفة '+h(o.room)+' · '+(o.tour.pax||1)+' أفراد'+(o.tour.to?' · ← '+h(o.tour.to):'')+'</span><b>'+money(o.total||0)+'</b></div>';}).join('')+'</div>';}).join('');}
+// ----- meals report: breakfast (BB) · half board (HB) · full board (FB) -----
+// A "night" = a room sleeping in the hotel that night. Per person per night: BB one breakfast · HB breakfast + one main meal (lunch or dinner) · FB breakfast + lunch + dinner.
+// Every night is saved in prep/{date}.nights by the managers' phones, so the report stays right after guests leave.
+var MEALS={RO:[0,0],BB:[1,0],HB:[1,1],FB:[1,2]};
+function dAdd(d,n){var p=d.split('-'),x=new Date(+p[0],+p[1]-1,+p[2]);x.setDate(x.getDate()+n);return iso(x);}
+function nightOf(r,p,x){return {p:(PLANS[String(p||'').toUpperCase()]?String(p).toUpperCase():'RO'),x:Math.max(1,+x||1)};}
+function tonightMap(){var t=today(),o={};Object.keys(S.rooms).forEach(function(no){var r=S.rooms[no];if(r.status!=='occ'||(r.in&&r.in>t)||(r.out&&r.out<=t))return;o[no]=nightOf(r,r.plan,r.pax);});return o;}
+function nightsCanon(m){return m?Object.keys(m).sort().map(function(k){return k+':'+m[k].p+':'+m[k].x;}).join(','):'';}
+var mealSnapLast='';
+function mealSnap(){try{if(!db||!S.uid||!S.roomsOnce||['admin','hkm','hks','shiftm'].indexOf(myRole())<0)return;
+  var t=today(),m=tonightMap(),c=nightsCanon(m);if(c===nightsCanon((S.prep[t]||{}).nights)||c===mealSnapLast)return;mealSnapLast=c;
+  var ref=db.collection('prep').doc(t);ref.set({nightsAt:Date.now()},{merge:true}).then(function(){return ref.update({nights:m});}).catch(function(){mealSnapLast='';});}catch(e){}}
+setInterval(mealSnap,60000);
+// nights we can work out from who is in the hotel now (stays already running, and booked arrivals)
+function nightsGuess(d){var t=today(),o={};Object.keys(S.rooms).forEach(function(no){var r=S.rooms[no];
+  if(r.status==='occ'&&r.in&&r.in<=d&&(r.out?r.out>d:d<t))o[no]=nightOf(r,r.plan,r.pax);
+  var a=r.arrival;if(d>=t&&a&&a.in&&a.in<=d&&a.out&&a.out>d&&!o[no])o[no]=nightOf(a,a.plan,a.pax);});return o;}
+function mealsLoad(from,to){
+  var key=from+'|'+to;if(S.mlR&&S.mlR.key===key)return;S.mlR={key:key,loading:true};
+  var days=[];for(var d=from;d<=to&&days.length<93;d=dAdd(d,1))days.push(d);
+  Promise.all(days.map(function(d){return db.collection('prep').doc(d).get().then(function(s){return s.exists?(s.data().nights||null):null;}).catch(function(){return null;});}))
+   .then(function(l){if(!S.mlR||S.mlR.key!==key)return;S.mlR={key:key,days:days,saved:l};render();});
+}
+function mealsCalc(){var R=S.mlR,t=today();if(!R||!R.days)return null;
+  return R.days.map(function(d,i){var src,m;
+    if(d===t){m=tonightMap();src='live';}else if(R.saved[i]){m=R.saved[i];src='saved';}else{m=nightsGuess(d);src=d<t?'guess':'future';}
+    var row={d:d,src:src,rooms:0,pax:0,bf:0,main:0,fbx:0,by:{RO:[0,0],BB:[0,0],HB:[0,0],FB:[0,0]},list:[]};
+    Object.keys(m).sort().forEach(function(no){var n=m[no],p=MEALS[n.p]?n.p:'RO',x=Math.max(1,+n.x||1);
+      row.rooms++;row.pax+=x;row.by[p][0]++;row.by[p][1]+=x;row.bf+=x*MEALS[p][0];
+      if(p==='HB')row.main+=x;if(p==='FB')row.fbx+=x;row.list.push([no,p,x]);});
+    return row;});}
+function vMeals(){
+  var t=today(),from=S.mlFrom||t.slice(0,8)+'01',to=S.mlTo||t;if(to<from)to=from;
+  setTimeout(function(){mealsLoad(from,to);},0);
+  var quick=[['الشهر ده',t.slice(0,8)+'01',t],['الشهر اللي فات',(function(){var d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);var a=iso(d);d.setMonth(d.getMonth()+1);d.setDate(0);return [a,iso(d)];})()],['الأسبوع الجاي',t,dAdd(t,6)]];
+  quick[1]=['الشهر اللي فات',quick[1][1][0],quick[1][1][1]];
+  var head=top('تقرير الوجبات','فطار · هاف بورد · فول بورد','home')+'<div class="stack">'+toastHtml()+
+    '<div class="picks noprint" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+quick.map(function(q){return '<button class="pick" data-a="mlRange" data-f="'+q[1]+'" data-t="'+q[2]+'" aria-pressed="'+(from===q[1]&&to===q[2])+'">'+q[0]+'</button>';}).join('')+'</div>'+
+    '<div class="row noprint" style="gap:8px"><label class="f grow" for="mlfrom">من يوم<input class="inp" id="mlfrom" type="date" value="'+from+'"></label><label class="f grow" for="mlto">لحد يوم<input class="inp" id="mlto" type="date" value="'+to+'"></label></div>';
+  var rows=mealsCalc();if(!rows||S.mlR.loading)return head+'<p class="hint">بيحمّل…</p></div>';
+  var T={rooms:0,pax:0,bf:0,main:0,fbx:0,by:{RO:[0,0],BB:[0,0],HB:[0,0],FB:[0,0]}},est=false;
+  rows.forEach(function(r){T.rooms+=r.rooms;T.pax+=r.pax;T.bf+=r.bf;T.main+=r.main;T.fbx+=r.fbx;['RO','BB','HB','FB'].forEach(function(p){T.by[p][0]+=r.by[p][0];T.by[p][1]+=r.by[p][1];});if(r.src==='guess'||r.src==='future')est=true;});
+  var big2=function(n,l){return '<div style="flex:1;min-width:120px;text-align:center;padding:8px;border-radius:12px;background:var(--bg2,rgba(0,0,0,.04))"><b style="font-size:24px;display:block">'+n+'</b><span class="sub">'+l+'</span></div>';};
+  var sum;
+  sum='<div class="card printme"><span class="ttl">الإجمالي من '+fmt(from)+' لحد '+fmt(to)+'</span>'+
+    '<div class="row" style="gap:8px;flex-wrap:wrap">'+big2(T.pax,'ليالي الأفراد')+big2(T.rooms,'ليالي الغرف')+big2(T.bf,'فطار')+big2(T.main,'غدا أو عشا (هاف بورد)')+big2(T.fbx,'غدا (فول بورد)')+big2(T.fbx,'عشا (فول بورد)')+'</div>'+
+    '<span class="sub">إجمالي الوجبات: '+(T.bf+T.main+2*T.fbx)+' وجبة</span></div>';
+  var plan='<div class="card printme"><span class="ttl">حسب نوع الحجز</span><table style="width:100%;border-collapse:collapse;font-size:14px"><tr style="text-align:right"><th>النوع</th><th>ليالي الغرف</th><th>ليالي الأفراد</th><th>فطار</th><th>غدا / عشا</th></tr>'+
+    [['BB','فطار بس'],['HB','هاف بورد'],['FB','فول بورد'],['RO','من غير وجبات']].map(function(p){var b=T.by[p[0]],x=b[1];return '<tr style="border-top:1px solid var(--line,#ddd)"><td><b>'+p[1]+'</b> <span class="sub ltr">'+p[0]+'</span></td><td>'+b[0]+'</td><td>'+x+'</td><td>'+(x*MEALS[p[0]][0])+'</td><td>'+(p[0]==='HB'?x+' (غدا أو عشا)':p[0]==='FB'?x+' غدا + '+x+' عشا':'—')+'</td></tr>';}).join('')+'</table></div>';
+  var srcTxt={live:'النهارده',saved:'',guess:'تقديري',future:'متوقع'};
+  var daily='<div class="card printme"><span class="ttl">يوم بيوم</span><table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="text-align:right"><th>الليلة</th><th>غرف</th><th>أفراد</th><th>BB</th><th>HB</th><th>FB</th><th>فطار</th><th>غدا/عشا</th></tr>'+
+    rows.map(function(r){return '<tr style="border-top:1px solid var(--line,#ddd)"><td>'+fmt(r.d)+(srcTxt[r.src]?' <span class="chip c-grey" style="font-size:11px">'+srcTxt[r.src]+'</span>':'')+'</td><td>'+r.rooms+'</td><td>'+r.pax+'</td><td>'+r.by.BB[1]+'</td><td>'+r.by.HB[1]+'</td><td>'+r.by.FB[1]+'</td><td>'+r.bf+'</td><td>'+(r.main+2*r.fbx)+'</td></tr>';}).join('')+'</table>'+
+    '<span class="sub">BB / HB / FB هنا بعدد الأفراد · الفطار بيتقدّم الصبح بعد الليلة</span></div>';
+  return head+sum+plan+daily+
+    (est?'<p class="hint">«تقديري» و«متوقع»: محسوبة من النزلا اللي في الفندق والحجوزات الجاية، مش من سجل الليلة نفسها. الأبلكيشن بدأ يسجّل كل ليلة من 14 نوفمبر، فالأيام اللي بعد كده بتبقى مضبوطة.</p>':'')+
+    '<div class="row noprint" style="gap:8px"><button class="btn b-main" data-a="mlXls">⬇️ إكسل</button><button class="btn b-line" data-a="eodPrint">اطبع</button></div></div>';
+}
+function mealsExport(){var rows=mealsCalc();if(!rows)return;var R=S.mlR,from=R.days[0],to=R.days[R.days.length-1];
+  var src={live:'النهارده',saved:'مسجّل',guess:'تقديري',future:'متوقع'};
+  var day=[['الليلة','غرف','أفراد','أفراد BB','أفراد HB','أفراد FB','فطار','غدا أو عشا (HB)','غدا (FB)','عشا (FB)','المصدر']].concat(rows.map(function(r){return [r.d,r.rooms,r.pax,r.by.BB[1],r.by.HB[1],r.by.FB[1],r.bf,r.main,r.fbx,r.fbx,src[r.src]];}));
+  var det=[['الليلة','الغرفة','نوع الحجز','أفراد','فطار','غدا أو عشا (HB)','غدا (FB)','عشا (FB)']];rows.forEach(function(r){r.list.forEach(function(l){det.push([r.d,l[0],l[1],l[2],l[2]*MEALS[l[1]][0],l[1]==='HB'?l[2]:0,l[1]==='FB'?l[2]:0,l[1]==='FB'?l[2]:0]);});});
+  var tp={};rows.forEach(function(r){r.list.forEach(function(l){var k=l[1];tp[k]=tp[k]||[0,0];tp[k][0]++;tp[k][1]+=l[2];});});
+  var pl=[['النوع','ليالي الغرف','ليالي الأفراد','فطار','غدا أو عشا (HB)','غدا (FB)','عشا (FB)']].concat(['BB','HB','FB','RO'].map(function(k){var v=tp[k]||[0,0];return [k,v[0],v[1],v[1]*MEALS[k][0],k==='HB'?v[1]:0,k==='FB'?v[1]:0,k==='FB'?v[1]:0];}));
+  var name='الوجبات-فيلا-خوفو-'+from+'-لحد-'+to;
+  loadXLSX().then(function(X){var wb=X.utils.book_new();
+    X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet(pl),'حسب نوع الحجز');X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet(day),'يوم بيوم');X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet(det),'كل غرفة');
+    wb.Workbook={Views:[{RTL:true}]};X.writeFile(wb,name+'.xlsx');flash('اتنزّل '+name+'.xlsx');}).catch(function(){flash('ما قدرتش أنزّل الملف، اتأكد من النت');});}
 function vTrRep(){
   setTimeout(trLoad,0);var tab=S.trTab||'day',R=S.trR,day=S.trDay||today(),month=S.trMon||today().slice(0,7);
   var tabs='<div class="picks" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+[['day','تقرير يومي'],['car','العربيات'],['drv','السواقين']].map(function(x){return '<button class="pick" data-a="trTab" data-t="'+x[0]+'" aria-pressed="'+(tab===x[0])+'">'+x[1]+'</button>';}).join('')+'</div>';
@@ -2145,8 +2213,8 @@ function vUserForm(){
 }
 
 // ---------- render ----------
-var VIEWS={'msg-new':vMsgNew,'tr-rep':vTrRep,'adj-mgr':vAdjMgr,transfer:vTransfer,pay:vPay,'pay-all':vPayAll,exp:vExp,'exp-new':vExpNew,errs:vErrs,att:vAtt,'att-all':vAttAll,eod:vEod,'rec-inv':vInv,'rec-chats':vRecChats,'rec-chat':vRecChat,tour:vTour,'rec-greq':vRecGreq,qr:vQr,daily:vDaily,home:vHome,rec:vRec,'rec-arr':vRecArr,'rec-in':vRecIn,'rec-form':vRecForm,'rec-occ':vRecOcc,'rec-room':vRecRoom,'rec-move':vRecMove,hk:vHk,'hk-room':vHkRoom,work:vWork,report:vReport,users:vUsers,'user-form':vUserForm,pin:vPin,rest:vRest,'rec-acc':vRecAcc,'hk-tmr':vHkTmr,mnt:vMnt,'rec-aio':vRecAio,'rec-lost':vRecLost,'rec-shift':vRecShift,help:vHelp,'rec-mpick':vRecMPick,'rec-rep':vRecRep,'rec-acc-room':vRecAccRoom,mini:vMini,lnd:vLnd,'lnd-new':vLndNew,'rest-cart':vRestCart,'rest-orders':vRestOrders,kit:vKit};
-var NEED={'tr-rep':'rec',transfer:'rec','pay-all':'users',errs:'users','att-all':'users',eod:'rec','rec-inv':'rec','rec-chats':'rec','rec-chat':'rec',tour:'rec','rec-greq':'rec',qr:'rec','hk-tmr':'hk',mnt:'mnt','rec-aio':'rec','rec-lost':'rec','rec-shift':'rec','rec-mpick':'rec','rec-rep':'rec','rec-acc':'rec','rec-acc-room':'rec',mini:['rec','hk','work'],lnd:['lnd','rec','hk','work'],'lnd-new':['lnd','rec','hk','work'],rest:['rest','rec'],'rest-cart':['rest','rec'],'rest-orders':['rest','rec','kit'],kit:'kit',daily:'hk',rec:'rec','rec-arr':'rec','rec-in':'rec','rec-form':'rec','rec-occ':'rec','rec-room':'rec','rec-move':'rec',hk:'hk','hk-room':'hk',work:'work',users:'users','user-form':'users'};
+var VIEWS={meals:vMeals,'msg-new':vMsgNew,'tr-rep':vTrRep,'adj-mgr':vAdjMgr,transfer:vTransfer,pay:vPay,'pay-all':vPayAll,exp:vExp,'exp-new':vExpNew,errs:vErrs,att:vAtt,'att-all':vAttAll,eod:vEod,'rec-inv':vInv,'rec-chats':vRecChats,'rec-chat':vRecChat,tour:vTour,'rec-greq':vRecGreq,qr:vQr,daily:vDaily,home:vHome,rec:vRec,'rec-arr':vRecArr,'rec-in':vRecIn,'rec-form':vRecForm,'rec-occ':vRecOcc,'rec-room':vRecRoom,'rec-move':vRecMove,hk:vHk,'hk-room':vHkRoom,work:vWork,report:vReport,users:vUsers,'user-form':vUserForm,pin:vPin,rest:vRest,'rec-acc':vRecAcc,'hk-tmr':vHkTmr,mnt:vMnt,'rec-aio':vRecAio,'rec-lost':vRecLost,'rec-shift':vRecShift,help:vHelp,'rec-mpick':vRecMPick,'rec-rep':vRecRep,'rec-acc-room':vRecAccRoom,mini:vMini,lnd:vLnd,'lnd-new':vLndNew,'rest-cart':vRestCart,'rest-orders':vRestOrders,kit:vKit};
+var NEED={meals:['users','rest','rec','kit'],'tr-rep':'rec',transfer:'rec','pay-all':'users',errs:'users','att-all':'users',eod:'rec','rec-inv':'rec','rec-chats':'rec','rec-chat':'rec',tour:'rec','rec-greq':'rec',qr:'rec','hk-tmr':'hk',mnt:'mnt','rec-aio':'rec','rec-lost':'rec','rec-shift':'rec','rec-mpick':'rec','rec-rep':'rec','rec-acc':'rec','rec-acc-room':'rec',mini:['rec','hk','work'],lnd:['lnd','rec','hk','work'],'lnd-new':['lnd','rec','hk','work'],rest:['rest','rec'],'rest-cart':['rest','rec'],'rest-orders':['rest','rec','kit'],kit:'kit',daily:'hk',rec:'rec','rec-arr':'rec','rec-in':'rec','rec-form':'rec','rec-occ':'rec','rec-room':'rec','rec-move':'rec',hk:'hk','hk-room':'hk',work:'work',users:'users','user-form':'users'};
 function current(){
   if(!configured)return vNoConfig;
   if(GQ)return vGuest;
@@ -2160,8 +2228,8 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.14.11';
-var APP_NAME='تحديث أبلكيشن الأندرويد';
+var APP_VER='2026.11.14.12';
+var APP_NAME='تقرير الوجبات';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
 function netShow(){var el=document.getElementById('netBar');if(!el)return;
@@ -2336,6 +2404,8 @@ app.addEventListener('click',function(ev){
   if(a==='trMonPick'){S.trMon=b.dataset.v;render();return;}
   if(a==='trXls'){trExport();return;}
   if(a==='trTab'){S.trTab=b.dataset.t;render();return;}
+  if(a==='mlRange'){S.mlFrom=b.dataset.f;S.mlTo=b.dataset.t;render();return;}
+  if(a==='mlXls'){mealsExport();return;}
   if(a==='trDayPick'){S.trDay=b.dataset.v;render();return;}
   if(a==='dPick'){var de=document.getElementById(b.dataset.f);if(de)de.value=b.dataset.v;var par=b.parentNode;if(par)Array.prototype.forEach.call(par.querySelectorAll('[data-a="dPick"]'),function(x){x.setAttribute('aria-pressed',String(x===b));});if(b.dataset.f==='tdate'&&S.tdraft)S.tdraft.date=b.dataset.v;if(b.dataset.f==='trdate'&&S.trd)S.trd.date=b.dataset.v;return;}
   if(a==='adjT2'){adjKeep();S.adjD.type=b.dataset.t;render();return;}
@@ -2524,6 +2594,8 @@ app.addEventListener('change',function(ev){
   if(ev.target&&ev.target.id==='attm'&&ev.target.value){loadAttAll(ev.target.value);}
   if(ev.target&&ev.target.id==='expm'&&ev.target.value){S.expM=ev.target.value;render();}
   if(ev.target&&ev.target.id==='trday'&&ev.target.value){S.trDay=ev.target.value;render();}
+  if(ev.target&&ev.target.id==='mlfrom'&&ev.target.value){S.mlFrom=ev.target.value;render();}
+  if(ev.target&&ev.target.id==='mlto'&&ev.target.value){S.mlTo=ev.target.value;render();}
   if(ev.target&&ev.target.id==='trmon'&&ev.target.value){S.trMon=ev.target.value;render();}
   if(ev.target&&ev.target.id==='adjm2'&&ev.target.value){S.adjM=ev.target.value;S.adjL=null;render();}
   if(ev.target&&ev.target.id==='paym'&&ev.target.value){S.payM=ev.target.value;S.pay=null;render();}
