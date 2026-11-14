@@ -1192,8 +1192,16 @@ function attCard(){
   if(!S.geo||S.geo.lat==null)return isAdminU()?'<div class="card"><span class="ttl">الحضور والانصراف</span><span class="sub">عشان يشتغل: اقف جوه الفندق ودوس الزرار ده مرة واحدة</span><button class="btn b-main" data-a="geoSet">'+ICON.bed+' حدّد مكان الفندق من هنا</button></div>':'';
   var msg=S.attMsg?'<div class="card" role="status" style="background:'+(S.attMsg.ok?'var(--ok-bg);color:var(--ok);border:2px solid var(--ok)':'var(--warn-bg);color:var(--warn);border:2px solid var(--warn)')+'"><span class="ttl" style="font-size:17px">'+h(S.attMsg.t)+'</span>'+(S.attMsg.s?'<span style="font-size:14px;font-weight:700">'+h(S.attMsg.s)+'</span>':'')+'</div>':'';
   if(S.attNoPerm)return msg+'<div class="card" style="border:2px solid var(--warn)"><span class="ttl">الحضور محتاج إذن الموقع</span><span class="sub">الحضور والانصراف بيتسجلوا لوحدهم لما توصل الفندق وتمشي منه، بس لازم تسمح للأبلكيشن بالموقع (Location)</span><button class="btn b-main" data-a="attNow">اسمح بالموقع</button></div>';
-  var line=o?'في الفندق من '+hm(o.inAt)+' · بقالك '+hrs(S.now-o.inAt):'مش في الفندق دلوقتي';
-  return msg+'<button class="card" style="text-align:start;border:2px solid '+(o?'var(--ok)':'var(--line)')+'" data-a="go" data-v="att"><span class="ttl">'+(o?'✓ ':'')+line+'</span><span class="sub">النهارده: '+hrs(sumMs(l,today()))+' · الشهر ده: '+hrs(sumMs(l,monthStart()))+' · دوس تشوف ساعاتك</span></button>';
+  var sums='النهارده: '+hrs(sumMs(l,today()))+' · الشهر ده: '+hrs(sumMs(l,monthStart()));
+  var ask=S.attAsk&&o?'<div class="card" role="alertdialog" style="border:2px solid var(--warn);background:var(--warn-bg)"><span class="ttl" style="font-size:17px;color:var(--warn)">'+
+      (S.attAsk.auto?'الموبايل شايفك بره الفندق دلوقتي'+(S.attAsk.d?' (على بعد '+S.attAsk.d+' متر)':''):'تسجيل الانصراف')+'</span>'+
+      '<span style="font-size:15px;font-weight:700">'+(S.attAsk.auto?'خلّصت شغلك؟ نسجّل انصرافك دلوقتي؟':'متأكد إنك خلّصت شغلك ونسجّل انصرافك دلوقتي؟')+'</span>'+
+      '<div class="row" style="gap:8px"><button class="btn b-ok" data-a="attOutYes">أيوه، سجّل انصرافي</button><button class="btn b-line" data-a="attOutNo">لأ، أنا لسه في الشغل</button></div></div>':'';
+  if(!o)return msg+'<div class="card" style="border:2px solid var(--accent)"><span class="ttl">'+(S.attWhere==='out'?'إنت مش في الفندق دلوقتي':'أهلاً · سجّل وصولك عشان تبدأ ورديتك')+'</span><span class="sub">'+sums+'</span>'+
+      '<button class="btn b-main" style="min-height:56px;font-size:18px" data-a="attIn"'+(S.attBusy?' disabled':'')+'>'+(S.attBusy?'بنحدد مكانك…':'📍 سجّل وصولي')+'</button>'+
+      '<button class="btn b-line" style="min-height:40px" data-a="go" data-v="att">ساعات شغلي</button></div>';
+  return msg+ask+'<div class="card" style="border:2px solid var(--ok)"><button style="background:none;border:0;padding:0;text-align:start;color:inherit;font:inherit" data-a="go" data-v="att"><span class="ttl">✓ في الفندق من '+hm(o.inAt)+' · بقالك '+hrs(S.now-o.inAt)+'</span><br><span class="sub">'+sums+' · دوس تشوف ساعاتك</span></button>'+
+    (S.attAsk?'':'<button class="btn b-line" style="min-height:44px" data-a="attOutAsk">🚪 تسجيل الانصراف</button>')+'</div>';
 }
 var attLast=0,attTodayUn=null,attTodayD='';
 function listenAttToday(){
@@ -1217,13 +1225,13 @@ function autoAtt(force){
     // Closing the app during work never splits the shift (night shifts across midnight too).
     if(o&&o.lastAt&&now-o.inAt>16*3600000){var ot=o.lastAt;db.collection('att').doc(o.id).set({outAt:ot,st:'closed',auto:true},{merge:true});o.st='closed';o.outAt=ot;o=null;}
     if(inside){
-      if(!o){db.collection('att').add({uid:S.uid,d:today(),inAt:now,lastAt:now,inLat:c.latitude,inLng:c.longitude,inAcc:Math.round(c.accuracy||0),st:'open'}).then(function(){attSay(true,'إنت دلوقتي في الفندق · اتسجّل وصولك الساعة '+hm(now)+' ✓','النهارده لحد دلوقتي: '+hrs(sumMs(S.att||[],today()))+' · الشهر ده: '+hrs(sumMs(S.att||[],monthStart())));}).catch(function(e){if(e&&e.code==='permission-denied')attSay(false,'الحضور محتاج تحديث قواعد Firebase (Rules)');});}
-      else db.collection('att').doc(o.id).set({lastAt:now,lastLat:c.latitude,lastLng:c.longitude,lastAcc:Math.round(c.accuracy||0)},{merge:true}).catch(function(){});
-    }else if(outside&&o){
-      var t=closeAt(o);
-      db.collection('att').doc(o.id).set({outAt:t,outLat:c.latitude,outLng:c.longitude,outAcc:Math.round(c.accuracy||0),st:'closed'},{merge:true}).then(function(){
-        var l=(S.att||[]).map(function(x){return x.id===o.id?Object.assign({},x,{outAt:t}):x;});
-        attSay(true,'إنت مشيت من الفندق · اتسجّل انصرافك الساعة '+hm(t),'اشتغلت النهارده '+hrs(sumMs(l,today()))+' · الشهر ده '+hrs(sumMs(l,monthStart())));}).catch(function(){});
+      S.attWhere='in';
+      // arrival is recorded only when the employee taps "سجّل وصولي"; while he is in, the shift just keeps his last sighting
+      if(o){S.attAsk=null;db.collection('att').doc(o.id).set({lastAt:now,lastLat:c.latitude,lastLng:c.longitude,lastAcc:Math.round(c.accuracy||0)},{merge:true}).catch(function(){});}
+    }else if(outside){
+      S.attWhere='out';
+      // seen outside during a shift: ask him instead of ending the shift on our own
+      if(o&&!S.attAsk&&!(S.attSnooze>now))S.attAsk={auto:true,lat:c.latitude,lng:c.longitude,acc:Math.round(c.accuracy||0),d:Math.round(d)};
     }
     render();
   },function(e){S.attBusy=false;if(e&&e.code===1){S.attNoPerm=true;render();}},{enableHighAccuracy:true,timeout:20000,maximumAge:0});
@@ -2096,8 +2104,8 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.14';
-var APP_NAME='ورديات مفتوحة';
+var APP_VER='2026.11.14.2';
+var APP_NAME='زرار الحضور';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
 function netShow(){var el=document.getElementById('netBar');if(!el)return;
@@ -2151,6 +2159,23 @@ app.addEventListener('click',function(ev){
   var me=meDoc();
   if(a==='go'){var p={};if(no)p.no=no;if(b.dataset.u)p.u=b.dataset.u;if(b.dataset.c)p.confirm=true;if(b.dataset.b)p.back=b.dataset.b;if(b.dataset.v==='hk')p.tab=S.lastTab||'assign';if(b.dataset.v==='daily')S.daily=null;if(b.dataset.v==='rec-rep')S.rrep=null;if(b.dataset.v==='eod')S.eod=null;if(b.dataset.v==='pay')S.pay=null;if(b.dataset.v==='adj-mgr'){S.adjL=null;S.err='';}if(b.dataset.v==='tr-rep')S.trR=null;if(b.dataset.v==='pay-all')S.payAll=S.payAll?{month:S.payAll.month}:null;if(b.dataset.v==='exp'&&b.dataset.tab)p.tab=b.dataset.tab;if(b.dataset.v==='exp-new'){S.expD=null;S.err='';}if(b.dataset.v==='errs')S.errsLoaded=false;if(b.dataset.v==='att-all'&&!b.dataset.u&&S.view!=='att-all')S.attAll=null;if(b.dataset.v==='rec-inv')S.inv=null;if(b.dataset.v==='rec-shift')S.shift=null;go(b.dataset.v,p);return;}
   if(a==='attNow'){S.attNoPerm=false;autoAtt(true);render();return;}
+  if(a==='attIn'){if(attOpen()){render();return;}
+    getPos(function(c){var r=inHotel(c),t=Date.now();
+      if(!r.ok){if(!S.geo||S.geo.lat==null){attSay(false,r.msg,'');return;}S.attWhere='out';var dd=Math.round(geoDist(S.geo.lat,S.geo.lng,c.latitude,c.longitude));
+        attSay(false,'إنت خارج الفندق دلوقتي (على بعد '+dd+' متر)','لازم تكون جوه الفندق عشان تسجّل وصولك · لو إنت جوه فعلاً اطلع مكان مفتوح وجرّب تاني');return;}
+      if(attOpen())return;S.attWhere='in';
+      db.collection('att').add({uid:S.uid,d:today(),inAt:t,lastAt:t,inLat:c.latitude,inLng:c.longitude,inAcc:Math.round(c.accuracy||0),st:'open'})
+        .then(function(){attSay(true,'تم تسجيل وصولك الساعة '+hm(t)+' ✓','يوم موفق · '+'الشهر ده لحد دلوقتي: '+hrs(sumMs(S.att||[],monthStart())));})
+        .catch(function(e){attSay(false,'ما اتسجّلش الوصول',e&&e.code==='permission-denied'?'لازم تحديث قواعد Firebase':'اتأكد من النت وجرّب تاني');});});return;}
+  if(a==='attOutAsk'){S.attAsk={manual:true};render();return;}
+  if(a==='attOutYes'){var oo=attOpen(),AQ=S.attAsk||{};S.attAsk=null;if(!oo){render();return;}var tt=Date.now(),pt={outAt:tt,st:'closed'};
+    if(AQ.lat!=null){pt.outLat=AQ.lat;pt.outLng=AQ.lng;pt.outAcc=AQ.acc;}
+    db.collection('att').doc(oo.id).set(pt,{merge:true}).then(function(){var l=(S.att||[]).map(function(x){return x.id===oo.id?Object.assign({},x,{outAt:tt}):x;});
+      attSay(true,'تم تسجيل انصرافك الساعة '+hm(tt)+' · مع السلامة','اشتغلت النهارده '+hrs(sumMs(l,today()))+' · الشهر ده '+hrs(sumMs(l,monthStart())));}).catch(function(){attSay(false,'ما اتسجّلش الانصراف','اتأكد من النت وجرّب تاني');});render();return;}
+  if(a==='attOutNo'){S.attAsk=null;render();var on=attOpen();if(!on)return;
+    getPos(function(c){var r=inHotel(c),t=Date.now();
+      if(r.ok){S.attWhere='in';db.collection('att').doc(on.id).set({lastAt:t,lastLat:c.latitude,lastLng:c.longitude,lastAcc:Math.round(c.accuracy||0)},{merge:true}).catch(function(){});attSay(true,'تمام · إنت جوه الفندق وورديتك مكمّلة ✓','لما تخلّص شغلك دوس «تسجيل الانصراف»');}
+      else{S.attSnooze=t+30*60000;attSay(false,'الموبايل لسه شايفك بره الفندق · ورديتك مكمّلة','لو خلّصت شغلك دوس «تسجيل الانصراف» · ولو إنت جوه الفندق فعلاً اطلع مكان مفتوح عشان الموقع يظبط');}});return;}
   if(a==='geoSet'){if(!isAdminU())return;getPos(function(c){if((c.accuracy||999)>100){flash('دقة الموقع ضعيفة ('+Math.round(c.accuracy)+' متر) · اطلع في مكان مفتوح جوه الفندق وجرّب تاني');return;}
     db.collection('geo').doc('hotel').set({lat:c.latitude,lng:c.longitude,r:(S.geo&&S.geo.r)||ATT_R,acc:Math.round(c.accuracy||0),at:Date.now(),by:S.uid}).then(function(){flash('مكان الفندق اتحفظ ✓');}).catch(function(e){flash(e&&e.code==='permission-denied'?'لازم تضيف قواعد الحضور في Firebase (Rules) الأول':'ما اتحفظش');});});return;}
   if(a==='geoR'){if(!isAdminU()||!S.geo)return;db.collection('geo').doc('hotel').set({r:+b.dataset.r},{merge:true}).then(function(){flash('المسافة بقت '+b.dataset.r+' متر');});return;}
