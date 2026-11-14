@@ -1,0 +1,30 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'io.github.villakhufu.att'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'io.github.villakhufu.att'
+        minSdk 26
+        targetSdk 34
+        versionCode Integer.parseInt(System.getenv('VK_CODE') ?: '1')
+        versionName System.getenv('VK_NAME') ?: '1.0'
+    }
+    signingConfigs {
+        release {
+            storeFile file(System.getenv('VK_KEYSTORE') ?: 'none.jks')
+            storePassword System.getenv('VK_KEYPASS') ?: ''
+            keyAlias 'vk'
+            keyPassword System.getenv('VK_KEYPASS') ?: ''
+        }
+    }
+    buildTypes {
+        release { minifyEnabled false; signingConfig signingConfigs.release }
+    }
+    lint { checkReleaseBuilds false; abortOnError false }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+
+dependencies {
+    implementation 'com.google.android.gms:play-services-location:21.3.0'
+}

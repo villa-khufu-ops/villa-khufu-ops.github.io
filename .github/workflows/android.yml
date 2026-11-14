@@ -1,0 +1,88 @@
+# Villa Khufu – builds the Android attendance app (android/) and puts it on the website:
+#   https://villa-khufu-ops.github.io/download/vk-attendance.apk
+# The signing key is made on the first build and kept in the Actions cache (the weekly run keeps it alive),
+# so every new version installs over the old one.
+name: Android app
+
+on:
+  push:
+    branches: [main]
+    paths: ['android/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * 1'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Signing key
+        id: key
+        uses: actions/cache@v4
+        with:
+          path: ~/vk-key
+          key: vk-android-signing-key-v1
+
+      - name: Make signing key (first build only)
+        if: steps.key.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/vk-key
+          openssl rand -hex 24 > ~/vk-key/pass
+          keytool -genkeypair -keystore ~/vk-key/vk.jks -alias vk -keyalg RSA -keysize 2048 -validity 20000 \
+            -storepass "$(cat ~/vk-key/pass)" -keypass "$(cat ~/vk-key/pass)" -dname "CN=Villa Khufu, O=Villa Khufu Pyramids Hotel, C=EG"
+
+      - name: Weekly run only keeps the key alive
+        if: github.event_name == 'schedule'
+        run: echo "key kept" && exit 0
+
+      - uses: actions/setup-java@v4
+        if: github.event_name != 'schedule'
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        if: github.event_name != 'schedule'
+        with:
+          gradle-version: '8.7'
+
+      - name: Build
+        if: github.event_name != 'schedule'
+        working-directory: android
+        run: |
+          export VK_KEYSTORE=$HOME/vk-key/vk.jks VK_KEYPASS="$(cat ~/vk-key/pass)"
+          export VK_CODE=$GITHUB_RUN_NUMBER VK_NAME="1.$GITHUB_RUN_NUMBER"
+          set -o pipefail
+          gradle --no-daemon assembleRelease 2>&1 | tee /tmp/build.log
+
+      - name: Put the app on the website
+        if: github.event_name != 'schedule'
+        run: |
+          mkdir -p download
+          cp android/app/build/outputs/apk/release/app-release.apk download/vk-attendance.apk
+          printf '{"version":"1.%s","code":%s,"at":"%s","sha256":"%s"}\n' "$GITHUB_RUN_NUMBER" "$GITHUB_RUN_NUMBER" "$(date -u +%FT%TZ)" "$(sha256sum download/vk-attendance.apk | cut -d' ' -f1)" > download/version.json
+          rm -f download/build-error.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898099+github-actions[bot]@users.noreply.github.com"
+          git add download
+          git commit -m "Android attendance app 1.$GITHUB_RUN_NUMBER"
+          git pull --rebase -q && git push
+
+      - name: Report a failed build
+        if: failure() && github.event_name != 'schedule'
+        run: |
+          mkdir -p download
+          { echo "run $GITHUB_RUN_NUMBER $(date -u +%FT%TZ)"; tail -n 120 /tmp/build.log 2>/dev/null; } > download/build-error.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898099+github-actions[bot]@users.noreply.github.com"
+          git add download && git commit -m "Android build failed (log)" && git pull --rebase -q && git push
