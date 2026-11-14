@@ -110,7 +110,7 @@ public final class Geo {
 
     static void notify(Context c, int id, String title, String body) {
         channel(c);
-        Intent open = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        Intent open = new Intent(c, WebActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         PendingIntent pi = PendingIntent.getActivity(c, id, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification n = new Notification.Builder(c, CHANNEL)
                 .setSmallIcon(android.R.drawable.ic_dialog_map)
@@ -120,6 +120,24 @@ public final class Geo {
                 .setCategory(Notification.CATEGORY_REMINDER)
                 .build();
         try { c.getSystemService(NotificationManager.class).notify(id, n); } catch (SecurityException ignored) { }
+    }
+
+    /** Hotel notifications from the server (orders, maintenance, checkout, messages…). */
+    static void hotelNotify(Context c, String tag, String title, String body) {
+        NotificationChannel ch = new NotificationChannel("hotel", "شغل الفندق", NotificationManager.IMPORTANCE_HIGH);
+        ch.setDescription("طلبات · صيانة · خروج غرف · رسايل");
+        ch.enableVibration(true);
+        ch.setVibrationPattern(new long[]{0, 300, 150, 300, 150, 300});
+        c.getSystemService(NotificationManager.class).createNotificationChannel(ch);
+        Intent open = new Intent(c, WebActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        PendingIntent pi = PendingIntent.getActivity(c, 100, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        Notification n = new Notification.Builder(c, "hotel")
+                .setSmallIcon(android.R.drawable.ic_popup_reminder)
+                .setContentTitle(title).setContentText(body)
+                .setStyle(new Notification.BigTextStyle().bigText(body))
+                .setContentIntent(pi).setAutoCancel(true)
+                .build();
+        try { c.getSystemService(NotificationManager.class).notify(tag, 7, n); } catch (SecurityException ignored) { }
     }
 
     static void arrived(Context c) {

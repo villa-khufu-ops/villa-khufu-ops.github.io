@@ -505,6 +505,7 @@ function loadMsg(){if(firebase.messaging)return Promise.resolve();if(msgP)return
   msgP=new Promise(function(ok,no){var sc=document.createElement('script');sc.src='https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js';sc.onload=ok;sc.onerror=function(){msgP=null;no(new Error('net'));};document.head.appendChild(sc);});return msgP;}
 // phones that turned notifications on: refresh the device token quietly every time the app opens (tokens change)
 function pushRefresh(){
+  if(inApp()){appPushSave(true);return;}
   try{if(!pushReady()||!S.uid||!meDoc()||!('Notification' in window)||Notification.permission!=='granted'||!('serviceWorker' in navigator))return;}catch(e){return;}
   navigator.serviceWorker.register('sw.js').then(function(){return navigator.serviceWorker.ready;}).then(function(reg){return loadMsg().then(function(){return firebase.messaging().getToken({vapidKey:PUSH_VAPID,serviceWorkerRegistration:reg});});})
    .then(function(tok){if(!tok)return;var old=pushState();var role=(meDoc()||{}).role||'';
@@ -512,10 +513,25 @@ function pushRefresh(){
    .catch(function(e){logErr('push: '+((e&&(e.code||e.message))||e));});
 }
 function pushReady(){return !!(PUSH_URL&&PUSH_VAPID);}
+// inside the Android app: notifications come through the app itself (window.VKApp gives the phone's token)
+function inApp(){try{return !!(window.VKApp&&VKApp.pushToken);}catch(e){return false;}}
+var appPushTry=0;
+function appPushSave(quiet){if(!inApp()||!S.uid||!meDoc())return;var tok='';try{tok=VKApp.pushToken();}catch(e){}
+  if(!tok){if(appPushTry++<24)setTimeout(function(){appPushSave(quiet);},5000);else if(!quiet)flash('الإشعارات لسه ما اشتغلتش، اقفل الأبلكيشن وافتحه تاني');return;}
+  var old=pushState();
+  db.collection('push').doc(tok).set({uid:S.uid,role:(meDoc()||{}).role||'',at:Date.now(),ua:('android-app '+navigator.userAgent).slice(0,120)}).then(function(){
+    try{localStorage.setItem('vkPush',tok);}catch(e){}if(old&&old!==tok)db.collection('push').doc(old).delete().catch(function(){});if(!quiet)flash('الإشعارات شغالة على الموبايل ده ✓');
+  }).catch(function(e){logErr('push app: '+((e&&(e.code||e.message))||e));});}
+// Excel/CSV downloads inside the app: hand the file to the phone (saved in Downloads and opened)
+(function(){try{if(!(window.VKApp&&VKApp.saveFile))return;var ck=HTMLAnchorElement.prototype.click;
+  HTMLAnchorElement.prototype.click=function(){var a=this,h=a.href||'';if(!/^(blob|data):/.test(h)||!a.download)return ck.call(a);
+    fetch(h).then(function(r){return r.blob();}).then(function(b){var fr=new FileReader();fr.onload=function(){var d=String(fr.result),i=d.indexOf(',');VKApp.saveFile(a.download,d.slice(i+1),b.type||'application/octet-stream');};fr.readAsDataURL(b);})
+     .catch(function(){flash('الملف ما اتحفظش، جرّب تاني');});};}catch(e){}})();
 function pushEvt(k,id){if(!PUSH_URL||!id)return;try{fetch(PUSH_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:k,id:id})}).catch(function(){});}catch(e){}}
 function pushState(){try{return localStorage.getItem('vkPush')||'';}catch(e){return '';}}
 function pushEnable(){
   if(!pushReady())return;
+  if(inApp()){appPushTry=0;appPushSave(false);return;}
   if(isIOS()&&iosVer()<16.04){flash('الآيفون ده محتاج iOS 16.4 أو أحدث عشان الإشعارات');return;}
   if(isIOS()&&!isStandalone()){flash('على الآيفون: ثبّت الأبلكيشن على الشاشة الرئيسية الأول وافتحه من الأيقونة');render();return;}
   if(!('Notification' in window)||!('serviceWorker' in navigator)||!('PushManager' in window)){flash('الجهاز أو المتصفح ده مش بيدعم الإشعارات');return;}
@@ -532,6 +548,7 @@ function pushEnable(){
 }
 function pushCard(){
   if(!pushReady())return '';
+  if(inApp())return '<div class="card" style="gap:8px"><span class="ttl">الإشعارات</span><span class="sub" style="color:var(--ok);font-weight:700">شغالة على الأبلكيشن ✓</span><button class="btn b-line" data-a="pushOn">لو الإشعارات وقفت دوس هنا</button><button class="btn b-line" data-a="appSetup">إعداد الموقع والإشعارات على الموبايل</button></div>';
   var on=pushState()&&('Notification' in window)&&Notification.permission==='granted';
   if(isIOS()&&(!isStandalone()||iosVer()<16.04))return iosBar();
   return '<div class="card" style="gap:8px"><span class="ttl">الإشعارات حتى لو الأبلكيشن مقفول</span>'+
@@ -2133,8 +2150,8 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.14.5';
-var APP_NAME='أبلكيشن الحضور للأندرويد';
+var APP_VER='2026.11.14.6';
+var APP_NAME='أبلكيشن الأندرويد';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
 function netShow(){var el=document.getElementById('netBar');if(!el)return;
@@ -2365,6 +2382,7 @@ app.addEventListener('click',function(ev){
     S.draft={dest:'room',room:gf.room,bb:room(gf.room).status==='occ'&&!!planOf(gf.room)&&planOf(gf.room)!=='RO',greq:gf.id,place:gf.place||null};go('rest-cart');
     var on=document.getElementById('onote');if(on&&gf.note)on.value=gf.note;return;}
   if(a==='pushOn'){pushEnable();return;}
+  if(a==='appSetup'){try{VKApp.setup();}catch(e){}return;}
   if(a==='apkGot'){try{localStorage.setItem('vkApk','1');}catch(e){}render();return;}
   if(a==='appInstall'){if(deferredInstall){deferredInstall.prompt();deferredInstall.userChoice.then(function(){deferredInstall=null;render();});}return;}
   if(a==='qrPrint'||a==='eodPrint'){try{window.print();}catch(e){}return;}
