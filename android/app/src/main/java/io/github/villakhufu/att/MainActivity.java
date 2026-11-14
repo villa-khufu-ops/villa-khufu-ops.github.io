@@ -40,9 +40,12 @@ public class MainActivity extends Activity {
         });
         String crash = cp.getString("crash", null);
         try { Geo.channel(this); Geo.refresh(this); } catch (Exception e) { cp.edit().putString("crash", String.valueOf(e)).apply(); }
-        if (crash == null && (ready() && battery() || System.currentTimeMillis() - cp.getLong("skipAt", 0) < 24 * 3600_000L)) {
+        long last = cp.getLong("launchAt", 0), nowT = System.currentTimeMillis();
+        cp.edit().putLong("launchAt", nowT).apply();
+        boolean again = nowT - last < 20_000;
+        if (crash == null && !again && (ready() && battery() || System.currentTimeMillis() - cp.getLong("skipAt", 0) < 24 * 3600_000L)) {
             try { Geo.register(this, null); } catch (Exception ignored) { }
-            openApp(); return;
+            autoOpen = true;
         }
         ScrollView sv = new ScrollView(this);
         box = new LinearLayout(this);
@@ -81,26 +84,53 @@ public class MainActivity extends Activity {
         }
         TextView ver = text("نسخة " + versionName(), 12, Color.GRAY, false);
         box.addView(ver, 1);
+        Button br = button("لو الأبلكيشن بيقفل · افتحه في كروم", Color.rgb(70, 90, 140));
+        br.setOnClickListener(v -> openBrowser());
+        box.addView(br);
         test = button("جرّب الإشعار", Color.rgb(110, 110, 110));
         test.setOnClickListener(v -> Geo.notify(this, 3, "📍 تجربة · إشعار الحضور",
                 "كده الإشعارات شغالة · هيجيلك إشعار زي ده أول ما توصل الفندق"));
         box.addView(test);
+        if (autoOpen) { hint.setText("بيفتح أبلكيشن الفندق…"); openApp(); }
     }
+
+    boolean autoOpen;
+    com.google.androidbrowserhelper.trusted.TwaLauncher twa;
+    boolean launched;
 
     void openApp() {
         try {
-            startActivity(new Intent(this, com.google.androidbrowserhelper.trusted.LauncherActivity.class));
+            if (twa == null) twa = new com.google.androidbrowserhelper.trusted.TwaLauncher(this);
+            launched = true;
+            twa.launch(Uri.parse(Geo.APP_URL + "?app=1"));
         } catch (Exception e) {
             Geo.prefs(this).edit().putString("crash", "open: " + e).apply();
-            // fall back to the browser
-            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(Geo.APP_URL + "?app=1")));
+            openBrowser();
         }
-        finish();
+    }
+
+    void openBrowser() {
+        launched = true;
+        try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(Geo.APP_URL + "?app=1"))); } catch (Exception ignored) { }
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        // back from the hotel app: close, so "back" goes home like a normal app
+        if (launched) finish();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (twa != null) try { twa.destroy(); } catch (Exception ignored) { }
     }
 
     String versionName() {
         try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return "?"; }
     }
+
 
     @Override
     protected void onResume() {
