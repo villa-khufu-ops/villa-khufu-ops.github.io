@@ -28,9 +28,22 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
-        Geo.channel(this);
-        Geo.refresh(this);
-        if (ready() && battery() || System.currentTimeMillis() - Geo.prefs(this).getLong("skipAt", 0) < 24 * 3600_000L) { Geo.register(this, null); openApp(); return; }
+        // if the app ever crashes, keep the reason and show it on the next start (so it can be sent to us)
+        final Thread.UncaughtExceptionHandler prev = Thread.getDefaultUncaughtExceptionHandler();
+        final android.content.SharedPreferences cp = Geo.prefs(this);
+        Thread.setDefaultUncaughtExceptionHandler((th, ex) -> {
+            java.io.StringWriter sw = new java.io.StringWriter();
+            ex.printStackTrace(new java.io.PrintWriter(sw));
+            String st = sw.toString();
+            cp.edit().putString("crash", st.length() > 1500 ? st.substring(0, 1500) : st).putLong("skipAt", 0).commit();
+            if (prev != null) prev.uncaughtException(th, ex);
+        });
+        String crash = cp.getString("crash", null);
+        try { Geo.channel(this); Geo.refresh(this); } catch (Exception e) { cp.edit().putString("crash", String.valueOf(e)).apply(); }
+        if (crash == null && (ready() && battery() || System.currentTimeMillis() - cp.getLong("skipAt", 0) < 24 * 3600_000L)) {
+            try { Geo.register(this, null); } catch (Exception ignored) { }
+            openApp(); return;
+        }
         ScrollView sv = new ScrollView(this);
         box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
@@ -58,6 +71,16 @@ public class MainActivity extends Activity {
         open = button("كمّل على الأبلكيشن", Color.rgb(140, 100, 40));
         open.setOnClickListener(v -> { Geo.prefs(this).edit().putLong("skipAt", System.currentTimeMillis()).apply(); openApp(); });
         box.addView(open);
+        if (crash != null) {
+            TextView ct = text("حصلت مشكلة المرة اللي فاتت · صوّر الشاشة دي وابعتها:\n\n" + crash, 12, RED, false);
+            ct.setTextDirection(View.TEXT_DIRECTION_LTR);
+            ct.setPadding(0, dp(12), 0, dp(12));
+            ct.setTextIsSelectable(true);
+            box.addView(ct, 1);
+            cp.edit().remove("crash").apply();
+        }
+        TextView ver = text("نسخة " + versionName(), 12, Color.GRAY, false);
+        box.addView(ver, 1);
         test = button("جرّب الإشعار", Color.rgb(110, 110, 110));
         test.setOnClickListener(v -> Geo.notify(this, 3, "📍 تجربة · إشعار الحضور",
                 "كده الإشعارات شغالة · هيجيلك إشعار زي ده أول ما توصل الفندق"));
@@ -65,8 +88,18 @@ public class MainActivity extends Activity {
     }
 
     void openApp() {
-        startActivity(new Intent(this, com.google.androidbrowserhelper.trusted.LauncherActivity.class));
+        try {
+            startActivity(new Intent(this, com.google.androidbrowserhelper.trusted.LauncherActivity.class));
+        } catch (Exception e) {
+            Geo.prefs(this).edit().putString("crash", "open: " + e).apply();
+            // fall back to the browser
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(Geo.APP_URL + "?app=1")));
+        }
         finish();
+    }
+
+    String versionName() {
+        try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return "?"; }
     }
 
     @Override
