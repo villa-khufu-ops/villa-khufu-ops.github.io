@@ -2102,6 +2102,7 @@ function vPin(){
   (m.role==='admin'?'<div class="card" style="gap:8px;border:2px solid var(--warn)"><span class="ttl">نسيت الرقم السري الحالي؟</span><span class="sub">اكتب رقم سري جديد (6 أرقام أو أكتر)، من غير الرقم القديم (للمدير بس). بعد الحفظ هتخرج من الأجهزة التانية وتدخل بالجديد.</span>'+
    '<label class="f" for="upw">الرقم السري الجديد<input class="inp ltr" id="upw" type="password" inputmode="numeric" autocomplete="new-password"></label>'+
    '<button class="btn b-main" type="button" data-a="setPw" data-u="'+h(S.uid)+'">حفظ الرقم السري الجديد</button></div>':'')+
+  '<div class="card"><span class="ttl">صوت الجرس</span><div class="picks" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+RINGS.map(function(x){return '<button class="pick" data-a="ringPick" data-t="'+x[0]+'" aria-pressed="'+(ringGet()===x[0])+'">'+x[1]+'</button>';}).join('')+'</div><span class="sub">دوس على أي صوت تسمعه · اللي تختاره هو اللي هيرن على الموبايل ده</span></div>'+
   '<div class="card"><span class="ttl">شكل الأبلكيشن</span><div class="picks" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+[['auto','تلقائي'],['light','نهاري'],['dark','ليلي']].map(function(x){return '<button class="pick" data-a="theme" data-t="'+x[0]+'" aria-pressed="'+(themeGet()===x[0])+'">'+x[1]+'</button>';}).join('')+'</div><span class="sub">الليلي أريح للعين في وردية الليل · التلقائي بيمشي مع الموبايل</span></div>'+
   '<p class="hint">اسم المستخدم (@'+h(m.username||'')+') مبيتغيّرش. لو محتاج اسم مستخدم تاني، المدير يعملك حساب جديد.</p>'+
   '<p class="hint" style="text-align:center">نسخة الأبلكيشن '+APP_VER+'</p></div>';
@@ -2155,8 +2156,8 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.14.8';
-var APP_NAME='جرس أهدى';
+var APP_VER='2026.11.14.9';
+var APP_NAME='اختار صوت الجرس';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
 function netShow(){var el=document.getElementById('netBar');if(!el)return;
@@ -2387,6 +2388,7 @@ app.addEventListener('click',function(ev){
     S.draft={dest:'room',room:gf.room,bb:room(gf.room).status==='occ'&&!!planOf(gf.room)&&planOf(gf.room)!=='RO',greq:gf.id,place:gf.place||null};go('rest-cart');
     var on=document.getElementById('onote');if(on&&gf.note)on.value=gf.note;return;}
   if(a==='pushOn'){pushEnable();return;}
+  if(a==='ringPick'){var rv=b.dataset.t;try{localStorage.setItem('vkRing',rv);}catch(e){}try{if(audio){audio.pause();}}catch(e){}audio=null;var na=getAudio();try{na.currentTime=0;var pp=na.play();if(pp&&pp.then)pp.then(function(){audioOk=true;},function(){});}catch(e){}render();return;}
   if(a==='setPw'){if(!isAdminU())return;var tu=b.dataset.u,pw=((document.getElementById('upw')||{}).value||'').trim();
     if(pw.length<6){flash('الرقم السري لازم 6 أرقام أو أكتر');return;}
     b.disabled=true;b.textContent='بيتحفظ…';
@@ -2623,7 +2625,10 @@ app.addEventListener('submit',function(ev){
 
 // ---------- sound ----------
 var audioOk=false,snoozeUntil=0,lastUrg=0;
-function getAudio(){try{if(!audio){audio=new Audio('ring.mp4?v=2');audio.preload='auto';}}catch(e){}return audio;}
+// the bell: each person picks one of three sounds in «حسابي»
+var RINGS=[['1','🔔 جرس الباب'],['2','🪵 دقّة خشب'],['3','🛎️ جرس الاستقبال']];
+function ringGet(){try{var r=localStorage.getItem('vkRing');return /^[123]$/.test(r||'')?r:'1';}catch(e){return '1';}}
+function getAudio(){try{if(!audio){audio=new Audio('ring'+ringGet()+'.mp4');audio.preload='auto';}}catch(e){}return audio;}
 function stopRing(){try{audio&&audio.pause();}catch(e){}}
 function toggleSound(){
   if(S.sound){S.sound=false;try{localStorage.setItem('vkSound','0');}catch(e){}stopRing();render();return;}
