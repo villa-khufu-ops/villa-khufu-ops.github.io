@@ -2099,6 +2099,9 @@ function vPin(){
   '<label class="f" for="np">الرقم السري الجديد (6 أرقام أو أكتر)<input class="inp ltr" id="np" type="password" inputmode="numeric" autocomplete="new-password" required></label>'+
   (S.err?'<p class="err" role="alert">'+h(S.err)+'</p>':'')+
   '<button class="btn b-main" type="submit"'+(S.busy?' disabled':'')+'>حفظ الرقم السري</button></form>'+
+  (m.role==='admin'?'<div class="card" style="gap:8px;border:2px solid var(--warn)"><span class="ttl">نسيت الرقم السري الحالي؟</span><span class="sub">اكتب رقم سري جديد (6 أرقام أو أكتر)، من غير الرقم القديم (للمدير بس). بعد الحفظ هتخرج من الأجهزة التانية وتدخل بالجديد.</span>'+
+   '<label class="f" for="upw">الرقم السري الجديد<input class="inp ltr" id="upw" type="password" inputmode="numeric" autocomplete="new-password"></label>'+
+   '<button class="btn b-main" type="button" data-a="setPw" data-u="'+h(S.uid)+'">حفظ الرقم السري الجديد</button></div>':'')+
   '<div class="card"><span class="ttl">شكل الأبلكيشن</span><div class="picks" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+[['auto','تلقائي'],['light','نهاري'],['dark','ليلي']].map(function(x){return '<button class="pick" data-a="theme" data-t="'+x[0]+'" aria-pressed="'+(themeGet()===x[0])+'">'+x[1]+'</button>';}).join('')+'</div><span class="sub">الليلي أريح للعين في وردية الليل · التلقائي بيمشي مع الموبايل</span></div>'+
   '<p class="hint">اسم المستخدم (@'+h(m.username||'')+') مبيتغيّرش. لو محتاج اسم مستخدم تاني، المدير يعملك حساب جديد.</p>'+
   '<p class="hint" style="text-align:center">نسخة الأبلكيشن '+APP_VER+'</p></div>';
@@ -2130,7 +2133,9 @@ function vUserForm(){
   '<label class="f" for="uph">رقم الواتساب<input class="inp ltr" id="uph" type="tel" inputmode="tel" placeholder="01xxxxxxxxx" value="'+h(s&&s.phone||'')+'"></label>'+
   '<label class="f" for="ur">الوظيفة<select class="inp" id="ur">'+Object.keys(ROLES).map(function(k){return '<option value="'+k+'"'+(s&&s.role===k?' selected':(!s&&k==='hk'?' selected':''))+'>'+ROLES[k].label+'</option>';}).join('')+'</select></label>'+
   '<label class="check" for="ua">الحساب شغال<input type="checkbox" id="ua"'+(!s||s.active!==false?' checked':'')+'></label>'+
-  (s?'<p class="sub" style="margin:0">نسي الرقم السري؟ اقفل الحساب ده واعمله حساب جديد باسم مستخدم تاني.</p>':'')+
+  (s?'<div class="card" style="gap:8px;border:2px solid var(--warn)"><span class="ttl">نسي الرقم السري؟</span><span class="sub">اكتب رقم سري جديد (6 أرقام أو أكتر)، وابعته للموظف بنفسك.</span>'+
+   '<label class="f" for="upw">الرقم السري الجديد<input class="inp ltr" id="upw" type="password" inputmode="numeric" autocomplete="new-password"></label>'+
+   '<button class="btn b-main" type="button" data-a="setPw" data-u="'+h(u)+'">حفظ الرقم السري الجديد</button></div>':'')+
   (S.err?'<p class="err" role="alert">'+h(S.err)+'</p>':'')+'<button class="btn b-main" type="submit"'+(S.busy?' disabled':'')+'>'+(s?'حفظ':'إنشاء الحساب')+'</button></form>';
 }
 
@@ -2150,8 +2155,8 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.14.6';
-var APP_NAME='أبلكيشن الأندرويد';
+var APP_VER='2026.11.14.7';
+var APP_NAME='رقم سري جديد';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
 function netShow(){var el=document.getElementById('netBar');if(!el)return;
@@ -2382,6 +2387,13 @@ app.addEventListener('click',function(ev){
     S.draft={dest:'room',room:gf.room,bb:room(gf.room).status==='occ'&&!!planOf(gf.room)&&planOf(gf.room)!=='RO',greq:gf.id,place:gf.place||null};go('rest-cart');
     var on=document.getElementById('onote');if(on&&gf.note)on.value=gf.note;return;}
   if(a==='pushOn'){pushEnable();return;}
+  if(a==='setPw'){if(!isAdminU())return;var tu=b.dataset.u,pw=((document.getElementById('upw')||{}).value||'').trim();
+    if(pw.length<6){flash('الرقم السري لازم 6 أرقام أو أكتر');return;}
+    b.disabled=true;b.textContent='بيتحفظ…';
+    auth.currentUser.getIdToken().then(function(t){return fetch(PUSH_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:'setpw',t:t,uid:tu,pw:pw})});}).then(function(r){return r.text();})
+     .then(function(x){var el=document.getElementById('upw');if(el)el.value='';b.disabled=false;b.textContent='حفظ الرقم السري الجديد';
+       flash(x==='ok'?'الرقم السري الجديد اتحفظ ✓ · '+wname(tu)+' يدخل بيه من دلوقتي':x==='notadmin'?'المدير بس اللي يقدر يغيّر الرقم السري':'ما اتغيّرش، جرّب تاني ('+x+')');})
+     .catch(function(){b.disabled=false;b.textContent='حفظ الرقم السري الجديد';flash('ما اتغيّرش، اتأكد من النت');});return;}
   if(a==='appSetup'){try{VKApp.setup();}catch(e){}return;}
   if(a==='apkGot'){try{localStorage.setItem('vkApk','1');}catch(e){}render();return;}
   if(a==='appInstall'){if(deferredInstall){deferredInstall.prompt();deferredInstall.userChoice.then(function(){deferredInstall=null;render();});}return;}
