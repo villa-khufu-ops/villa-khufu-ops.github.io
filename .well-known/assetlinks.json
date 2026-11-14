@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "io.github.villakhufu.att",
+    "sha256_cert_fingerprints": ["0E:61:47:45:C5:01:C7:C1:3E:99:72:55:A7:FB:E2:0B:C2:59:EE:86:BC:8E:F3:85:15:70:52:CA:D9:29:6B:10"]
+  }
+}]
