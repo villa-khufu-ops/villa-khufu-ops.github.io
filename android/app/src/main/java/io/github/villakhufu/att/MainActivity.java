@@ -18,7 +18,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-/** One screen: walks the employee through the permissions, then the hotel notices run on their own. */
+/** Opens the hotel app. The first time (or while a permission is missing) it shows the setup steps for the arrival notices. */
 public class MainActivity extends Activity {
     static final int GREEN = Color.rgb(27, 125, 74), RED = Color.rgb(180, 50, 40), INK = Color.rgb(30, 30, 30);
     LinearLayout box;
@@ -29,6 +29,8 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         Geo.channel(this);
+        Geo.refresh(this);
+        if (ready() && battery() || System.currentTimeMillis() - Geo.prefs(this).getLong("skipAt", 0) < 24 * 3600_000L) { Geo.register(this, null); openApp(); return; }
         ScrollView sv = new ScrollView(this);
         box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
@@ -39,7 +41,7 @@ public class MainActivity extends Activity {
         sv.addView(box);
         setContentView(sv);
 
-        TextView t = text("حضور فيلا خوفو", 26, INK, true);
+        TextView t = text("فيلا خوفو · إعداد الحضور", 24, INK, true);
         box.addView(t);
         head = text("", 19, INK, true);
         head.setPadding(0, dp(18), 0, dp(6));
@@ -53,20 +55,24 @@ public class MainActivity extends Activity {
         next = button("", GREEN);
         next.setOnClickListener(v -> nextStep());
         box.addView(next);
-        open = button("افتح أبلكيشن الفندق", Color.rgb(140, 100, 40));
-        open.setOnClickListener(v -> startActivity(new Intent(Intent.ACTION_VIEW,
-                Uri.parse(Geo.prefs(this).getString("url", Geo.APP_URL)))));
+        open = button("كمّل على الأبلكيشن", Color.rgb(140, 100, 40));
+        open.setOnClickListener(v -> { Geo.prefs(this).edit().putLong("skipAt", System.currentTimeMillis()).apply(); openApp(); });
         box.addView(open);
         test = button("جرّب الإشعار", Color.rgb(110, 110, 110));
         test.setOnClickListener(v -> Geo.notify(this, 3, "📍 تجربة · إشعار الحضور",
                 "كده الإشعارات شغالة · هيجيلك إشعار زي ده أول ما توصل الفندق"));
         box.addView(test);
-        Geo.refresh(this);
+    }
+
+    void openApp() {
+        startActivity(new Intent(this, com.google.androidbrowserhelper.trusted.LauncherActivity.class));
+        finish();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        if (box == null) return;
         if (ready()) Geo.register(this, this::show);
         show();
     }
@@ -83,15 +89,15 @@ public class MainActivity extends Activity {
         steps.setText(line(f, "إذن الموقع") + "\n" + line(bg, "الموقع «طول الوقت»") + "\n"
                 + line(n, "الإشعارات") + "\n" + line(bat, "البطارية ما تقفلش الأبلكيشن"));
         if (ready() && bat) {
-            head.setText("✓ كله تمام");
+            head.setText("✓ كله تمام · دوس «كمّل على الأبلكيشن»");
             head.setTextColor(GREEN);
-            hint.setText("سيب الأبلكيشن ده على الموبايل ومتمسحوش. أول ما توصل الفندق هيجيلك إشعار تدوس عليه وتسجّل وصولك، ولما تمشي هيفكّرك تسجّل انصرافك.\n\nالتسجيل نفسه بيبقى من أبلكيشن الفندق بزرار «📍 سجّل وصولي».");
+            hint.setText("أول ما توصل الفندق هيجيلك إشعار حتى لو الموبايل مقفول، تدوس عليه وتسجّل وصولك بزرار «📍 سجّل وصولي». ولما تمشي هيفكّرك تسجّل انصرافك.");
             next.setVisibility(View.GONE);
             test.setVisibility(View.VISIBLE);
             return;
         }
         head.setTextColor(RED);
-        head.setText("فاضل خطوة · دوس الزرار الأخضر");
+        head.setText("عشان يجيلك إشعار أول ما توصل الفندق · دوس الزرار الأخضر");
         next.setVisibility(View.VISIBLE);
         test.setVisibility(n ? View.VISIBLE : View.GONE);
         if (!f) { next.setText("اسمح بالموقع"); hint.setText("اختار «أثناء استخدام التطبيق» أو «السماح»."); }

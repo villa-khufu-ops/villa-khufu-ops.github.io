@@ -1,5 +1,5 @@
-# Villa Khufu – builds the Android attendance app (android/) and puts it on the website:
-#   https://villa-khufu-ops.github.io/download/vk-attendance.apk
+# Villa Khufu – builds the Android app (android/: the hotel app + arrival notices) and puts it on the website:
+#   https://villa-khufu-ops.github.io/download/villa-khufu.apk
 # The signing key is made on the first build and kept in the Actions cache (the weekly run keeps it alive),
 # so every new version installs over the old one.
 name: Android app
@@ -70,13 +70,15 @@ jobs:
         if: github.event_name != 'schedule'
         run: |
           mkdir -p download
-          cp android/app/build/outputs/apk/release/app-release.apk download/vk-attendance.apk
-          printf '{"version":"1.%s","code":%s,"at":"%s","sha256":"%s"}\n' "$GITHUB_RUN_NUMBER" "$GITHUB_RUN_NUMBER" "$(date -u +%FT%TZ)" "$(sha256sum download/vk-attendance.apk | cut -d' ' -f1)" > download/version.json
+          rm -f download/vk-attendance.apk
+          cp android/app/build/outputs/apk/release/app-release.apk download/villa-khufu.apk
+          CERT=$(keytool -list -v -keystore ~/vk-key/vk.jks -storepass "$(cat ~/vk-key/pass)" -alias vk | grep -m1 'SHA256:' | sed 's/.*SHA256: *//')
+          printf '{"version":"1.%s","code":%s,"at":"%s","sha256":"%s","cert":"%s"}\n' "$GITHUB_RUN_NUMBER" "$GITHUB_RUN_NUMBER" "$(date -u +%FT%TZ)" "$(sha256sum download/villa-khufu.apk | cut -d' ' -f1)" "$CERT" > download/version.json
           rm -f download/build-error.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898099+github-actions[bot]@users.noreply.github.com"
-          git add download
-          git commit -m "Android attendance app 1.$GITHUB_RUN_NUMBER"
+          git add -A download
+          git commit -m "Android app 1.$GITHUB_RUN_NUMBER"
           git pull --rebase -q && git push
           # a push made by the workflow doesn't republish the website on its own
           curl -s -X POST -H "Authorization: Bearer ${{ github.token }}" -H "Accept: application/vnd.github+json" \

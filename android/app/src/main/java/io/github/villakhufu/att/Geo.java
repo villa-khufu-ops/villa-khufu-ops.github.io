@@ -110,8 +110,7 @@ public final class Geo {
 
     static void notify(Context c, int id, String title, String body) {
         channel(c);
-        String url = prefs(c).getString("url", APP_URL);
-        Intent open = new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        Intent open = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pi = PendingIntent.getActivity(c, id, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification n = new Notification.Builder(c, CHANNEL)
                 .setSmallIcon(android.R.drawable.ic_dialog_map)

@@ -1205,9 +1205,9 @@ function inHotel(c){var g=S.geo;if(!g||g.lat==null)return {ok:false,msg:'الم�
 function monthStart(){return today().slice(0,8)+'01';}
 function attCard(){return attCard0()+apkCard();}
 // Android: the attendance app that reminds him when he reaches the hotel, even with the phone locked
-function apkCard(){if(!S.uid||!meDoc()||!/Android/i.test(navigator.userAgent))return '';try{if(localStorage.getItem('vkApk'))return '';}catch(e){}
-  return '<div class="card" style="border:2px dashed var(--accent)"><span class="ttl">📲 نزّل أبلكيشن الحضور</span><span class="sub">بيبعتلك إشعار أول ما توصل الفندق عشان تسجّل وصولك، حتى لو الموبايل مقفول</span>'+
-    '<a class="btn b-main" style="text-decoration:none;display:flex;align-items:center;justify-content:center" href="download/vk-attendance.apk" download>نزّل الأبلكيشن</a>'+
+function apkCard(){if(!S.uid||!meDoc()||!/Android/i.test(navigator.userAgent))return '';try{if(/[?&]app=1/.test(location.search))localStorage.setItem('vkApk','1');if(localStorage.getItem('vkApk'))return '';}catch(e){}
+  return '<div class="card" style="border:2px dashed var(--accent)"><span class="ttl">📲 نزّل أبلكيشن فيلا خوفو على الموبايل</span><span class="sub">نفس الأبلكيشن ده، بس بيبعتلك إشعار أول ما توصل الفندق عشان تسجّل وصولك، حتى لو الموبايل مقفول</span>'+
+    '<a class="btn b-main" style="text-decoration:none;display:flex;align-items:center;justify-content:center" href="download/villa-khufu.apk" download>نزّل الأبلكيشن</a>'+
     '<button class="btn b-line" style="min-height:40px" data-a="apkGot">نزّلته خلاص · خبّي الرسالة دي</button></div>';}
 function attCard0(){
   if(!S.uid||!meDoc())return '';

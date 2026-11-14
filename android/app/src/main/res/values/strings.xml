@@ -1,1 +1,4 @@
-<resources><string name="app_name">حضور فيلا خوفو</string></resources>
+<resources>
+    <string name="app_name">فيلا خوفو</string>
+    <string name="asset_statements">[{\"relation\": [\"delegate_permission/common.handle_all_urls\"], \"target\": {\"namespace\": \"web\", \"site\": \"https://villa-khufu-ops.github.io\"}}]</string>
+</resources>
