@@ -825,7 +825,7 @@ function hkAttCard(){
   var L=S.attToday;
   var rows=ws.map(function(u){var l=L.filter(function(x){return x.uid===u;}).sort(function(a,b){return a.inAt-b.inAt;}),o=l.filter(function(x){return !x.outAt;})[0],last=l[l.length-1];
     var st=!l.length?['لسه ماوصلتش','c-warn']:o?['وصلت '+hm(l[0].inAt)+' · في الفندق','c-ok']:['وصلت '+hm(l[0].inAt)+' · مشيت '+hm(last.outAt),'c-grey'];
-    var tot=l.reduce(function(s,x){return s+((x.outAt||S.now)-x.inAt);},0);
+    var tot=l.reduce(function(s,x){return s+shiftMs(x);},0);
     return '<div class="row" style="border-top:1px solid var(--line);padding-top:6px"><span class="grow" style="font-weight:700;font-size:14px">'+h(wname(u))+'</span><span class="chip '+st[1]+'">'+st[0]+'</span>'+(l.length?'<span class="sub" style="white-space:nowrap">'+hrs(tot)+'</span>':'')+'</div>';}).join('');
   var here=ws.filter(function(u){return L.some(function(x){return x.uid===u&&!x.outAt;});}).length;
   return '<div class="card"><span class="ttl">حضور الهاوس كيبنج النهارده · '+here+' من '+ws.length+' في الفندق</span>'+rows+'</div>';
@@ -1170,7 +1170,10 @@ var ATT_R=300;
 function geoDist(a,b,c,d){var R=6371000,t=Math.PI/180,x=(c-a)*t,y=(d-b)*t,q=Math.sin(x/2)*Math.sin(x/2)+Math.cos(a*t)*Math.cos(c*t)*Math.sin(y/2)*Math.sin(y/2);return 2*R*Math.asin(Math.sqrt(q));}
 function hrs(ms){var m=Math.max(0,Math.round(ms/60000));return Math.floor(m/60)+' س '+pad(m%60)+' د';}
 function attOpen(){return (S.att||[]).filter(function(x){return x.st==='open';}).sort(function(a,b){return b.inAt-a.inAt;})[0]||null;}
-function shiftMs(x){return (x.outAt||S.now)-x.inAt;}
+// a shift nobody closed (the phone never came back to see him leave) stops counting 16 hours after arrival, at the last time he was seen
+var ATT_MAX=16*3600000;
+function attStale(x){return !x.outAt&&S.now-x.inAt>ATT_MAX;}
+function shiftMs(x){return x.outAt?x.outAt-x.inAt:attStale(x)?Math.max(0,(x.lastAt||x.inAt)-x.inAt):S.now-x.inAt;}
 function weekStart(){var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+1)%7));return iso(d);} // week starts Saturday
 function sumMs(l,from){return l.filter(function(x){return x.d>=from;}).reduce(function(s,x){return s+shiftMs(x);},0);}
 function getPos(ok){
@@ -1252,6 +1255,9 @@ function loadAttAll(month){
   S.attAll={month:month,loading:true};render();
   var from=month+'-01',d=new Date(+month.slice(0,4),+month.slice(5,7),1),to=iso(d);
   db.collection('att').where('d','>=',from).get().then(function(sn){var l=[];sn.forEach(function(x){var v=Object.assign({id:x.id},x.data());if(v.d<to)l.push(v);});
+    // the manager's view tidies up shifts left open: closed at the last time the employee was seen in the hotel
+    var nowT=Date.now();l.forEach(function(v){if(!v.outAt&&nowT-v.inAt>ATT_MAX){var out=Math.max(v.inAt,v.lastAt||v.inAt);v.outAt=out;v.st='closed';v.auto=true;
+      db.collection('att').doc(v.id).set({st:'closed',outAt:out,auto:true},{merge:true}).catch(function(){});}});
     if(S.attAll&&S.attAll.month===month){S.attAll={month:month,list:l};render();}}).catch(function(e){if(S.attAll&&S.attAll.month===month){S.attAll={month:month,err:e&&e.code==='permission-denied'?'لازم تضيف قواعد الحضور في Firebase (Rules) الأول':'ما قدرتش أحمّل الحضور'};render();}});
 }
 function vAttAll(){
@@ -1265,7 +1271,7 @@ function vAttAll(){
   if(!S.attAll||S.attAll.loading)return head+'<p class="hint">بيحمّل…</p>'+setup+'</div>';
   if(S.attAll.err)return head+'<p class="err">'+h(S.attAll.err)+'</p>'+setup+'</div>';
   var L=S.attAll.list,by={};L.forEach(function(x){(by[x.uid]=by[x.uid]||[]).push(x);});
-  var now=L.filter(function(x){return !x.outAt;});
+  var now=L.filter(function(x){return !x.outAt&&!attStale(x);});
   var ids=Object.keys(by).sort(function(a,b){return sumMs(by[b],'')-sumMs(by[a],'');});
   var open=S.p.u;
   var rows=ids.map(function(u){var l=by[u];return '<div class="card"><button class="row" style="background:none;border:0;padding:0;text-align:start;color:inherit;font:inherit;width:100%" data-a="go" data-v="att-all" data-u="'+h(open===u?'':u)+'"><span class="grow"><span class="ttl">'+h(wname(u))+'</span><br><span class="sub">'+l.length+' وردية'+(l.some(function(x){return !x.outAt;})?' · حاضر دلوقتي':'')+'</span></span><b style="font-size:16px">'+hrs(sumMs(l,''))+'</b></button>'+(open===u?attRows(l,true):'')+'</div>';}).join('');
@@ -2090,8 +2096,8 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.13.2';
-var APP_NAME='دفع جزء من الحساب';
+var APP_VER='2026.11.14';
+var APP_NAME='ورديات مفتوحة';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
 function netShow(){var el=document.getElementById('netBar');if(!el)return;
