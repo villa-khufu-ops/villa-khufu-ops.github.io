@@ -60,12 +60,45 @@ public class WebActivity extends Activity {
                 return true;
             }
         });
-        if (b != null) w.restoreState(b);
-        else w.loadUrl("https://" + HOST + "/?app=1");
+        // always a fresh page on start, so every update reaches the phone right away
+        s.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        w.loadUrl("https://" + HOST + "/?app=1&u=" + System.currentTimeMillis());
+        checkApk();
     }
 
     @Override
-    protected void onSaveInstanceState(Bundle o) { super.onSaveInstanceState(o); w.saveState(o); }
+    protected void onNewIntent(Intent i) {
+        super.onNewIntent(i);
+        setIntent(i);
+    }
+
+    /** New version of the Android app on the website: offer to download it. */
+    void checkApk() {
+        new Thread(() -> {
+            try {
+                java.net.HttpURLConnection h = (java.net.HttpURLConnection) new java.net.URL("https://" + HOST + "/download/version.json?t=" + System.currentTimeMillis()).openConnection();
+                h.setUseCaches(false); h.setConnectTimeout(10000); h.setReadTimeout(10000);
+                StringBuilder sb = new StringBuilder();
+                try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(h.getInputStream(), "UTF-8"))) {
+                    String l; while ((l = br.readLine()) != null) sb.append(l);
+                }
+                org.json.JSONObject j = new org.json.JSONObject(sb.toString());
+                int code = j.getInt("code");
+                String name = j.optString("version", "");
+                long mine = getPackageManager().getPackageInfo(getPackageName(), 0).getLongVersionCode();
+                if (code > mine) runOnUiThread(() -> {
+                    if (isFinishing()) return;
+                    new android.app.AlertDialog.Builder(this)
+                            .setTitle("في نسخة جديدة من الأبلكيشن " + name)
+                            .setMessage("دوس «نزّل» وبعدين افتح الملف ودوس «تحديث».")
+                            .setPositiveButton("نزّل", (d, x) -> {
+                                try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://" + HOST + "/download/villa-khufu.apk?v=" + name))); } catch (Exception ignored) { }
+                            })
+                            .setNegativeButton("بعدين", null).show();
+                });
+            } catch (Exception ignored) { }
+        }).start();
+    }
 
     @Override
     public void onBackPressed() {
