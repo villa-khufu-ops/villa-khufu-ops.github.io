@@ -1222,7 +1222,11 @@ function inHotel(c){var g=S.geo;if(!g||g.lat==null)return {ok:false,msg:'الم�
 function monthStart(){return today().slice(0,8)+'01';}
 function attCard(){return attCard0()+apkCard();}
 // Android: the attendance app that reminds him when he reaches the hotel, even with the phone locked
-function apkCard(){if(!S.uid||!meDoc()||!/Android/i.test(navigator.userAgent))return '';try{if(/[?&]app=1/.test(location.search))localStorage.setItem('vkApk','1');if(localStorage.getItem('vkApk'))return '';}catch(e){}
+// inside an older Android app: tell him a new app version is out
+var apkLatest=null;try{fetch('download/version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json();}).then(function(j){apkLatest=j;render();}).catch(function(){});}catch(e){}
+function apkOld(){try{if(!inApp()||!apkLatest||!VKApp.version)return false;var a=String(VKApp.version()).split('.').map(Number),b=String(apkLatest.version).split('.').map(Number);for(var i=0;i<2;i++){if((b[i]||0)!==(a[i]||0))return (b[i]||0)>(a[i]||0);}return false;}catch(e){return false;}}
+function apkCard(){if(!S.uid||!meDoc()||!/Android/i.test(navigator.userAgent))return '';
+  if(apkOld())return '<div class="card" style="border:2px solid var(--accent)"><span class="ttl">📲 في نسخة جديدة من الأبلكيشن '+h(apkLatest.version)+'</span><span class="sub">دوس «نزّل»، وبعدين افتح الملف ودوس «تحديث»</span><a class="btn b-main" style="text-decoration:none;display:flex;align-items:center;justify-content:center" href="https://raw.githubusercontent.com/villa-khufu-ops/villa-khufu-ops.github.io/main/download/villa-khufu.apk">نزّل</a></div>';try{if(/[?&]app=1/.test(location.search))localStorage.setItem('vkApk','1');if(localStorage.getItem('vkApk'))return '';}catch(e){}
   return '<div class="card" style="border:2px dashed var(--accent)"><span class="ttl">📲 نزّل أبلكيشن فيلا خوفو على الموبايل</span><span class="sub">نفس الأبلكيشن ده، بس بيبعتلك إشعار أول ما توصل الفندق عشان تسجّل وصولك، حتى لو الموبايل مقفول</span>'+
     '<a class="btn b-main" style="text-decoration:none;display:flex;align-items:center;justify-content:center" href="download/villa-khufu.apk" download>نزّل الأبلكيشن</a>'+
     '<button class="btn b-line" style="min-height:40px" data-a="apkGot">نزّلته خلاص · خبّي الرسالة دي</button></div>';}
@@ -2156,8 +2160,8 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.14.10';
-var APP_NAME='التحديث بيشتغل على طول';
+var APP_VER='2026.11.14.11';
+var APP_NAME='تحديث أبلكيشن الأندرويد';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
 function netShow(){var el=document.getElementById('netBar');if(!el)return;
