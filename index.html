@@ -1214,7 +1214,7 @@ function attCard(){
       (S.attAsk.auto?'الموبايل شايفك بره الفندق دلوقتي'+(S.attAsk.d?' (على بعد '+S.attAsk.d+' متر)':''):'تسجيل الانصراف')+'</span>'+
       '<span style="font-size:15px;font-weight:700">'+(S.attAsk.auto?'خلّصت شغلك؟ نسجّل انصرافك دلوقتي؟':'متأكد إنك خلّصت شغلك ونسجّل انصرافك دلوقتي؟')+'</span>'+
       '<div class="row" style="gap:8px"><button class="btn b-ok" data-a="attOutYes">أيوه، سجّل انصرافي</button><button class="btn b-line" data-a="attOutNo">لأ، أنا لسه في الشغل</button></div></div>':'';
-  if(!o)return msg+'<div class="card" style="border:2px solid var(--accent)"><span class="ttl">'+(S.attWhere==='out'?'إنت مش في الفندق دلوقتي':'أهلاً · سجّل وصولك عشان تبدأ ورديتك')+'</span><span class="sub">'+sums+'</span>'+
+  if(!o)return msg+'<div class="card" style="border:2px solid '+(S.attWhere==='in'?'var(--ok);background:var(--ok-bg)':'var(--accent)')+'"><span class="ttl"'+(S.attWhere==='in'?' style="font-size:19px;color:var(--ok)"':'')+'>'+(S.attWhere==='out'?'إنت مش في الفندق دلوقتي':S.attWhere==='in'?'📍 إنت دلوقتي في الفندق · دوس «سجّل وصولي»':'أهلاً · سجّل وصولك عشان تبدأ ورديتك')+'</span><span class="sub">'+sums+'</span>'+
       '<button class="btn b-main" style="min-height:56px;font-size:18px" data-a="attIn"'+(S.attBusy?' disabled':'')+'>'+(S.attBusy?'بنحدد مكانك…':'📍 سجّل وصولي')+'</button>'+
       '<button class="btn b-line" style="min-height:40px" data-a="go" data-v="att">ساعات شغلي</button></div>';
   return msg+ask+'<div class="card" style="border:2px solid var(--ok)"><button style="background:none;border:0;padding:0;text-align:start;color:inherit;font:inherit" data-a="go" data-v="att"><span class="ttl">✓ في الفندق من '+hm(o.inAt)+' · بقالك '+hrs(S.now-o.inAt)+'</span><br><span class="sub">'+sums+' · دوس تشوف ساعاتك</span></button>'+
@@ -1227,6 +1227,11 @@ function listenAttToday(){
   attTodayUn=db.collection('att').where('d','==',attTodayD).onSnapshot(function(sn){var l=[];sn.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.attToday=l;render();},function(){S.attToday=null;});
   unsubs.push(function(){if(attTodayUn){try{attTodayUn();}catch(e){}attTodayUn=null;}});
 }
+// in the hotel without a started shift: a phone notification (once a day) telling him to tap "سجّل وصولي"
+function arriveNote(){var k='vkArrive',t=today();try{if(localStorage.getItem(k)===S.uid+t)return;localStorage.setItem(k,S.uid+t);}catch(e){}
+  try{if(!('Notification' in window)||Notification.permission!=='granted'||!navigator.serviceWorker)return;
+    navigator.serviceWorker.getRegistration().then(function(r){if(r)r.showNotification('📍 إنت دلوقتي في الفندق',{body:'دوس هنا وسجّل وصولك عشان ورديتك تبدأ',icon:'icon-192.png',badge:'icon-192.png',tag:'arrive',requireInteraction:true,vibrate:[300,150,300],data:{url:'./'}});}).catch(function(){});}catch(e){}
+  try{if(typeof ring==='function')ring();}catch(e){}}
 function attSay(ok,t,sub){S.attMsg={ok:ok,t:t,s:sub};render();clearTimeout(S.attMsgT);S.attMsgT=setTimeout(function(){S.attMsg=null;render();},15000);}
 function autoAtt(force){
   if(!db||!S.uid||!meDoc()||!S.geo||S.geo.lat==null||!S.attLoaded)return;
@@ -1245,6 +1250,7 @@ function autoAtt(force){
       S.attWhere='in';
       // arrival is recorded only when the employee taps "سجّل وصولي"; while he is in, the shift just keeps his last sighting
       if(o){S.attAsk=null;db.collection('att').doc(o.id).set({lastAt:now,lastLat:c.latitude,lastLng:c.longitude,lastAcc:Math.round(c.accuracy||0)},{merge:true}).catch(function(){});}
+      else arriveNote();
     }else if(outside){
       S.attWhere='out';
       // seen outside during a shift: ask him instead of ending the shift on our own
@@ -2121,8 +2127,8 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.14.3';
-var APP_NAME='كلام أوضح · رسايل';
+var APP_VER='2026.11.14.4';
+var APP_NAME='تنبيه الوصول';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
 function netShow(){var el=document.getElementById('netBar');if(!el)return;
