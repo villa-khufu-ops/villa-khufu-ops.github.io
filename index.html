@@ -123,7 +123,8 @@ textarea.inp{padding:12px 14px;min-height:84px;resize:none}
 .hero .cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .hero small{display:block;font-size:11px;opacity:.85}
 .hero strong{font-size:15px}
-.logo{width:96px;height:96px;border-radius:50%;object-fit:cover;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.logo{width:96px;height:96px;border-radius:18px;object-fit:cover;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.logo-full{width:200px;height:auto;border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
 .brand{display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:32px;text-align:center}
 .brand h1{font-size:24px;font-weight:800;direction:ltr}
 .brand .py{font-size:11px;font-weight:700;letter-spacing:4px;color:var(--accent);direction:ltr}
@@ -652,11 +653,11 @@ function soundHint(){if(!urgentForMe())return iosBar();if(!S.sound)return iosBar
 function waBtn(label,phone,text){return '<a class="btn b-wa" target="_blank" rel="noopener" href="'+h(waLink(phone,text))+'">'+ICON.wa+' '+h(label)+'</a>';}
 
 function vNoConfig(){
-  return '<div class="brand"><img class="logo" alt="Villa Khufu Pyramids logo" src="icon-192.png"><h1>Villa Khufu</h1><div class="py">PYRAMIDS</div></div>'+
+  return '<div class="brand"><img class="logo-full" alt="Villa Khufu Pyramids" src="logo.jpg" width="200" height="252"></div>'+
   '<div class="card" style="margin-top:20px"><span class="ttl">الصفحة لسه مش متوصلة بقاعدة البيانات</span><span class="sub">حط كود Firebase في ملف config.js وارفع الصفحة تاني.</span></div>';
 }
 function vLogin(){
-  return '<div class="brand"><img class="logo" alt="Villa Khufu Pyramids logo" src="icon-192.png"><h1>Villa Khufu</h1><div class="py">PYRAMIDS</div><h2 style="font-size:18px;margin-top:8px">تسجيل الدخول</h2></div>'+
+  return '<div class="brand"><img class="logo-full" alt="Villa Khufu Pyramids" src="logo.jpg" width="200" height="252"><h2 style="font-size:18px;margin-top:8px">تسجيل الدخول</h2></div>'+
   '<form class="stack" id="loginForm" style="margin-top:20px">'+
   '<label class="f" for="lu">اسم المستخدم<input class="inp ltr" id="lu" autocomplete="username" autocapitalize="off" spellcheck="false"></label>'+
   '<label class="f" for="lp">الرقم السري<input class="inp ltr" id="lp" type="password" inputmode="numeric" autocomplete="current-password"></label>'+
@@ -664,7 +665,7 @@ function vLogin(){
   '<button class="btn b-main" type="submit"'+(S.busy?' disabled':'')+'>'+(S.busy?'بيدخل…':'دخول')+'</button></form>';
 }
 function vSetup(){
-  return '<div class="brand"><img class="logo" alt="Villa Khufu Pyramids logo" src="icon-192.png"><h1>Villa Khufu</h1><div class="py">PYRAMIDS</div><h2 style="font-size:18px;margin-top:8px">أول تشغيل · حساب المدير</h2></div>'+
+  return '<div class="brand"><img class="logo-full" alt="Villa Khufu Pyramids" src="logo.jpg" width="200" height="252"><h2 style="font-size:18px;margin-top:8px">أول تشغيل · حساب المدير</h2></div>'+
   '<form class="stack" id="setupForm" style="margin-top:20px"><p class="sub" style="margin:0">الحساب ده هيبقى المدير، ومنه تعمل حسابات باقي الموظفين. الخطوة دي بتحصل مرة واحدة بس.</p>'+
   '<label class="f" for="sn">اسمك<input class="inp" id="sn" required></label>'+
   '<label class="f" for="su">اسم المستخدم (إنجليزي)<input class="inp ltr" id="su" autocapitalize="off" spellcheck="false" value="admin" required></label>'+
@@ -1650,7 +1651,7 @@ function vInv(){
   var it=S.inv.items,tot=it.reduce(function(s,x){return s+x.amt;},0),paid=it.filter(function(x){return x.paid;}).reduce(function(s,x){return s+x.amt;},0),pp=(S.inv.pays||[]).filter(function(p){return !p.done;}).reduce(function(s,p){return s+(p.amt||0);},0);paid=Math.min(tot,paid+pp);var due=Math.round((tot-paid)*100)/100;
   var td='padding:6px 4px;border-bottom:1px solid #E2D6C4;vertical-align:top;font-size:13px';
   var inv='<div class="card printme" dir="ltr" style="text-align:left;background:#fff;color:#2B2620;gap:10px">'+
-   '<div class="row" style="gap:12px"><img src="apple-touch-icon.png" alt="" width="64" height="64" style="border-radius:50%"><span class="grow"><b style="font-size:22px">Villa Khufu</b><br><span style="font-size:13px">Pyramids · Giza, Egypt</span></span><span style="text-align:right;font-size:13px"><b>Guest statement</b><br>'+fmtEn(today())+'</span></div>'+
+   '<div class="row" style="gap:12px"><img src="apple-touch-icon.png" alt="" width="64" height="64" style="border-radius:12px"><span class="grow"><b style="font-size:22px">Villa Khufu</b><br><span style="font-size:13px">Pyramids · Giza, Egypt</span></span><span style="text-align:right;font-size:13px"><b>Guest statement</b><br>'+fmtEn(today())+'</span></div>'+
    '<div class="row" style="gap:16px;font-size:14px;flex-wrap:wrap"><span><b>Room</b> '+h(no)+'</span>'+(r.in?'<span><b>Check-in</b> '+fmtEn(r.in)+'</span>':'')+(r.out?'<span><b>Check-out</b> '+fmtEn(r.out)+'</span>':'')+(r.pax?'<span><b>Guests</b> '+r.pax+'</span>':'')+'</div>'+
    (it.length?'<table style="width:100%;border-collapse:collapse"><thead><tr><th style="'+td+';text-align:left">Date</th><th style="'+td+';text-align:left">Item</th><th style="'+td+';text-align:right">Amount</th></tr></thead><tbody>'+
     it.map(function(x){return '<tr><td style="'+td+';white-space:nowrap">'+fmtEn(x.d)+'</td><td style="'+td+'"><b>'+x.cat+'</b><br>'+h(x.desc)+(x.paid?' <span style="color:#2E5E33;font-weight:700">· Paid</span>':'')+'</td><td style="'+td+';text-align:right;white-space:nowrap">'+money(x.amt)+'</td></tr>';}).join('')+
@@ -1706,7 +1707,7 @@ function qrSvg(text){
 function vQr(){
   var u=guestUrl();
   return top('QR النزلاء','اطبعه وحطه في الغرف والاستقبال','rec')+'<div class="stack">'+
-   '<div class="card qrcard" style="align-items:center;text-align:center;background:#fff;color:#2B2620"><img src="apple-touch-icon.png" alt="" width="90" height="90" style="border-radius:50%"><b style="font-size:22px">Villa Khufu</b><span style="font-size:15px;font-weight:700">Scan to order food, book tours &amp; chat with us</span><div style="width:260px;max-width:100%">'+qrSvg(u)+'</div><span style="font-size:13px" class="ltr">Restaurant · Tours · Chat with reception</span></div>'+
+   '<div class="card qrcard" style="align-items:center;text-align:center;background:#fff;color:#2B2620"><img src="logo.jpg" alt="Villa Khufu Pyramids" width="120" height="151" style="border-radius:10px"><b style="font-size:22px">Villa Khufu</b><span style="font-size:15px;font-weight:700">Scan to order food, book tours &amp; chat with us</span><div style="width:260px;max-width:100%">'+qrSvg(u)+'</div><span style="font-size:13px" class="ltr">Restaurant · Tours · Chat with reception</span></div>'+
    '<p class="sub noprint" style="margin:0">QR واحد لكل الغرف. النزيل يعمل سكان، يكتب رقم غرفته، ويختار من المطعم أو الرحلات. الطلب بيوصلك هنا في "طلبات النزلاء" وبيرن، ومش بيتحسب على الغرفة غير لما إنت تبعته.</p>'+
    '<p class="sub noprint ltr" style="margin:0;text-align:right;word-break:break-all">'+h(u)+'</p>'+
    '<button class="btn b-main noprint" data-a="qrPrint">اطبع</button></div>';
@@ -1725,9 +1726,9 @@ function gLangBtn(){return '<button class="btn b-line" style="width:auto;min-hei
 var GLINKS=[['Hotel location','📍','https://maps.app.goo.gl/i2A5Fp444nuFYvoBA'],['Call reception','📞','tel:01094128452'],['Best route to the hotel','🧭','https://cdn0030.qrcodechimp.com/qr/PROD/66449d69a40881691f0db062/fm/vk_map-best_route.pdf'],['Tour guide (PDF)','🗺️','https://cdn0030.qrcodechimp.com/qr/PROD/66449d69a40881691f0db062/fm/vk-tour_brochure-a4_.pdf'],['Roof menu (PDF)','🍽️','https://0037.cdnchimp.com/qr/PROD/66449d69a40881691f0db062/fm/villa_khufu-menu-qr_new26.pdf'],['Pool menu (PDF)','🏊','https://0037.cdnchimp.com/qr/PROD/66449d69a40881691f0db062/fm/vk-pool_menu.pdf'],['Instagram','📷','https://www.instagram.com/villakhufupyramids/']];
 function gLinks(){return '<div class="card" style="gap:8px"><span class="ttl">'+tr('Useful links')+'</span><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+GLINKS.map(function(l){return '<a class="btn b-line" style="text-decoration:none;justify-content:flex-start;gap:8px;min-height:52px;font-size:15px" href="'+l[2]+'"'+(/^tel:/.test(l[2])?'':' target="_blank" rel="noopener"')+'><span aria-hidden="true" style="font-size:20px">'+l[1]+'</span>'+tr(l[0])+'</a>';}).join('')+'</div></div>';}
 function vGuest(){
-  var G=S.g,head='<div class="top" style="direction:'+gDir()+'"><img src="apple-touch-icon.png" alt="Villa Khufu" width="76" height="76" style="border-radius:50%;flex:none;width:76px;height:76px"><div class="t" style="text-align:'+(gAr()?'right':'left')+'"><h1>Villa Khufu</h1><p>'+(G.room?''+tr('Room ')+''+h(G.room)+' · <a href="#" data-a="gRoomChange" style="color:inherit">'+tr('change')+'</a>':''+tr('Room service &amp; tours')+'')+'</p></div><span class="grow"></span>'+gLangBtn()+'</div>';
+  var G=S.g,head='<div class="top" style="direction:'+gDir()+'"><img src="apple-touch-icon.png" alt="Villa Khufu" width="76" height="76" style="border-radius:14px;flex:none;width:76px;height:76px"><div class="t" style="text-align:'+(gAr()?'right':'left')+'"><h1>Villa Khufu</h1><p>'+(G.room?''+tr('Room ')+''+h(G.room)+' · <a href="#" data-a="gRoomChange" style="color:inherit">'+tr('change')+'</a>':''+tr('Room service &amp; tours')+'')+'</p></div><span class="grow"></span>'+gLangBtn()+'</div>';
   var wrap=function(x){return '<div style="direction:'+gDir()+';text-align:'+(gAr()?'right':'left')+'">'+head+'<div class="stack">'+x+'</div></div>';};
-  if(!G.room)return wrap('<div class="card" style="gap:12px;align-items:center;text-align:center"><img src="apple-touch-icon.png" alt="" width="160" height="160" style="border-radius:50%"><span class="ttl" style="font-size:18px">'+tr('Welcome! What is your room number?')+'</span>'+
+  if(!G.room)return wrap('<div class="card" style="gap:12px;align-items:center;text-align:center"><img src="logo.jpg" alt="Villa Khufu Pyramids" width="200" height="252" style="border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,.18)"><span class="ttl" style="font-size:18px">'+tr('Welcome! What is your room number?')+'</span>'+
     '<input class="inp ltr" id="groom" inputmode="numeric" maxlength="3" placeholder="'+tr('Enter your room number')+'" style="font-size:20px;text-align:center" aria-label="'+tr('Room number')+'">'+
     (G.err?'<p class="err" role="alert">'+h(G.err)+'</p>':'')+'<button class="btn b-main" data-a="gRoom">'+tr('Continue')+'</button></div>'+gLinks());
   if(G.sent)return wrap('<div class="card" style="align-items:center;text-align:center;gap:10px"><b style="font-size:20px">'+tr('Thank you! ✓')+'</b><span>'+tr('Your request was sent to reception. They will confirm it with you shortly.')+'</span>'+(G.sent==='tour'?'<span class="sub">'+tr('The tour price will be confirmed by reception.')+'</span>':'')+'<button class="btn b-main" data-a="gAgain">'+tr('Back to home')+'</button></div>');
@@ -2235,8 +2236,8 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.15.5';
-var APP_NAME='روابط الفندق في صفحة النزيل';
+var APP_VER='2026.11.15.6';
+var APP_NAME='اللوجو الجديد';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
 function netShow(){var el=document.getElementById('netBar');if(!el)return;
