@@ -1728,7 +1728,7 @@ function vGuest(){
   var G=S.g,head='<div class="top" style="direction:'+gDir()+'"><img src="apple-touch-icon.png" alt="Villa Khufu" width="76" height="76" style="border-radius:50%;flex:none;width:76px;height:76px"><div class="t" style="text-align:'+(gAr()?'right':'left')+'"><h1>Villa Khufu</h1><p>'+(G.room?''+tr('Room ')+''+h(G.room)+' · <a href="#" data-a="gRoomChange" style="color:inherit">'+tr('change')+'</a>':''+tr('Room service &amp; tours')+'')+'</p></div><span class="grow"></span>'+gLangBtn()+'</div>';
   var wrap=function(x){return '<div style="direction:'+gDir()+';text-align:'+(gAr()?'right':'left')+'">'+head+'<div class="stack">'+x+'</div></div>';};
   if(!G.room)return wrap('<div class="card" style="gap:12px;align-items:center;text-align:center"><img src="apple-touch-icon.png" alt="" width="160" height="160" style="border-radius:50%"><span class="ttl" style="font-size:18px">'+tr('Welcome! What is your room number?')+'</span>'+
-    '<input class="inp ltr" id="groom" inputmode="numeric" maxlength="3" placeholder="'+tr('e.g. 110')+'" style="font-size:22px;text-align:center" aria-label="'+tr('Room number')+'">'+
+    '<input class="inp ltr" id="groom" inputmode="numeric" maxlength="3" placeholder="110" style="font-size:22px;text-align:center" aria-label="'+tr('Room number')+'">'+
     (G.err?'<p class="err" role="alert">'+h(G.err)+'</p>':'')+'<button class="btn b-main" data-a="gRoom">'+tr('Continue')+'</button></div>'+gLinks());
   if(G.sent)return wrap('<div class="card" style="align-items:center;text-align:center;gap:10px"><b style="font-size:20px">'+tr('Thank you! ✓')+'</b><span>'+tr('Your request was sent to reception. They will confirm it with you shortly.')+'</span>'+(G.sent==='tour'?'<span class="sub">'+tr('The tour price will be confirmed by reception.')+'</span>':'')+'<button class="btn b-main" data-a="gAgain">'+tr('Back to home')+'</button></div>');
   // after the room number: a home screen with two big icons, each opens its list
@@ -2235,7 +2235,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.15.2';
+var APP_VER='2026.11.15.3';
 var APP_NAME='روابط الفندق في صفحة النزيل';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
