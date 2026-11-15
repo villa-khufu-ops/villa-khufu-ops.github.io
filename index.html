@@ -1651,7 +1651,7 @@ function vInv(){
   var it=S.inv.items,tot=it.reduce(function(s,x){return s+x.amt;},0),paid=it.filter(function(x){return x.paid;}).reduce(function(s,x){return s+x.amt;},0),pp=(S.inv.pays||[]).filter(function(p){return !p.done;}).reduce(function(s,p){return s+(p.amt||0);},0);paid=Math.min(tot,paid+pp);var due=Math.round((tot-paid)*100)/100;
   var td='padding:6px 4px;border-bottom:1px solid #E2D6C4;vertical-align:top;font-size:13px';
   var inv='<div class="card printme" dir="ltr" style="text-align:left;background:#fff;color:#2B2620;gap:10px">'+
-   '<div class="row" style="gap:12px"><img src="apple-touch-icon.png" alt="" width="64" height="64" style="border-radius:12px"><span class="grow"><b style="font-size:22px">Villa Khufu</b><br><span style="font-size:13px">Pyramids · Giza, Egypt</span></span><span style="text-align:right;font-size:13px"><b>Guest statement</b><br>'+fmtEn(today())+'</span></div>'+
+   '<div class="row" style="gap:12px"><img src="icon-192.png" alt="" width="64" height="64" style="border-radius:50%"><span class="grow"><b style="font-size:22px">Villa Khufu</b><br><span style="font-size:13px">Pyramids · Giza, Egypt</span></span><span style="text-align:right;font-size:13px"><b>Guest statement</b><br>'+fmtEn(today())+'</span></div>'+
    '<div class="row" style="gap:16px;font-size:14px;flex-wrap:wrap"><span><b>Room</b> '+h(no)+'</span>'+(r.in?'<span><b>Check-in</b> '+fmtEn(r.in)+'</span>':'')+(r.out?'<span><b>Check-out</b> '+fmtEn(r.out)+'</span>':'')+(r.pax?'<span><b>Guests</b> '+r.pax+'</span>':'')+'</div>'+
    (it.length?'<table style="width:100%;border-collapse:collapse"><thead><tr><th style="'+td+';text-align:left">Date</th><th style="'+td+';text-align:left">Item</th><th style="'+td+';text-align:right">Amount</th></tr></thead><tbody>'+
     it.map(function(x){return '<tr><td style="'+td+';white-space:nowrap">'+fmtEn(x.d)+'</td><td style="'+td+'"><b>'+x.cat+'</b><br>'+h(x.desc)+(x.paid?' <span style="color:#2E5E33;font-weight:700">· Paid</span>':'')+'</td><td style="'+td+';text-align:right;white-space:nowrap">'+money(x.amt)+'</td></tr>';}).join('')+
@@ -1702,7 +1702,7 @@ function guestUrl(){return location.origin+location.pathname+'?guest';}
 var qrLib=null;
 function qrSvg(text){
   if(!window.qrcode){if(!qrLib){qrLib=document.createElement('script');qrLib.src='https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';qrLib.onload=function(){render();};document.head.appendChild(qrLib);}return '<p class="hint">بيحمّل الـ QR…</p>';}
-  try{var q=window.qrcode(0,'H');q.addData(text);q.make();return '<div style="position:relative">'+q.createSvgTag({cellSize:8,margin:2,scalable:true})+'<img src="apple-touch-icon.png" alt="" style="position:absolute;left:50%;top:50%;width:22%;height:22%;transform:translate(-50%,-50%);border-radius:50%;border:4px solid #fff;background:#fff"></div>';}catch(e){return '<p class="err">الـ QR ما اتعملش</p>';}
+  try{var q=window.qrcode(0,'H');q.addData(text);q.make();return '<div style="position:relative">'+q.createSvgTag({cellSize:8,margin:2,scalable:true})+'<img src="icon-192.png" alt="" style="position:absolute;left:50%;top:50%;width:22%;height:22%;transform:translate(-50%,-50%);border-radius:50%;border:4px solid #fff;background:#fff"></div>';}catch(e){return '<p class="err">الـ QR ما اتعملش</p>';}
 }
 function vQr(){
   var u=guestUrl();
@@ -1726,7 +1726,7 @@ function gLangBtn(){return '<button class="btn b-line" style="width:auto;min-hei
 var GLINKS=[['Hotel location','📍','https://maps.app.goo.gl/i2A5Fp444nuFYvoBA'],['Call reception','📞','tel:01094128452'],['Best route to the hotel','🧭','https://cdn0030.qrcodechimp.com/qr/PROD/66449d69a40881691f0db062/fm/vk_map-best_route.pdf'],['Tour guide (PDF)','🗺️','https://cdn0030.qrcodechimp.com/qr/PROD/66449d69a40881691f0db062/fm/vk-tour_brochure-a4_.pdf'],['Roof menu (PDF)','🍽️','https://0037.cdnchimp.com/qr/PROD/66449d69a40881691f0db062/fm/villa_khufu-menu-qr_new26.pdf'],['Pool menu (PDF)','🏊','https://0037.cdnchimp.com/qr/PROD/66449d69a40881691f0db062/fm/vk-pool_menu.pdf'],['Instagram','📷','https://www.instagram.com/villakhufupyramids/']];
 function gLinks(){return '<div class="card" style="gap:8px"><span class="ttl">'+tr('Useful links')+'</span><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+GLINKS.map(function(l){return '<a class="btn b-line" style="text-decoration:none;justify-content:flex-start;gap:8px;min-height:52px;font-size:15px" href="'+l[2]+'"'+(/^tel:/.test(l[2])?'':' target="_blank" rel="noopener"')+'><span aria-hidden="true" style="font-size:20px">'+l[1]+'</span>'+tr(l[0])+'</a>';}).join('')+'</div></div>';}
 function vGuest(){
-  var G=S.g,head='<div class="top" style="direction:'+gDir()+'"><img src="apple-touch-icon.png" alt="Villa Khufu" width="76" height="76" style="border-radius:14px;flex:none;width:76px;height:76px"><div class="t" style="text-align:'+(gAr()?'right':'left')+'"><h1>Villa Khufu</h1><p>'+(G.room?''+tr('Room ')+''+h(G.room)+' · <a href="#" data-a="gRoomChange" style="color:inherit">'+tr('change')+'</a>':''+tr('Room service &amp; tours')+'')+'</p></div><span class="grow"></span>'+gLangBtn()+'</div>';
+  var G=S.g,head='<div class="top" style="direction:'+gDir()+'"><img src="icon-192.png" alt="Villa Khufu" width="76" height="76" style="border-radius:50%;flex:none;width:76px;height:76px"><div class="t" style="text-align:'+(gAr()?'right':'left')+'"><h1>Villa Khufu</h1><p>'+(G.room?''+tr('Room ')+''+h(G.room)+' · <a href="#" data-a="gRoomChange" style="color:inherit">'+tr('change')+'</a>':''+tr('Room service &amp; tours')+'')+'</p></div><span class="grow"></span>'+gLangBtn()+'</div>';
   var wrap=function(x){return '<div style="direction:'+gDir()+';text-align:'+(gAr()?'right':'left')+'">'+head+'<div class="stack">'+x+'</div></div>';};
   if(!G.room)return wrap('<div class="card" style="gap:12px;align-items:center;text-align:center"><img src="logo.jpg" alt="Villa Khufu Pyramids" width="200" height="252" style="border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,.18)"><span class="ttl" style="font-size:18px">'+tr('Welcome! What is your room number?')+'</span>'+
     '<input class="inp ltr" id="groom" inputmode="numeric" maxlength="3" placeholder="'+tr('Enter your room number')+'" style="font-size:20px;text-align:center" aria-label="'+tr('Room number')+'">'+
@@ -2236,8 +2236,8 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.15.6';
-var APP_NAME='اللوجو الجديد';
+var APP_VER='2026.11.15.7';
+var APP_NAME='أيقونة مدوّرة';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
 function netShow(){var el=document.getElementById('netBar');if(!el)return;
