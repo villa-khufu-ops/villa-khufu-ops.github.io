@@ -232,11 +232,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // الإضافي والجزاءات: المدير لكل الناس · مديرة الهاوس كيبنج لفريقها · مدير المطعم للمطعم والمطبخ
+    // الإضافي والجزاءات: المدير لكل الناس · مديرة الهاوس كيبنج لفريقها (والمغسلة) · مدير المطعم للمطعم والمطبخ
     // الموظف يشوف بتاعته بس · المدير اللي سجّل يشوف ويمسح اللي سجّله
     function teamRole(uid) { return get(/databases/$(database)/documents/staff/$(uid)).data.role; }
     function myTeam(uid) {
-      return (hasRole(['hkm']) && teamRole(uid) in ['hk', 'hks'])
+      return (hasRole(['hkm']) && teamRole(uid) in ['hk', 'hks', 'lnd'])
           || (hasRole(['restm']) && teamRole(uid) in ['rest', 'kit']);
     }
     match /adj/{id} {
