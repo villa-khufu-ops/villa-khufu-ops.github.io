@@ -133,19 +133,24 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // طلبات النزلاء من الـ QR: أي حد يبعت طلب لغرفة مشغولة بس، والريسبشن والمدير بس اللي يشوفوها ويردّوا عليها
+    // طلبات النزلاء من الـ QR (أكل · رحلة · تنظيف · شكوى · تقييم): أي حد يبعت لغرفة مشغولة بس، والاستقبال والمدير يشوفوها ويردّوا عليها
     match /greq/{id} {
-      allow create: if request.resource.data.keys().hasOnly(['room', 'type', 'items', 'tour', 'note', 'at', 'st'])
+      allow create: if request.resource.data.keys().hasOnly(['room', 'type', 'items', 'tour', 'note', 'at', 'st', 'place', 'rate'])
         && request.resource.data.room is string && request.resource.data.room.size() == 3
-        && request.resource.data.type in ['food', 'tour']
+        && request.resource.data.type in ['food', 'tour', 'clean', 'complaint', 'survey']
         && request.resource.data.st == 'new'
         && request.resource.data.at is number
         && request.resource.data.items is list && request.resource.data.items.size() <= 40
-        && request.resource.data.note is string && request.resource.data.note.size() <= 200
+        && request.resource.data.note is string && request.resource.data.note.size() <= 1000
+        && (!('rate' in request.resource.data) || (request.resource.data.rate is map && request.resource.data.rate.size() <= 8))
         && exists(/databases/$(database)/documents/rooms/$(request.resource.data.room))
         && get(/databases/$(database)/documents/rooms/$(request.resource.data.room)).data.status == 'occ';
-      allow read: if hasRole(['admin', 'rec', 'shiftm']);
-      allow update: if hasRole(['admin', 'rec', 'shiftm']) && onlyKeys(['st', 'doneAt', 'doneBy']);
+      // طلبات التنظيف من النزيل: مدير ومشرف التنظيف كمان يشوفوها ويحوّلوها لطلب نظافة على الغرفة
+      allow read: if hasRole(['admin', 'rec', 'shiftm'])
+        || (hasRole(['hkm', 'hks']) && resource.data.type == 'clean');
+      allow update: if (hasRole(['admin', 'rec', 'shiftm'])
+          || (hasRole(['hkm', 'hks']) && resource.data.type == 'clean'))
+        && onlyKeys(['st', 'doneAt', 'doneBy']);
       allow delete: if isAdmin();
     }
 
