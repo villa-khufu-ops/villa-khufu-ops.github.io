@@ -340,6 +340,8 @@ var TOUR_RULES={5:{hourly:1,hours:1},6:{hourly:1,hours:2},8:{min:2},15:{hourly:1
 var MASSAGE=15;
 function tourRule(id){return TOUR_RULES[id]||{};}
 function tourMult(id,pax,hours){var r=tourRule(id);return pax*(r.hourly?(hours||r.hours||1):1);}
+// each tour's packages: cheapest first
+Object.keys(TOUR_PRICES).forEach(function(k){TOUR_PRICES[k].sort(function(a,b){return a[1]-b[1];});});
 function tourPkg(id,k){var L=TOUR_PRICES[id]||[];return L.filter(function(x){return x[0]===k;})[0]||L[0]||null;}
 function tourFrom(id){var L=TOUR_PRICES[id];return L?Math.min.apply(null,L.map(function(x){return x[1];})):0;}
 function tourDetails(id){var I=TOUR_INFO[id];if(!I)return '';var li=function(a){return '<ul style="margin:4px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:3px">'+a.map(function(x){return '<li>'+h(x)+'</li>';}).join('')+'</ul>';},sec=function(t,a){return a&&a.length?'<div><span class="ttl" style="font-size:14px">'+t+'</span>'+li(a)+'</div>':'';};
@@ -1756,7 +1758,7 @@ function gLangBtn(){return '<button class="btn b-line" style="width:auto;min-hei
 var GLINKS=[['Hotel location','📍','https://maps.app.goo.gl/i2A5Fp444nuFYvoBA'],['Call reception','📞','tel:01094128452'],['Best route to the hotel','🧭','https://cdn0030.qrcodechimp.com/qr/PROD/66449d69a40881691f0db062/fm/vk_map-best_route.pdf'],['Instagram','📷','https://www.instagram.com/villakhufupyramids/']];
 function gLinks(){return '<div class="card" style="gap:8px"><span class="ttl">'+tr('Useful links')+'</span><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+GLINKS.map(function(l){return '<a class="btn b-line" style="text-decoration:none;justify-content:flex-start;gap:8px;min-height:52px;font-size:15px" href="'+l[2]+'"'+(/^tel:/.test(l[2])?'':' target="_blank" rel="noopener"')+'><span aria-hidden="true" style="font-size:20px">'+l[1]+'</span>'+tr(l[0])+'</a>';}).join('')+'</div></div>';}
 // cheapest price per person of a tour (tours with no price yet go last)
-function tourFrom(id){var l=(TOUR_PRICES[id]||[]).map(function(x){return +x[1];}).filter(function(n){return n>0;});return l.length?Math.min.apply(null,l):1e9;}
+function tourMin(id){return tourFrom(id)||1e9;}
 function vGuest(){
   var G=S.g,head='<div class="top" style="direction:'+gDir()+'"><img src="icon-192.png" alt="Villa Khufu" width="76" height="76" style="border-radius:50%;flex:none;width:76px;height:76px"><div class="t" style="text-align:'+(gAr()?'right':'left')+'"><h1>Villa Khufu</h1><p>'+(G.room?''+tr('Room ')+''+h(G.room)+' · <a href="#" data-a="gRoomChange" style="color:inherit">'+tr('change')+'</a>':''+tr('Room service &amp; tours')+'')+'</p></div><span class="grow"></span>'+gLangBtn()+'</div>';
   var wrap=function(x){return '<div style="direction:'+gDir()+';text-align:'+(gAr()?'right':'left')+'">'+head+'<div class="stack">'+x+'</div></div>';};
@@ -1807,7 +1809,7 @@ function vGuest(){
        '<label class="f" for="gnoteT">'+tr('Notes (optional)')+'<input class="inp" id="gnoteT" maxlength="200" placeholder="'+tr('e.g. language, special requests')+'" value="'+h(G.tnote||'')+'"></label>'+
        (function(){var pk=tourPkg(t[0],G.pkg);return pk?'<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding-top:8px"><span class="ttl">Total for '+G.pax+(G.pax>1?' people':' person')+(tourRule(t[0]).hourly?' · '+(G.hrs||tourRule(t[0]).hours)+' h':'')+'</span><b class="money" style="font-size:20px">'+money(pk[1]*tourMult(t[0],G.pax,G.hrs))+'</b></div>'+(tourRule(t[0]).min?'<span class="sub">Minimum '+tourRule(t[0]).min+' people.</span>':'')+'<span class="sub">'+tr(G.tour===MASSAGE?'Reception will contact you to confirm the time of your massage.':'Reception will contact you to confirm the booking and the pick-up time.')+'</span>':'<span class="sub">'+tr('Price on request. Reception will contact you with the price and the pick-up time.')+'</span>';})()+'</div>'+err+
        '<button class="btn b-main" style="min-height:56px" data-a="gSendTour"'+(G.busy?' disabled':'')+'>'+tr('Send request to reception')+'</button><button class="btn b-line" data-a="gTourBack">'+tr(G.tour===MASSAGE?'← Back':'← All tours')+'</button>');}
-    return wrap(tabs+TOURS.filter(function(x){return x[0]!==MASSAGE;}).slice().sort(function(a,b){return tourFrom(a[0])-tourFrom(b[0]);}).map(function(x){return '<button class="card" style="text-align:left;gap:6px" data-a="gTour" data-i="'+x[0]+'"><span class="ttl">'+x[0]+'. '+h(x[1])+'</span><span class="sub">'+h(x[3])+'</span>'+(tourFrom(x[0])?'<span class="ttl" style="font-size:15px;color:var(--accent)">'+(TOUR_PRICES[x[0]].length>1?''+tr('From ')+'':'')+money(tourFrom(x[0]))+' per person'+(tourRule(x[0]).hourly?' per hour':'')+'</span>':'')+'<span class="chip c-soft" style="align-self:flex-start">'+tr('Details &amp; booking →')+'</span></button>';}).join(''));
+    return wrap(tabs+TOURS.filter(function(x){return x[0]!==MASSAGE;}).slice().sort(function(a,b){return tourMin(a[0])-tourMin(b[0]);}).map(function(x){return '<button class="card" style="text-align:left;gap:6px" data-a="gTour" data-i="'+x[0]+'"><span class="ttl">'+x[0]+'. '+h(x[1])+'</span><span class="sub">'+h(x[3])+'</span>'+(tourFrom(x[0])?'<span class="ttl" style="font-size:15px;color:var(--accent)">'+(TOUR_PRICES[x[0]].length>1?''+tr('From ')+'':'')+money(tourFrom(x[0]))+' per person'+(tourRule(x[0]).hourly?' per hour':'')+'</span>':'')+'<span class="chip c-soft" style="align-self:flex-start">'+tr('Details &amp; booking →')+'</span></button>';}).join(''));
   }
   var ci=Math.min(G.cat||0,MENU.length-1),c=MENU[ci];
   var chips='<div class="chips" role="tablist" aria-label="Menu">'+MENU.map(function(m,i){var n=m[2].reduce(function(s,it,ii){return s+(G.cart[i+'-'+ii]||0);},0);return '<button role="tab" aria-selected="'+(i===ci)+'" data-a="gCat" data-i="'+i+'">'+h(gAr()?m[0]:(MENU_EN[i]||m[0]))+(n?' · '+n:'')+'</button>';}).join('')+'</div>';
@@ -2298,7 +2300,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.16.3';
+var APP_VER='2026.11.16.4';
 var APP_NAME='روابط أقل في صفحة النزيل';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
