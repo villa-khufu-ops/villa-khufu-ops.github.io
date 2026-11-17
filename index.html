@@ -1933,7 +1933,7 @@ function invCanvas(D,img){var W=576,c=document.createElement('canvas'),x=c.getCo
   function wrap(t,font,max){x.font=font;var out=[],cur='';String(t).split(' ').forEach(function(w){var n=cur?cur+' '+w:w;if(x.measureText(n).width>max&&cur){out.push(cur);cur=w;}else cur=n;});if(cur)out.push(cur);return out;}
   function line(t,sz,b,al,right){var f=(b?'bold ':'')+sz+'px sans-serif';var rw=0;if(right){x.font=f;rw=x.measureText(right).width+16;}wrap(t,f,W-2*pad-rw).forEach(function(tt,i){ops.push(['t',tt,y+sz,f,al||'left',i===0?right:null]);y+=sz+8;});}
   function rule(th){ops.push(['r',y+4,th||2]);y+=14;}
-  if(img){var iw=330,ih=Math.round(img.height*iw/img.width);ops.push(['i',img,(W-iw)/2,y,iw,ih]);y+=ih+6;}
+  if(img){var iw=img.width,ih=img.height;ops.push(['i',img,(W-iw)/2,y,iw,ih]);y+=ih+6;}
   line('Giza, Egypt',22,0,'center');rule(3);line('GUEST STATEMENT',32,1,'center');line(fmtEn(today()),22,0,'center');rule(3);
   line('Room '+D.no+(D.r.pax?'  ·  Guests '+D.r.pax:''),28,1);if(D.r.in)line('Check-in: '+fmtEn(D.r.in),24);if(D.r.out)line('Check-out: '+fmtEn(D.r.out),24);rule(1);
   if(!D.it.length)line('No extra charges during this stay.',24);
@@ -1941,10 +1941,15 @@ function invCanvas(D,img){var W=576,c=document.createElement('canvas'),x=c.getCo
   rule(2);line('Total extras',26,0,'left',money(D.tot));line('Paid',26,0,'left',money(D.paid));line('BALANCE DUE',32,1,'left',money(D.due));rule(1);
   line('Room charges are billed separately.',20,0,'center');line('Thank you for staying with us!',22,1,'center');
   c.width=W;c.height=y+16;x.fillStyle='#fff';x.fillRect(0,0,W,c.height);x.fillStyle='#000';
-  ops.forEach(function(o){if(o[0]==='r'){x.fillRect(pad,o[1],W-2*pad,o[2]);return;}if(o[0]==='i'){x.drawImage(o[1],o[2],o[3],o[4],o[5]);return;}
+  ops.forEach(function(o){if(o[0]==='r'){x.fillRect(pad,o[1],W-2*pad,o[2]);return;}if(o[0]==='i'){x.imageSmoothingEnabled=false;x.drawImage(o[1],o[2],o[3],o[4],o[5]);return;}
     x.font=o[3];x.direction='ltr';x.textAlign=o[4];x.fillText(o[1],o[4]==='center'?W/2:pad,o[2]);if(o[5]){x.textAlign='right';x.fillText(o[5],W-pad,o[2]);}});return c;}
 function invPrint(){var D=S.invData;if(!D)return;
-  if(!(window.VKApp&&VKApp.printRaw&&S.printer&&S.printer.rec)){try{window.print();}catch(e){}return;}
+  if(!(window.VKApp&&VKApp.printRaw&&S.printer&&S.printer.rec)){
+    // computer + USB receipt printer: print the same receipt picture (exactly 72 mm wide) from a clean page, so the printer driver doesn't shrink or cut it
+    logoImg(function(img){var c=invCanvas(D,img),u=c.toDataURL('image/png'),f=document.getElementById('rcptFrame');if(f)f.remove();f=document.createElement('iframe');f.id='rcptFrame';f.style.cssText='position:fixed;width:1px;height:1px;left:-10px;top:-10px;border:0';
+      f.srcdoc='<!doctype html><html><head><meta charset="utf-8"><style>@page{size:80mm '+Math.ceil(c.height/8+6)+'mm;margin:0}html,body{margin:0;padding:0;background:#fff}img{display:block;width:72mm;height:auto;margin:2mm auto 0;image-rendering:pixelated}</style></head><body><img src="'+u+'"></body></html>';
+      f.onload=function(){setTimeout(function(){try{f.contentWindow.focus();f.contentWindow.print();}catch(e){window.print();}},150);};document.body.appendChild(f);});
+    return;}
   S.prMsg={t:'⏳ بيطبع على طابعة الاستقبال…'};render();
   logoImg(function(img){try{var id='i'+Date.now();printCb[id]=function(r){S.prMsg=r==='ok'?{ok:1,t:'✓ الفاتورة اتطبعت'}:{t:'✗ ما طبعتش · الموبايل مش شايف طابعة الاستقبال ('+r+')'};render();};
     VKApp.printRaw(S.printer.rec,9100,escpos(invCanvas(D,img)),id);}catch(e){S.prMsg={t:'✗ '+e};render();}});}
@@ -2380,7 +2385,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.17.4';
+var APP_VER='2026.11.17.5';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
