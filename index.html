@@ -156,6 +156,8 @@ textarea.inp{padding:12px 14px;min-height:84px;resize:none}
 #netBar{position:fixed;left:0;right:0;bottom:0;z-index:55;display:none;background:#b3261e;color:#fff;font:800 15px/1.4 system-ui,sans-serif;padding:12px 16px;text-align:center;direction:rtl}
 #verNew{position:fixed;top:0;left:0;right:0;z-index:60;display:none;background:#1d7a3a;color:#fff;border:0;font:800 16px/1.4 system-ui,sans-serif;padding:14px 16px;text-align:center;cursor:pointer;direction:rtl}
 @media print{#verTag,#verNew{display:none!important}}
+@page receipt{size:80mm auto;margin:2mm}
+@media print{.rcpt{page:receipt;width:72mm!important;max-width:72mm!important;padding:0!important;font-size:12px}}
 .mt td,.mt th{padding:6px 4px;vertical-align:top}
 </style>
 </head>
@@ -1662,16 +1664,18 @@ function vInv(){
   if(!S.inv||S.inv.loading)return head+'<p class="hint">بيحمّل الفاتورة…</p></div>';
   if(S.inv.err)return head+'<p class="err">'+h(S.inv.err)+'</p></div>';
   var it=S.inv.items,tot=it.reduce(function(s,x){return s+x.amt;},0),paid=it.filter(function(x){return x.paid;}).reduce(function(s,x){return s+x.amt;},0),pp=(S.inv.pays||[]).filter(function(p){return !p.done;}).reduce(function(s,p){return s+(p.amt||0);},0);paid=Math.min(tot,paid+pp);var due=Math.round((tot-paid)*100)/100;
-  var td='padding:6px 4px;border-bottom:1px solid #E2D6C4;vertical-align:top;font-size:13px';
-  var inv='<div class="card printme" dir="ltr" style="text-align:left;background:#fff;color:#2B2620;gap:10px">'+
-   '<div class="row" style="gap:12px"><img src="icon-192.png" alt="" width="64" height="64" style="border-radius:50%"><span class="grow"><b style="font-size:22px">Villa Khufu</b><br><span style="font-size:13px">Pyramids · Giza, Egypt</span></span><span style="text-align:right;font-size:13px"><b>Guest statement</b><br>'+fmtEn(today())+'</span></div>'+
-   '<div class="row" style="gap:16px;font-size:14px;flex-wrap:wrap"><span><b>Room</b> '+h(no)+'</span>'+(r.in?'<span><b>Check-in</b> '+fmtEn(r.in)+'</span>':'')+(r.out?'<span><b>Check-out</b> '+fmtEn(r.out)+'</span>':'')+(r.pax?'<span><b>Guests</b> '+r.pax+'</span>':'')+'</div>'+
-   (it.length?'<table style="width:100%;border-collapse:collapse"><thead><tr><th style="'+td+';text-align:left">Date</th><th style="'+td+';text-align:left">Item</th><th style="'+td+';text-align:right">Amount</th></tr></thead><tbody>'+
-    it.map(function(x){return '<tr><td style="'+td+';white-space:nowrap">'+fmtEn(x.d)+'</td><td style="'+td+'"><b>'+x.cat+'</b><br>'+h(x.desc)+(x.paid?' <span style="color:#2E5E33;font-weight:700">· Paid</span>':'')+'</td><td style="'+td+';text-align:right;white-space:nowrap">'+money(x.amt)+'</td></tr>';}).join('')+
+  S.invData={no:no,r:{in:r.in,out:r.out,pax:r.pax},it:it,tot:tot,paid:paid,due:due};
+  var td='padding:6px 2px;border-bottom:1px solid #ccc;vertical-align:top;font-size:13px';
+  var inv='<div class="card printme rcpt" dir="ltr" style="text-align:left;background:#fff;color:#000;gap:8px;max-width:420px;margin:0 auto">'+
+   '<div style="text-align:center"><img src="logo-bw.png" alt="Villa Khufu Pyramids" style="width:150px;height:auto"><div style="font-size:12px">Giza, Egypt</div></div>'+
+   '<div style="text-align:center;border-top:2px solid #000;border-bottom:2px solid #000;padding:4px 0"><b style="font-size:16px">GUEST STATEMENT</b><br><span style="font-size:12px">'+fmtEn(today())+'</span></div>'+
+   '<div style="font-size:13px;line-height:1.6"><b>Room '+h(no)+'</b>'+(r.pax?' · Guests '+r.pax:'')+(r.in?'<br>Check-in: '+fmtEn(r.in):'')+(r.out?'<br>Check-out: '+fmtEn(r.out):'')+'</div>'+
+   (it.length?'<table style="width:100%;border-collapse:collapse"><thead><tr><th style="'+td+';text-align:left">Item</th><th style="'+td+';text-align:right">Amount</th></tr></thead><tbody>'+
+    it.map(function(x){return '<tr><td style="'+td+'"><b>'+x.cat+'</b> <span style="font-size:11px">'+fmtEn(x.d)+'</span><br>'+h(x.desc)+(x.paid?' <b>· Paid</b>':'')+'</td><td style="'+td+';text-align:right;white-space:nowrap">'+money(x.amt)+'</td></tr>';}).join('')+
     '</tbody></table>':'<p style="margin:0">No extra charges during this stay.</p>')+
-   '<div style="font-size:15px;text-align:right;line-height:1.8">Total extras: <b>'+money(tot)+'</b><br>Paid: '+money(paid)+'<br><b style="font-size:18px">Balance due: '+money(due)+'</b></div>'+
-   '<span style="font-size:12px;color:#6B5F52">Room charges are billed separately. Thank you for staying with us!</span></div>';
-  return head+inv+'<button class="btn b-main noprint" data-a="eodPrint">اطبع الفاتورة</button></div>';
+   '<div style="font-size:14px;text-align:right;line-height:1.7">Total extras: <b>'+money(tot)+'</b><br>Paid: '+money(paid)+'<br><b style="font-size:18px">Balance due: '+money(due)+'</b></div>'+
+   '<div style="font-size:11px;text-align:center;border-top:1px dashed #000;padding-top:6px">Room charges are billed separately.<br>Thank you for staying with us!</div></div>';
+  return head+inv+'<button class="btn b-main noprint" data-a="invPrint">🖨️ اطبع الفاتورة</button>'+(S.prMsg&&S.view==='inv'?'<p role="status" class="noprint" style="margin:0;padding:10px;border-radius:10px;font-weight:700;background:'+(S.prMsg.ok?'var(--ok-bg);color:var(--ok)':'var(--warn-bg,#fdecea);color:var(--warn)')+'">'+h(S.prMsg.t)+'</p>':'')+'</div>';
 }
 function fmtEn(d){if(!d)return '';var p=String(d).split('-');var M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return p.length===3?(+p[2])+' '+M[+p[1]-1]+' '+p[0]:String(d);}
 // ----- guest requests from the QR page (reception) -----
@@ -1923,6 +1927,27 @@ function kitPrint(o,done){if(!canPrint()){if(done)done('no');return;}
   (o.items||[]).forEach(function(i){L.push({t:i.q+' × '+i.n+(i.board?'  (هاف بورد)':i.inc?'  (ضمن الحجز)':''),s:32,b:1});});
   L.push('-');if(o.note)L.push({t:'ملاحظة: '+o.note,s:30,b:1});L.push({t:'بعته: '+wname(o.by),s:24});
   try{var id='p'+Date.now()+Math.random();if(done)printCb[id]=done;VKApp.printRaw(S.printer.kit,+S.printer.port||9100,escpos(ticketCanvas(L)),id);}catch(e){if(done)done(String(e));}}
+// guest statement straight to the reception receipt printer (one tap, no print dialog)
+var logoBW=null;function logoImg(cb){if(logoBW&&logoBW.complete)return cb(logoBW);logoBW=new Image();logoBW.onload=function(){cb(logoBW);};logoBW.onerror=function(){cb(null);};logoBW.src='logo-bw.png';}
+function invCanvas(D,img){var W=576,c=document.createElement('canvas'),x=c.getContext('2d'),pad=10,y=8,ops=[];
+  function wrap(t,font,max){x.font=font;var out=[],cur='';String(t).split(' ').forEach(function(w){var n=cur?cur+' '+w:w;if(x.measureText(n).width>max&&cur){out.push(cur);cur=w;}else cur=n;});if(cur)out.push(cur);return out;}
+  function line(t,sz,b,al,right){var f=(b?'bold ':'')+sz+'px sans-serif';var rw=0;if(right){x.font=f;rw=x.measureText(right).width+16;}wrap(t,f,W-2*pad-rw).forEach(function(tt,i){ops.push(['t',tt,y+sz,f,al||'left',i===0?right:null]);y+=sz+8;});}
+  function rule(th){ops.push(['r',y+4,th||2]);y+=14;}
+  if(img){var iw=330,ih=Math.round(img.height*iw/img.width);ops.push(['i',img,(W-iw)/2,y,iw,ih]);y+=ih+6;}
+  line('Giza, Egypt',22,0,'center');rule(3);line('GUEST STATEMENT',32,1,'center');line(fmtEn(today()),22,0,'center');rule(3);
+  line('Room '+D.no+(D.r.pax?'  ·  Guests '+D.r.pax:''),28,1);if(D.r.in)line('Check-in: '+fmtEn(D.r.in),24);if(D.r.out)line('Check-out: '+fmtEn(D.r.out),24);rule(1);
+  if(!D.it.length)line('No extra charges during this stay.',24);
+  D.it.forEach(function(it){line(it.cat+'  '+fmtEn(it.d),24,1,'left',money(it.amt));if(it.desc)line(it.desc+(it.paid?' · Paid':''),22);y+=4;});
+  rule(2);line('Total extras',26,0,'left',money(D.tot));line('Paid',26,0,'left',money(D.paid));line('BALANCE DUE',32,1,'left',money(D.due));rule(1);
+  line('Room charges are billed separately.',20,0,'center');line('Thank you for staying with us!',22,1,'center');
+  c.width=W;c.height=y+16;x.fillStyle='#fff';x.fillRect(0,0,W,c.height);x.fillStyle='#000';
+  ops.forEach(function(o){if(o[0]==='r'){x.fillRect(pad,o[1],W-2*pad,o[2]);return;}if(o[0]==='i'){x.drawImage(o[1],o[2],o[3],o[4],o[5]);return;}
+    x.font=o[3];x.direction='ltr';x.textAlign=o[4];x.fillText(o[1],o[4]==='center'?W/2:pad,o[2]);if(o[5]){x.textAlign='right';x.fillText(o[5],W-pad,o[2]);}});return c;}
+function invPrint(){var D=S.invData;if(!D)return;
+  if(!(window.VKApp&&VKApp.printRaw&&S.printer&&S.printer.rec)){try{window.print();}catch(e){}return;}
+  S.prMsg={t:'⏳ بيطبع على طابعة الاستقبال…'};render();
+  logoImg(function(img){try{var id='i'+Date.now();printCb[id]=function(r){S.prMsg=r==='ok'?{ok:1,t:'✓ الفاتورة اتطبعت'}:{t:'✗ ما طبعتش · الموبايل مش شايف طابعة الاستقبال ('+r+')'};render();};
+    VKApp.printRaw(S.printer.rec,9100,escpos(invCanvas(D,img)),id);}catch(e){S.prMsg={t:'✗ '+e};render();}});}
 function vMvItem(){var o=(S.bills.concat(S.orders)).filter(function(x){return x.id===S.p.id;})[0],back=S.p.back||'home';
   if(!o||!canMoveO(o))return top('نقل لغرفة تانية','',back)+'<div class="stack">'+toastHtml()+'<p class="empty">الطلب ده مينفعش يتنقل (اتدفع أو اتلغى)</p></div>';
   S.p.q=S.p.q||{};var Q=S.p.q,it=o.items||[],from=o.room,to=S.p.to||'';
@@ -2294,8 +2319,9 @@ function vPin(){
   '<label class="f" for="np">الرقم السري الجديد (6 أرقام أو أكتر)<input class="inp ltr" id="np" type="password" inputmode="numeric" autocomplete="new-password" required></label>'+
   (S.err?'<p class="err" role="alert">'+h(S.err)+'</p>':'')+
   '<button class="btn b-main" type="submit"'+(S.busy?' disabled':'')+'>حفظ الرقم السري</button></form>'+
-  (m.role==='admin'?'<div class="card" style="gap:8px"><span class="ttl">🖨️ طابعة المطبخ</span><span class="sub">اكتب عنوان الطابعة على الشبكة (IP) من ورقة الإعدادات اللي بتطبعها. أي أوردر للمطبخ بيتبعت من أبلكيشن الأندرويد على واي فاي الفندق هيطبع لوحده.</span>'+
+  (m.role==='admin'?'<div class="card" style="gap:8px"><span class="ttl">🖨️ الطابعات</span><span class="sub">اكتب عنوان الطابعة على الشبكة (IP) من ورقة الإعدادات اللي بتطبعها. أي أوردر للمطبخ بيتبعت من أبلكيشن الأندرويد على واي فاي الفندق هيطبع لوحده.</span>'+
    '<label class="f" for="prip">عنوان الطابعة (IP)<input class="inp ltr" id="prip" inputmode="decimal" placeholder="192.168.1.100" value="'+h((S.printer&&S.printer.kit)||'')+'"></label>'+
+   '<label class="f" for="pripr">طابعة الاستقبال (IP) · للفواتير · اختياري<input class="inp ltr" id="pripr" inputmode="decimal" placeholder="192.168.1.101" value="'+h((S.printer&&S.printer.rec)||'')+'"></label>'+
    '<div class="row" style="gap:8px"><button class="btn b-main" data-a="prSave">حفظ</button><button class="btn b-line" data-a="prTest">اطبع تجربة</button></div>'+'<span class="sub" style="font-weight:700">إنت فاتح من: '+(window.VKApp&&VKApp.printRaw?'أبلكيشن الأندرويد '+h((function(){try{return VKApp.version();}catch(e){return '';}})())+' ✓':(window.VKApp?'أبلكيشن الأندرويد القديم · لازم تحدّثه لنسخة 1.10':'المتصفح · الطباعة مش هتشتغل من هنا، افتح أبلكيشن الأندرويد'))+'</span>'+(S.prMsg?'<p role="status" style="margin:0;padding:10px;border-radius:10px;font-weight:700;background:'+(S.prMsg.ok?'var(--ok-bg);color:var(--ok)':'var(--warn-bg,#fdecea);color:var(--warn)')+'">'+h(S.prMsg.t)+'</p>':'')+'</div>':'')+
   (m.role==='admin'?'<div class="card" style="gap:8px;border:2px solid var(--warn)"><span class="ttl">نسيت الرقم السري الحالي؟</span><span class="sub">اكتب رقم سري جديد (6 أرقام أو أكتر)، من غير الرقم القديم (للمدير بس). بعد الحفظ هتخرج من الأجهزة التانية وتدخل بالجديد.</span>'+
    '<label class="f" for="upw">الرقم السري الجديد<input class="inp ltr" id="upw" type="password" inputmode="numeric" autocomplete="new-password"></label>'+
@@ -2354,8 +2380,8 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.17.3';
-var APP_NAME='طابعة المطبخ';
+var APP_VER='2026.11.17.4';
+var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
 function netShow(){var el=document.getElementById('netBar');if(!el)return;
@@ -2534,7 +2560,7 @@ app.addEventListener('click',function(ev){
   if(a==='mvAll'){var mo2=(S.bills.concat(S.orders)).filter(function(x){return x.id===S.p.id;})[0];if(!mo2)return;var all=(mo2.items||[]).every(function(i,k){return ((S.p.q||{})[k]||0)===i.q;});S.p.q={};if(!all)(mo2.items||[]).forEach(function(i,k){S.p.q[k]=i.q;});render();return;}
   if(a==='mvTo'){S.p.to=b.dataset.n;S.err='';render();return;}
   if(a==='mvDo'){mvDo();return;}
-  if(a==='prSave'){if(!isAdminU())return;var ip=((document.getElementById('prip')||{}).value||'').trim();if(ip&&!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)){flash('العنوان لازم يكون زي 192.168.1.100');return;}db.collection('geo').doc('printer').set({kit:ip,port:9100,at:Date.now(),by:S.uid},{merge:true}).then(function(){S.prMsg={ok:1,t:ip?'✓ العنوان اتحفظ · دوس «اطبع تجربة»':'الطباعة اتقفلت'};render();});return;}
+  if(a==='prSave'){if(!isAdminU())return;var ip=((document.getElementById('prip')||{}).value||'').trim(),ipr=((document.getElementById('pripr')||{}).value||'').trim();if((ip&&!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip))||(ipr&&!/^\d{1,3}(\.\d{1,3}){3}$/.test(ipr))){flash('العنوان لازم يكون زي 192.168.1.100');return;}db.collection('geo').doc('printer').set({kit:ip,rec:ipr,port:9100,at:Date.now(),by:S.uid},{merge:true}).then(function(){S.prMsg={ok:1,t:ip?'✓ العنوان اتحفظ · دوس «اطبع تجربة»':'الطباعة اتقفلت'};render();});return;}
   if(a==='prTest'){var ip2=((document.getElementById('prip')||{}).value||'').trim()||(S.printer&&S.printer.kit);if(!ip2){flash('اكتب عنوان الطابعة الأول');return;}if(!(window.VKApp&&VKApp.printRaw)){S.prMsg={t:window.VKApp?'أبلكيشن الأندرويد ده قديم · حدّثه لنسخة 1.10 الأول':'إنت فاتح من المتصفح · الطباعة بتشتغل من أبلكيشن الأندرويد بس'};render();return;}S.printer=Object.assign({},S.printer||{},{kit:ip2});S.prMsg={t:'⏳ بيبعت للطابعة '+ip2+' …'};render();kitPrint({no:0,at:Date.now(),dest:'table',table:'تجربة',items:[{n:'Test print · تجربة طباعة',q:1}],note:'لو الورقة دي طلعت يبقى الطباعة شغالة ✓',by:S.uid},function(r){S.prMsg=r==='ok'?{ok:1,t:'✓ اتبعت للطابعة · المفروض الورقة طلعت دلوقتي'}:{t:'✗ الموبايل مش شايف الطابعة على '+ip2+' · غالباً الطابعة على شبكة تانية غير الواي فاي ده ('+r+')'};render();});return;}
   if(a==='gfbTab'){S.gfbTab=b.dataset.t;render();return;}
   if(a==='mlRange'){S.mlFrom=b.dataset.f;S.mlTo=b.dataset.t;render();return;}
@@ -2608,6 +2634,7 @@ app.addEventListener('click',function(ev){
   if(a==='appSetup'){try{VKApp.setup();}catch(e){}return;}
   if(a==='apkGot'){try{localStorage.setItem('vkApk','1');}catch(e){}render();return;}
   if(a==='appInstall'){if(deferredInstall){deferredInstall.prompt();deferredInstall.userChoice.then(function(){deferredInstall=null;render();});}return;}
+  if(a==='invPrint'){invPrint();return;}
   if(a==='qrPrint'||a==='eodPrint'){try{window.print();}catch(e){}return;}
   if(a==='cxOn'){if(!isAdminU())return;S.p.cx=b.dataset.id;render();return;}
   if(a==='cxOff'){S.p.cx=null;render();return;}
