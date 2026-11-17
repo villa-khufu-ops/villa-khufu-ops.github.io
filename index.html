@@ -1929,7 +1929,7 @@ function kitPrint(o,done){if(!canPrint()){if(done)done('no');return;}
   try{var id='p'+Date.now()+Math.random();if(done)printCb[id]=done;VKApp.printRaw(S.printer.kit,+S.printer.port||9100,escpos(ticketCanvas(L)),id);}catch(e){if(done)done(String(e));}}
 // guest statement straight to the reception receipt printer (one tap, no print dialog)
 var logoBW=null;function logoImg(cb){if(logoBW&&logoBW.complete)return cb(logoBW);logoBW=new Image();logoBW.onload=function(){cb(logoBW);};logoBW.onerror=function(){cb(null);};logoBW.src='logo-bw.png';}
-function invCanvas(D,img){var W=576,c=document.createElement('canvas'),x=c.getContext('2d'),pad=10,y=8,ops=[];
+function invCanvas(D,img){var W=576,c=document.createElement('canvas'),x=c.getContext('2d'),pad=14,y=8,ops=[];
   function wrap(t,font,max){x.font=font;var out=[],cur='';String(t).split(' ').forEach(function(w){var n=cur?cur+' '+w:w;if(x.measureText(n).width>max&&cur){out.push(cur);cur=w;}else cur=n;});if(cur)out.push(cur);return out;}
   function line(t,sz,b,al,right){var f=(b?'bold ':'')+sz+'px sans-serif';var rw=0;if(right){x.font=f;rw=x.measureText(right).width+16;}wrap(t,f,W-2*pad-rw).forEach(function(tt,i){ops.push(['t',tt,y+sz,f,al||'left',i===0?right:null]);y+=sz+8;});}
   function rule(th){ops.push(['r',y+4,th||2]);y+=14;}
@@ -1947,7 +1947,7 @@ function invPrint(){var D=S.invData;if(!D)return;
   if(!(window.VKApp&&VKApp.printRaw&&S.printer&&S.printer.rec)){
     // computer + USB receipt printer: print the same receipt picture (exactly 72 mm wide) from a clean page, so the printer driver doesn't shrink or cut it
     logoImg(function(img){var c=invCanvas(D,img),u=c.toDataURL('image/png'),f=document.getElementById('rcptFrame');if(f)f.remove();f=document.createElement('iframe');f.id='rcptFrame';f.style.cssText='position:fixed;width:1px;height:1px;left:-10px;top:-10px;border:0';
-      f.srcdoc='<!doctype html><html><head><meta charset="utf-8"><style>@page{margin:0}html,body{margin:0;padding:0;background:#fff}img{display:block;width:72mm;height:auto;margin:0 auto;image-rendering:pixelated}</style></head><body><img src="'+u+'"></body></html>';
+      f.srcdoc='<!doctype html><html><head><meta charset="utf-8"><style>@page{margin:0}html,body{margin:0;padding:0;background:#fff}img{display:block;width:64mm;height:auto;margin:0 0 0 2mm;image-rendering:pixelated}</style></head><body><img src="'+u+'"></body></html>';
       f.onload=function(){setTimeout(function(){try{f.contentWindow.focus();f.contentWindow.print();}catch(e){window.print();}},150);};document.body.appendChild(f);});
     return;}
   S.prMsg={t:'⏳ بيطبع على طابعة الاستقبال…'};render();
@@ -2385,7 +2385,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.17.7';
+var APP_VER='2026.11.17.8';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
