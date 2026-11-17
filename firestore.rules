@@ -82,6 +82,10 @@ service cloud.firestore {
             && onlyKeys(['paid', 'paidAt', 'paidBy', 'room', 'st', 'servedAt', 'servedBy', 'cancelAt', 'cancelBy'])
             && (same('st') || request.resource.data.st == 'served'
                 || (resource.data.st == 'new' && request.resource.data.st == 'cancel')))
+        // نقل وجبة أو صنف من حساب غرفة لغرفة تانية (قبل الدفع): الاستقبال ومدير الوردية ومدير المطعم
+        || (hasRole(['rec', 'shiftm', 'restm']) && resource.data.paid != true
+            && onlyKeys(['items', 'total', 'room', 'stayIn', 'movedFrom', 'movedAt', 'movedBy'])
+            && request.resource.data.total is number && request.resource.data.total >= 0)
         // مدير المطعم: المطبخ والتقديم والإلغاء في أي وقت
         || (hasRole(['restm', 'shiftm'])
             && onlyKeys(['st', 'ackAt', 'ackBy', 'next', 'readyAt', 'servedAt', 'servedBy', 'cancelAt', 'cancelBy', 'paid']))
