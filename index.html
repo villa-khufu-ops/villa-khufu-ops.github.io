@@ -2296,7 +2296,7 @@ function vPin(){
   '<button class="btn b-main" type="submit"'+(S.busy?' disabled':'')+'>حفظ الرقم السري</button></form>'+
   (m.role==='admin'?'<div class="card" style="gap:8px"><span class="ttl">🖨️ طابعة المطبخ</span><span class="sub">اكتب عنوان الطابعة على الشبكة (IP) من ورقة الإعدادات اللي بتطبعها. أي أوردر للمطبخ بيتبعت من أبلكيشن الأندرويد على واي فاي الفندق هيطبع لوحده.</span>'+
    '<label class="f" for="prip">عنوان الطابعة (IP)<input class="inp ltr" id="prip" inputmode="decimal" placeholder="192.168.1.100" value="'+h((S.printer&&S.printer.kit)||'')+'"></label>'+
-   '<div class="row" style="gap:8px"><button class="btn b-main" data-a="prSave">حفظ</button><button class="btn b-line" data-a="prTest">اطبع تجربة</button></div>'+(window.VKApp&&VKApp.printRaw?'':'<span class="sub" style="color:var(--warn)">الطباعة بتشتغل من أبلكيشن الأندرويد بس (نسخة 1.9 أو أحدث)</span>')+'</div>':'')+
+   '<div class="row" style="gap:8px"><button class="btn b-main" data-a="prSave">حفظ</button><button class="btn b-line" data-a="prTest">اطبع تجربة</button></div>'+'<span class="sub" style="font-weight:700">إنت فاتح من: '+(window.VKApp&&VKApp.printRaw?'أبلكيشن الأندرويد '+h((function(){try{return VKApp.version();}catch(e){return '';}})())+' ✓':(window.VKApp?'أبلكيشن الأندرويد القديم · لازم تحدّثه لنسخة 1.10':'المتصفح · الطباعة مش هتشتغل من هنا، افتح أبلكيشن الأندرويد'))+'</span>'+(S.prMsg?'<p role="status" style="margin:0;padding:10px;border-radius:10px;font-weight:700;background:'+(S.prMsg.ok?'var(--ok-bg);color:var(--ok)':'var(--warn-bg,#fdecea);color:var(--warn)')+'">'+h(S.prMsg.t)+'</p>':'')+'</div>':'')+
   (m.role==='admin'?'<div class="card" style="gap:8px;border:2px solid var(--warn)"><span class="ttl">نسيت الرقم السري الحالي؟</span><span class="sub">اكتب رقم سري جديد (6 أرقام أو أكتر)، من غير الرقم القديم (للمدير بس). بعد الحفظ هتخرج من الأجهزة التانية وتدخل بالجديد.</span>'+
    '<label class="f" for="upw">الرقم السري الجديد<input class="inp ltr" id="upw" type="password" inputmode="numeric" autocomplete="new-password"></label>'+
    '<button class="btn b-main" type="button" data-a="setPw" data-u="'+h(S.uid)+'">حفظ الرقم السري الجديد</button></div>':'')+
@@ -2354,7 +2354,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.17.2';
+var APP_VER='2026.11.17.3';
 var APP_NAME='طابعة المطبخ';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
@@ -2534,8 +2534,8 @@ app.addEventListener('click',function(ev){
   if(a==='mvAll'){var mo2=(S.bills.concat(S.orders)).filter(function(x){return x.id===S.p.id;})[0];if(!mo2)return;var all=(mo2.items||[]).every(function(i,k){return ((S.p.q||{})[k]||0)===i.q;});S.p.q={};if(!all)(mo2.items||[]).forEach(function(i,k){S.p.q[k]=i.q;});render();return;}
   if(a==='mvTo'){S.p.to=b.dataset.n;S.err='';render();return;}
   if(a==='mvDo'){mvDo();return;}
-  if(a==='prSave'){if(!isAdminU())return;var ip=((document.getElementById('prip')||{}).value||'').trim();if(ip&&!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)){flash('العنوان لازم يكون زي 192.168.1.100');return;}db.collection('geo').doc('printer').set({kit:ip,port:9100,at:Date.now(),by:S.uid},{merge:true}).then(function(){flash(ip?'عنوان طابعة المطبخ اتحفظ ✓':'الطباعة اتقفلت');});return;}
-  if(a==='prTest'){var ip2=((document.getElementById('prip')||{}).value||'').trim()||(S.printer&&S.printer.kit);if(!ip2){flash('اكتب عنوان الطابعة الأول');return;}if(!(window.VKApp&&VKApp.printRaw)){flash('التجربة بتشتغل من أبلكيشن الأندرويد بس');return;}S.printer=Object.assign({},S.printer||{},{kit:ip2});flash('بيبعت للطابعة…');kitPrint({no:0,at:Date.now(),dest:'table',table:'تجربة',items:[{n:'Test print · تجربة طباعة',q:1}],note:'لو الورقة دي طلعت يبقى الطباعة شغالة ✓',by:S.uid},function(r){flash(r==='ok'?'اتبعت للطابعة ✓':'ما طبعتش · '+r);});return;}
+  if(a==='prSave'){if(!isAdminU())return;var ip=((document.getElementById('prip')||{}).value||'').trim();if(ip&&!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)){flash('العنوان لازم يكون زي 192.168.1.100');return;}db.collection('geo').doc('printer').set({kit:ip,port:9100,at:Date.now(),by:S.uid},{merge:true}).then(function(){S.prMsg={ok:1,t:ip?'✓ العنوان اتحفظ · دوس «اطبع تجربة»':'الطباعة اتقفلت'};render();});return;}
+  if(a==='prTest'){var ip2=((document.getElementById('prip')||{}).value||'').trim()||(S.printer&&S.printer.kit);if(!ip2){flash('اكتب عنوان الطابعة الأول');return;}if(!(window.VKApp&&VKApp.printRaw)){S.prMsg={t:window.VKApp?'أبلكيشن الأندرويد ده قديم · حدّثه لنسخة 1.10 الأول':'إنت فاتح من المتصفح · الطباعة بتشتغل من أبلكيشن الأندرويد بس'};render();return;}S.printer=Object.assign({},S.printer||{},{kit:ip2});S.prMsg={t:'⏳ بيبعت للطابعة '+ip2+' …'};render();kitPrint({no:0,at:Date.now(),dest:'table',table:'تجربة',items:[{n:'Test print · تجربة طباعة',q:1}],note:'لو الورقة دي طلعت يبقى الطباعة شغالة ✓',by:S.uid},function(r){S.prMsg=r==='ok'?{ok:1,t:'✓ اتبعت للطابعة · المفروض الورقة طلعت دلوقتي'}:{t:'✗ الموبايل مش شايف الطابعة على '+ip2+' · غالباً الطابعة على شبكة تانية غير الواي فاي ده ('+r+')'};render();});return;}
   if(a==='gfbTab'){S.gfbTab=b.dataset.t;render();return;}
   if(a==='mlRange'){S.mlFrom=b.dataset.f;S.mlTo=b.dataset.t;render();return;}
   if(a==='mlXls'){mealsExport();return;}
