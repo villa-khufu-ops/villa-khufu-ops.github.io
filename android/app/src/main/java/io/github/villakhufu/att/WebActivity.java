@@ -120,6 +120,24 @@ public class WebActivity extends Activity {
     class Bridge {
         @JavascriptInterface public String pushToken() { return Geo.prefs(WebActivity.this).getString("fcm", ""); }
         @JavascriptInterface public String version() { return ver(); }
+        /** Kitchen printer on the hotel network (ESC/POS on port 9100): send the ticket bytes straight to it. */
+        @JavascriptInterface public void printRaw(String host, int port, String b64, String cb) {
+            new Thread(() -> {
+                String res = "ok";
+                try (java.net.Socket so = new java.net.Socket()) {
+                    so.connect(new java.net.InetSocketAddress(host, port > 0 ? port : 9100), 4000);
+                    so.setSoTimeout(6000);
+                    java.io.OutputStream out = so.getOutputStream();
+                    out.write(android.util.Base64.decode(b64, android.util.Base64.DEFAULT));
+                    out.flush();
+                    Thread.sleep(400);
+                } catch (Exception e) {
+                    res = String.valueOf(e.getMessage());
+                }
+                final String r = res;
+                runOnUiThread(() -> w.evaluateJavascript("window.vkPrintDone&&vkPrintDone(" + org.json.JSONObject.quote(cb) + "," + org.json.JSONObject.quote(r) + ")", null));
+            }).start();
+        }
         @JavascriptInterface public void setup() {
             runOnUiThread(() -> startActivity(new Intent(WebActivity.this, MainActivity.class).putExtra("setup", true)));
         }
