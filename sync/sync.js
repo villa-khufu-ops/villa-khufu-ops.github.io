@@ -99,7 +99,7 @@ async function aiosellLogin(page) {
   const pass = page.locator('input[type="password"]').first();
   // the reports page may not send a signed-out visitor to the log-in form by itself: try a log-in button, then the usual log-in addresses
   if (!(await pass.isVisible().catch(() => false))) {
-    const o = new URL(AIOSELL_URL).origin, tries = [null, o + '/login', o + '/', o + '/#/login', 'https://live.aiosell.com/login', 'https://live.aiosell.com/'];
+    const o = new URL(AIOSELL_URL).origin, tries = [null, 'https://live.aiosell.com/signin.html', o + '/login', o + '/', o + '/#/login', 'https://live.aiosell.com/login', 'https://live.aiosell.com/'];
     for (const u of tries) {
       if (u) await page.goto(u, { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
       await tryClick(page.getByRole('button', { name: /log\s*in|sign\s*in|login/i }), 3000);
