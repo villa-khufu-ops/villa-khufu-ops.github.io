@@ -215,15 +215,15 @@ var MENU=[
     ['Seafood Pasta Tagine', 18, 'Penne, mixed seafood, bell peppers & olives in classic tomato sauce, topped with mozzarella.', 'S'],
     ['Khufu Pasta Tagine', 20, 'Our signature: mixed seafood, bell peppers, olives & basil in a rich cream sauce, baked with mozzarella.', 'S SIGNATURE']
   ]],
-  ['مصري ومشويات', 'أكل مصري ومشويات فحم · المشويات مع رز وبطاطس وسلطة وعيش', [
+  ['مصري ومشويات', 'أكل مصري ومشويات · المشويات مع رز وبطاطس وسلطة وعيش', [
     ['Koshari', 5, 'Egyptian comfort bowl of rice, lentils, pasta & chickpeas with garlic vinegar tomato sauce and crispy fried onions.', 'VG'],
     ['Hawawshi', 6, 'Crispy baked bread stuffed with spiced minced beef, served with French fries.', ''],
     ['Mozzarella Hawawshi', 8, 'Spiced minced beef & melted mozzarella in crispy baked bread, served with French fries.', ''],
     ['Chicken Fatteh', 12, 'Juicy chicken over rice & crispy bread with garlic-vinegar tomato sauce.', ''],
     ['Beef Fatteh', 14, 'Tender beef chunks over rice & crispy bread with garlic-vinegar tomato sauce.', ''],
-    ['Shish Tawouk', 12, 'Charcoal-grilled skewers of marinated chicken breast. Served with rice, French fries, salad & bread.', ''],
-    ['Half Deboned Chicken', 14, 'Charcoal-grilled, herb-marinated half chicken. Served with rice, French fries, salad & bread.', ''],
-    ['Kebab', 15, 'Charcoal-grilled skewers of seasoned beef. Served with rice, French fries, salad & bread.', ''],
+    ['Shish Tawouk', 12, 'Grilled skewers of marinated chicken breast. Served with rice, French fries, salad & bread.', ''],
+    ['Half Deboned Chicken', 14, 'Grilled, herb-marinated half chicken. Served with rice, French fries, salad & bread.', ''],
+    ['Kebab', 15, 'Grilled skewers of seasoned beef. Served with rice, French fries, salad & bread.', ''],
     ['Mix Grill', 18, 'Half deboned chicken & beef kebab. Served with rice, French fries, salad & bread.', ''],
     ['Khufu Mix Grill', 22, 'Our signature platter: half deboned chicken, hawawshi & grilled shrimp. Served with rice, French fries, salad & bread.', 'S SIGNATURE']
   ]],
@@ -2439,7 +2439,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.20.3';
+var APP_VER='2026.11.20.4';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
