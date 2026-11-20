@@ -1,6 +1,6 @@
 // Villa Khufu service worker: makes the app installable and opens fast.
 // Network first for the page, so every upload on GitHub reaches staff right away.
-const CACHE = 'vk-shell-v6';
+const CACHE = 'vk-shell-v7';
 const SHELL = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'logo.jpg'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).catch(() => {})); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))); self.clients.claim(); });
@@ -8,8 +8,15 @@ self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);
   if (e.request.method !== 'GET' || u.origin !== location.origin) return; // Firebase and other sites go straight to the network
   // always ask GitHub if the page changed (no 10-minute browser cache), so a new version shows up right away
-  e.respondWith(fetch(e.request, { cache: 'no-cache' }).then(r => { const c = r.clone(); caches.open(CACHE).then(x => x.put(e.request, c)); return r; })
-    .catch(() => caches.match(e.request).then(r => r || caches.match('index.html'))));
+  // weak Wi-Fi: if GitHub does not answer within 4 seconds, open the saved copy right away (the update banner brings the new one later)
+  const net = fetch(e.request, { cache: 'no-cache' }).then(r => { if (r && r.ok) { const c = r.clone(); caches.open(CACHE).then(x => x.put(e.request, c)); } return r; });
+  const saved = () => caches.match(e.request).then(r => r || (e.request.mode === 'navigate' ? caches.match('index.html') : undefined));
+  e.respondWith(new Promise(res => {
+    let done = false; const fin = r => { if (!done && r) { done = true; res(r); } };
+    const t = setTimeout(() => saved().then(fin), 4000);
+    net.then(r => { clearTimeout(t); fin(r); }).catch(() => { clearTimeout(t); saved().then(r => fin(r || Response.error())); });
+    net.catch(() => {}).finally(() => setTimeout(() => { if (!done) saved().then(r => fin(r || Response.error())); }, 0));
+  }));
 });
 
 // ----- notifications sent by the hotel's Google Apps Script through Firebase Cloud Messaging -----
