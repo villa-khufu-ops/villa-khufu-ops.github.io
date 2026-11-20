@@ -1,0 +1,18 @@
+# Checks the app after every change: the main screens open without errors and the money math is right.
+# A failed run shows a red X on the commit and GitHub emails the owner.
+name: app tests
+on:
+  push:
+    paths: ['index.html', 'tests/**', '.github/workflows/tests.yml']
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm i --no-save playwright@1.47.2 && npx playwright install --with-deps chromium
+      - run: python3 tests/build.py
+      - run: node tests/smoke.js

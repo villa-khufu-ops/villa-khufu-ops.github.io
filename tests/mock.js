@@ -1,0 +1,23 @@
+(function(){
+function d2(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+var day=d2();
+var DB={staff:{n9:{name:'فني',username:'tech',role:'mnt',active:true,phone:'0111'},h9:{name:'مدير الهاوس',username:'hkm',role:'hkm',active:true},s9:{name:'سوبر فايزر',username:'sup',role:'hks',active:true},w1:{name:'مها',username:'maha',role:'hk',active:true},m9:{name:'مدير المطعم',username:'rm',role:'restm',active:true},u1:{name:'فوزي',username:'fawzy',role:'admin',active:true},k1:{name:'شيف',username:'chef',role:'kit',active:true,phone:'0100'},t1:{name:'ويتر',username:'w',role:'rest',active:true},r1:{name:'ريسبشن',username:'rec1',role:'rec',active:true}},
+ rooms:{'104':{status:'occ',in:day,out:'2026-11-05',plan:'HB',pax:2},'110':{status:'occ',in:day,out:(function(){var d=new Date();d.setDate(d.getDate()+1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})()},'102':{status:'free',arrival:{in:day,out:'2026-11-05',pax:3,notes:'سرير أطفال · وصول متأخر'}},'106':{status:'occ',in:day,out:'2026-11-05',cleanReq:1,task:{w:'w1',st:'ack',at:1,ackAt:1,next:9e15}},'203':{status:'free',arrival:{in:day,out:'2026-11-05',ready:true}},'205':{status:'clean',arrival:{in:day,out:'2026-11-04'},task:{w:'s9',st:'new',at:1,next:0}},'101':{status:'occ',in:day,out:day,plan:'BB'},'203':{status:'free'}},maint:{},orders:{},laundry:{},log:{},aio:{},lost:{},shift:{},prep:{}};
+var L=[],seq=1;
+function snap(o){return {metadata:{hasPendingWrites:false,fromCache:false},docChanges:function(){return Object.keys(o).map(function(k){return {doc:{id:k}}})},forEach:function(f){Object.keys(o).forEach(function(k){f({id:k,data:function(){return JSON.parse(JSON.stringify(o[k]));}})})}}}
+function q(name,filt){return {
+  get:function(){return Promise.resolve(snap(sel(name,filt)))},
+  where:function(f,op,v){return q(name,(filt||[]).concat([[f,op,v]]))},
+  orderBy:function(){return q(name,filt)},limit:function(){return q(name,filt)},
+  onSnapshot:function(fn,e2){if(typeof fn!=='function'){fn=e2;}var l={name:name,filt:filt,fn:fn};L.push(l);setTimeout(function(){fn(snap(sel(name,filt)))},0);return function(){L.splice(L.indexOf(l),1)}}}}
+function sel(name,filt){var o={},c=DB[name]||{};Object.keys(c).forEach(function(k){var d=c[k];if((filt||[]).every(function(x){var a=String(x[0]).split(".").reduce(function(o,k){return o==null?o:o[k];},d);return x[1]==='=='?a===x[2]:x[1]==='in'?x[2].indexOf(a)>=0:a>=x[2];}))o[k]=d;});return o;}
+function notify(name){L.forEach(function(l){if(l.name===name)setTimeout(function(){l.fn(snap(sel(name,l.filt)))},0)});}
+function col(name){var b=q(name);b.doc=function(id){return {onSnapshot:function(f){var fire=function(){var d=(DB[name]||{})[id];f({exists:name==='meta'?true:!!d,data:function(){return d?JSON.parse(JSON.stringify(d)):{}}});};var l={name:name,filt:null,fn:function(){fire();}};L.push(l);setTimeout(fire,0);return function(){L.splice(L.indexOf(l),1)}},
+   get:function(){var d=(DB[name]||{})[id];return Promise.resolve({exists:!!d,data:function(){return d?JSON.parse(JSON.stringify(d)):{}}});},delete:function(){if(DB[name])delete DB[name][id];notify(name);return Promise.resolve();},
+   set:function(p,o){DB[name]=DB[name]||{};var cur=o&&o.merge?(DB[name][id]||{}):{};Object.keys(p).forEach(function(k){var v=p[k];if(o&&o.merge&&v&&typeof v==='object'&&!Array.isArray(v)&&cur[k]&&typeof cur[k]==='object'&&k==='assign'){var m2=Object.assign({},cur[k]);Object.keys(v).forEach(function(kk){if(v[kk]&&v[kk].__del)delete m2[kk];else m2[kk]=v[kk];});cur[k]=m2;}else cur[k]=v;});DB[name][id]=cur;notify(name);return Promise.resolve()}}};
+ b.add=function(d){DB[name]=DB[name]||{};var nid='x'+(seq++);DB[name][nid]=JSON.parse(JSON.stringify(d));notify(name);return Promise.resolve({id:nid})};return b;}
+window.__DB=DB;window.__UID=window.__UID||'u1';
+window.firebase={initializeApp:function(){return {}},apps:[],auth:function(){return {onAuthStateChanged:function(f){setTimeout(function(){f({uid:window.__UID})},10)},signOut:function(){}}},firestore:function(){return {collection:col,enablePersistence:function(){return Promise.resolve()},batch:function(){var ops=[];return {set:function(r,p,o){ops.push([r,p,o]);},commit:function(){ops.forEach(function(x){x[0].set(x[1],x[2]);});return Promise.resolve()}}}}}};
+window.firebase.auth.EmailAuthProvider={};window.firebase.firestore.FieldValue={delete:function(){return {__del:1};}};
+window.FIREBASE_CONFIG={apiKey:'x',projectId:'y'};
+})();
