@@ -97,6 +97,19 @@ async function aiosellLogin(page) {
     await page.locator('input[type="password"]').first().waitFor({ state: 'visible', timeout: 30000 }).catch(() => {});
   }
   const pass = page.locator('input[type="password"]').first();
+  // the reports page may not send a signed-out visitor to the log-in form by itself: try a log-in button, then the usual log-in addresses
+  if (!(await pass.isVisible().catch(() => false))) {
+    const o = new URL(AIOSELL_URL).origin, tries = [null, o + '/login', o + '/', o + '/#/login', 'https://live.aiosell.com/login', 'https://live.aiosell.com/'];
+    for (const u of tries) {
+      if (u) await page.goto(u, { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
+      await tryClick(page.getByRole('button', { name: /log\s*in|sign\s*in|login/i }), 3000);
+      await tryClick(page.getByRole('link', { name: /log\s*in|sign\s*in|login/i }), 3000);
+      await pass.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
+      const n = await page.locator('input').count().catch(() => 0);
+      log('تشخيص الدخول: ' + page.url() + ' · العنوان: ' + (await page.title().catch(() => '')) + ' · خانات: ' + n);
+      if (await pass.isVisible().catch(() => false)) break;
+    }
+  }
   if (!(await pass.isVisible().catch(() => false))) {
     await page.screenshot({ path: path.join(DIR, 'login-page.png') }).catch(() => {});
     throw new Error('مش لاقي صفحة تسجيل الدخول بتاعة Aiosell · ' + page.url());
