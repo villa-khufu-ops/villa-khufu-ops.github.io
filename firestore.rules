@@ -285,6 +285,16 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // حالة طباعة أوردر المطبخ: أي موظف يسجّل اتطبع ولا لأ · المطبخ والمطعم يشوفوا اللي ما اتطبعش
+    match /prt/{id} {
+      allow read: if isStaff();
+      allow create, update: if isStaff()
+        && request.resource.data.keys().hasOnly(['st', 'at', 'by', 'no', 'err'])
+        && request.resource.data.by == request.auth.uid
+        && request.resource.data.st in ['ok', 'fail', 'none', 'seen']
+        && request.resource.data.err is string && request.resource.data.err.size() <= 200;
+    }
+
     // سجل أخطاء الأبلكيشن: أي موظف يسجّل خطأ حصل عنده، والمدير بس يشوف ويمسح
     match /errs/{id} {
       allow create: if isStaff() && request.resource.data.uid == request.auth.uid;
