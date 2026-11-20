@@ -211,7 +211,7 @@ var MENU=[
     ['Potato, Cream, Mozzarella & Beef Tagine', 20, 'Our creamy potato tagine with slow-cooked beef chunks. Served with Egyptian rice.', 'GF']
   ]],
   ['طواجن باستا', 'طواجن الباستا · في الفرن', [
-    ['Chicken Pasta Tagine', 12, 'Penne, chicken breast, olives & bell peppers under melted mozzarella, in your choice of cream or tomato-basil sauce.', ''],
+    ['Chicken Pasta Tagine', 12, 'Penne, chicken breast, olives & bell peppers in a creamy white sauce, under melted mozzarella.', ''],
     ['Seafood Pasta Tagine', 18, 'Penne, mixed seafood, bell peppers & olives in classic tomato sauce, topped with mozzarella.', 'S'],
     ['Khufu Pasta Tagine', 20, 'Our signature: penne with shrimp & chicken, colored bell peppers & onions in a creamy white sauce, baked with mozzarella.', 'S SIGNATURE']
   ]],
@@ -344,7 +344,7 @@ function tourDetails(id){var I=TOUR_INFO[id];if(!I)return '';var li=function(a){
 // English names of the menu tabs, for the guest page
 var TAGN={GF:'Gluten-free',VG:'Vegan',V:'Vegetarian',N:'Contains nuts',S:'Contains shellfish'};
 function menuTags(t){t=String(t||'').split(/\s+/).filter(Boolean);if(!t.length)return '';var sig=t.indexOf('SIGNATURE')>=0;var o=t.filter(function(x){return TAGN[x];}).map(function(x){return '<span title="'+TAGN[x]+'" style="border:1px solid currentColor;border-radius:6px;padding:0 5px;font-size:11px;font-weight:700">'+x+'</span>';});return '<span class="ltr" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;color:var(--accent)">'+(sig?'<span style="background:var(--accent);color:var(--on-accent,#fff);border-radius:6px;padding:0 6px;font-size:11px;font-weight:700">★ SIGNATURE</span>':'')+o.join('')+'</span>';}
-var MENU_PDF='menu.pdf?v=3';
+var MENU_PDF='menu.pdf?v=4';
 var MENU_EN=['Breakfast','Clay Pot Tagines','Pasta Tagines','Egyptian & Grills','Pizza','Starters & Sides','Kids','Cold Drinks','Hot Drinks','Shisha'];
 // guest page: opened from the hotel QR code (?guest) · no login · the guest types the room number
 // ?guest&pre : guests who booked but did not arrive yet · no room number · browse menu, book tours & massage by WhatsApp
@@ -1802,7 +1802,7 @@ function gDir(){return gAr()?'rtl':'ltr';}
 function tr(x){return gAr()&&TR_AR[x]||x;}
 function gLangBtn(){return '<button class="btn b-line" style="width:auto;min-height:40px;padding:0 14px;flex:none" data-a="gLang">'+(gAr()?'English':'عربي')+'</button>';}
 // the hotel's useful links (what the old printed QR opened): map, phone, PDFs, Instagram
-var GLINKS=[['Our full menu','📖','menu.pdf?v=3'],['Hotel location','📍','https://maps.app.goo.gl/i2A5Fp444nuFYvoBA'],['Call reception','📞','tel:01094128452'],['Best route to the hotel','🧭','https://cdn0030.qrcodechimp.com/qr/PROD/66449d69a40881691f0db062/fm/vk_map-best_route.pdf'],['Instagram','📷','https://www.instagram.com/villakhufupyramids/']];
+var GLINKS=[['Our full menu','📖','menu.pdf?v=4'],['Hotel location','📍','https://maps.app.goo.gl/i2A5Fp444nuFYvoBA'],['Call reception','📞','tel:01094128452'],['Best route to the hotel','🧭','https://cdn0030.qrcodechimp.com/qr/PROD/66449d69a40881691f0db062/fm/vk_map-best_route.pdf'],['Instagram','📷','https://www.instagram.com/villakhufupyramids/']];
 function gLinks(){return '<div class="card" style="gap:8px"><span class="ttl">'+tr('Useful links')+'</span><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+GLINKS.map(function(l){return '<a class="btn b-line" style="text-decoration:none;justify-content:flex-start;gap:8px;min-height:52px;font-size:15px" href="'+l[2]+'"'+(/^tel:/.test(l[2])?'':' target="_blank" rel="noopener"')+'><span aria-hidden="true" style="font-size:20px">'+l[1]+'</span>'+tr(l[0])+'</a>';}).join('')+'</div></div>';}
 // cheapest price per person of a tour (tours with no price yet go last)
 function tourMin(id){return tourFrom(id)||1e9;}
@@ -2441,7 +2441,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.20.7';
+var APP_VER='2026.11.20.8';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
