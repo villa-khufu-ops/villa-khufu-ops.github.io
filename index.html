@@ -2516,7 +2516,7 @@ function vPin(){
    '<label class="f" for="upw">الرقم السري الجديد<input class="inp ltr" id="upw" type="password" inputmode="numeric" autocomplete="new-password"></label>'+
    '<button class="btn b-main" type="button" data-a="setPw" data-u="'+h(S.uid)+'">حفظ الرقم السري الجديد</button></div>':'')+
   '<div class="card"><span class="ttl">صوت الجرس</span><div class="picks" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+RINGS.map(function(x){return '<button class="pick" data-a="ringPick" data-t="'+x[0]+'" aria-pressed="'+(ringGet()===x[0])+'">'+x[1]+'</button>';}).join('')+'</div><span class="sub">دوس على أي صوت تسمعه · اللي تختاره هو اللي هيرن على الموبايل ده</span></div>'+
-  '<div class="card"><span class="ttl">شكل الأبلكيشن</span><div class="picks" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+[['auto','تلقائي'],['light','نهاري'],['dark','ليلي'],['night','ليل الصحرا 🌙'],['bright','ألوان واضحة 🎨']].map(function(x){return '<button class="pick" data-a="theme" data-t="'+x[0]+'" aria-pressed="'+(themeGet()===x[0])+'">'+x[1]+'</button>';}).join('')+'</div><span class="sub">ليل الصحرا: غامق ودهبي · ألوان واضحة: كل قسم بلونه · الليلي أريح للعين بالليل · التلقائي بيمشي مع الموبايل</span></div>'+
+  '<div class="card"><span class="ttl">شكل الأبلكيشن</span><div class="picks" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+[['night','ليل الصحرا 🌙'],['bright','ألوان واضحة 🎨']].map(function(x){return '<button class="pick" data-a="theme" data-t="'+x[0]+'" aria-pressed="'+(themeGet()===x[0])+'">'+x[1]+'</button>';}).join('')+'</div><span class="sub">ليل الصحرا: غامق ودهبي ومريح بالليل · ألوان واضحة: كل قسم بلونه</span></div>'+
   '<p class="hint">اسم المستخدم (@'+h(m.username||'')+') مبيتغيّرش. لو محتاج اسم مستخدم تاني، المدير يعملك حساب جديد.</p>'+
   '<p class="hint" style="text-align:center">نسخة الأبلكيشن '+APP_VER+'</p></div>';
 }
@@ -2527,8 +2527,9 @@ function vErrs(){
    (l.length?l.map(function(e){return '<div class="card" style="gap:4px"><span class="ttl ltr" style="font-size:13px;text-align:left;word-break:break-word">'+h(e.msg)+'</span><span class="sub">'+fmt(iso(new Date(e.at)))+' '+hm(e.at)+' · '+h(wname(e.uid))+' ('+h(e.role||'')+') · شاشة '+h(e.view||'')+' · نسخة '+h(e.v||'')+'</span></div>';}).join('')+'<button class="btn b-line" data-a="errsClear">امسح السجل</button>':'<p class="empty">مفيش أخطاء ✓</p>')+
    '<span class="sub">ابعت صورة الشاشة دي لـ Claude لو فيه أخطاء متكررة.</span></div>';
 }
-function themeGet(){try{return localStorage.getItem('vkTheme')||'auto';}catch(e){return 'auto';}}
-function themeApply(){var t=themeGet();if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);try{var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',t==='night'?'#121010':t==='bright'?'#1747B8':'#8A4A14');}catch(e){}}
+// only two looks now: night and bright · an old choice (auto / light / dark) moves to the nearest one
+function themeGet(){var t='';try{t=localStorage.getItem('vkTheme')||'';}catch(e){}if(t==='night'||t==='bright')return t;if(t==='dark')return 'night';if(!t){try{if(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)return 'night';}catch(e){}}return 'bright';}
+function themeApply(){if(/(^|[?&])guest(=|&|$)/.test(location.search))return;var t=themeGet();if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);try{var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',t==='night'?'#121010':t==='bright'?'#1747B8':'#8A4A14');}catch(e){}}
 themeApply();
 
 // ----- users (admin) -----
@@ -2570,7 +2571,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.20.13';
+var APP_VER='2026.11.21.1';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
