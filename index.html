@@ -245,7 +245,9 @@ var MENU=[
     ['Khufu Pizza', 16, 'Our signature: beef pepperoni, beef sausage & minced beef with tomato sauce, basil & mozzarella.', 'SIGNATURE']
   ]],
   ['مقبلات وجانبي', 'المقبلات والأطباق الجانبية', [
-    ['Khufu Mezze Platter', 6, 'Baba ghanoush, tahini & pickled eggplant, served with warm bread.', 'VG'],
+    ['Baba Ghanoush', 2, 'Smoky eggplant dip with tahini, served with warm bread.', 'VG'],
+    ['Tahini', 2, 'Sesame tahini dip with lemon & garlic, served with warm bread.', 'VG'],
+    ['Pickled Eggplant', 2, 'Egyptian pickled eggplant with garlic & herbs.', 'VG'],
     ['Soup of the Day', 6, 'Prepared fresh daily, please ask your server.', ''],
     ['French Fries', 3, 'Crispy golden potato fries.', 'VG'],
     ['Potato Wedges', 4, 'Seasoned and golden-fried.', 'V'],
@@ -2439,7 +2441,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.20.4';
+var APP_VER='2026.11.20.5';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
