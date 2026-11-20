@@ -21,10 +21,12 @@ public class GeoReceiver extends BroadcastReceiver {
             // one arrival notice per 3 hours (a short walk outside doesn't repeat it)
             if (now - p.getLong("enterAt", 0) > 3 * 3600_000L) Geo.arrived(c);
             p.edit().putLong("enterAt", now).putBoolean("inside", true).apply();
+            AutoOut.cancel(c);
             c.getSystemService(android.app.NotificationManager.class).cancel(2);
         } else if (t == Geofence.GEOFENCE_TRANSITION_EXIT) {
             if (now - p.getLong("exitAt", 0) > 20 * 60_000L) Geo.left(c);
             p.edit().putLong("exitAt", now).putBoolean("inside", false).apply();
+            AutoOut.schedule(c);
             c.getSystemService(android.app.NotificationManager.class).cancel(1);
         }
     }

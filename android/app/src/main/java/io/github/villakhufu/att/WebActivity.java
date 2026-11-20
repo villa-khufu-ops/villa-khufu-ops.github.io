@@ -120,6 +120,11 @@ public class WebActivity extends Activity {
     class Bridge {
         @JavascriptInterface public String pushToken() { return Geo.prefs(WebActivity.this).getString("fcm", ""); }
         @JavascriptInterface public String version() { return ver(); }
+        /** The signed-in employee (his own Firebase refresh token) for the automatic check-out when he leaves the hotel. Empty = signed out. */
+        @JavascriptInterface public void setAuth(String rt) {
+            Geo.prefs(WebActivity.this).edit().putString("rt", rt == null ? "" : rt).apply();
+            if (rt == null || rt.isEmpty()) AutoOut.cancel(WebActivity.this);
+        }
         /** Kitchen printer on the hotel network (ESC/POS on port 9100): send the ticket bytes straight to it. */
         @JavascriptInterface public void printRaw(String host, int port, String b64, String cb) {
             new Thread(() -> {
