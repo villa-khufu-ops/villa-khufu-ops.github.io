@@ -33,6 +33,61 @@
   --accent:#D08A4E; --on-accent:#1C1915; --soft:#3A2E22; --soft-ink:#F0C9A0;
   --ok:#8FCB95; --ok-bg:#1F3322; --warn:#F2A57A; --warn-bg:#3D2318; --alert:#F07A35;
   --info:#A9B6D6; --info-bg:#252C3D; --grey:#CFC8BE; --grey-bg:#33302C; --tab:#2F2923; --wa:#5BC98A; color-scheme:dark}
+:root[data-theme="night"]{
+  --bg:#121010; --surface:#1E1A17; --ink:#F4EDE2; --muted:#B3A795; --line:#3A322A;
+  --accent:#D9A441; --on-accent:#121010; --soft:#2E261E; --soft-ink:#E8B65A;
+  --ok:#8FD3A8; --ok-bg:#1C3326; --warn:#F2A17C; --warn-bg:#3D2016; --alert:#E2552A;
+  --info:#9FC3E8; --info-bg:#1E2A38; --grey:#CFC8BE; --grey-bg:#2C2824; --tab:#1E1A17; --wa:#5BC98A; color-scheme:dark}
+:root[data-theme="night"] .card,:root[data-theme="night"] .big,:root[data-theme="night"] .ib{border:1px solid var(--line);box-shadow:none}
+:root[data-theme="night"] .big{border-radius:26px}
+:root[data-theme="night"] .big.main{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+:root[data-theme="night"] .big .ic{background:#2E261E;color:#E8B65A}
+:root[data-theme="night"] .top h1{font-size:23px}
+:root[data-theme="bright"]{
+  --bg:#F3F5FA; --surface:#FFFFFF; --ink:#111827; --muted:#4B5563; --line:#E1E5EE;
+  --accent:#1747B8; --on-accent:#FFFFFF; --soft:#E6EDFC; --soft-ink:#1747B8;
+  --ok:#18794E; --ok-bg:#E3F5EA; --warn:#B42318; --warn-bg:#FDE7E4; --alert:#E2552A;
+  --info:#0B6A86; --info-bg:#E2F3F8; --grey:#374151; --grey-bg:#EEF0F3; --tab:#E6EAF3; --wa:#1F7A43; color-scheme:light}
+:root[data-theme="bright"] .big{border-radius:24px;box-shadow:none}
+:root[data-theme="bright"] .big .l{font-size:20px}
+:root[data-theme="night"] .big[data-v="rec"] .ic{background:#D9A441;color:#121010}
+:root[data-theme="night"] .big[data-v="rest"] .ic{background:#E8B65A;color:#121010}
+:root[data-theme="night"] .big[data-v="kit"] .ic{background:#C9B68F;color:#121010}
+:root[data-theme="night"] .big[data-v="hk"] .ic{background:#8FD3A8;color:#121010}
+:root[data-theme="night"] .big[data-v="transfer"] .ic{background:#F2A17C;color:#121010}
+:root[data-theme="night"] .big[data-v="tr-drv"] .ic{background:#F2A17C;color:#121010}
+:root[data-theme="night"] .big[data-v="tour"] .ic{background:#F2A17C;color:#121010}
+:root[data-theme="night"] .big[data-v="work"] .ic{background:#9FC3E8;color:#121010}
+:root[data-theme="night"] .big[data-v="lnd"] .ic{background:#7DD3E0;color:#121010}
+:root[data-theme="night"] .big[data-v="lnd-new"] .ic{background:#7DD3E0;color:#121010}
+:root[data-theme="night"] .big[data-v="mnt"] .ic{background:#E3B778;color:#121010}
+:root[data-theme="night"] .big[data-v="mini"] .ic{background:#F0A3C4;color:#121010}
+:root[data-theme="night"] .big[data-v="exp"] .ic{background:#C8C2B8;color:#121010}
+:root[data-theme="night"] .big[data-v="users"] .ic{background:#C8C2B8;color:#121010}
+:root[data-theme="night"] .big[data-v="eod"] .ic{background:#D9A441;color:#121010}
+:root[data-theme="night"] .big[data-v="daily"] .ic{background:#D9A441;color:#121010}
+:root[data-theme="night"] .big[data-v="sales"] .ic{background:#E8B65A;color:#121010}
+:root[data-theme="night"] .big[data-v="att-all"] .ic{background:#9FC3E8;color:#121010}
+:root[data-theme="night"] .big[data-v="pay-all"] .ic{background:#8FD3A8;color:#121010}
+:root[data-theme="bright"] .big[data-v="rec"]{background:#E6EDFC}:root[data-theme="bright"] .big[data-v="rec"] .ic{background:#1747B8;color:#FFFFFF}
+:root[data-theme="bright"] .big[data-v="rest"]{background:#FFF0DD}:root[data-theme="bright"] .big[data-v="rest"] .ic{background:#B35C00;color:#FFFFFF}
+:root[data-theme="bright"] .big[data-v="kit"]{background:#FDE7E4}:root[data-theme="bright"] .big[data-v="kit"] .ic{background:#B42318;color:#FFFFFF}
+:root[data-theme="bright"] .big[data-v="hk"]{background:#E3F5EA}:root[data-theme="bright"] .big[data-v="hk"] .ic{background:#18794E;color:#FFFFFF}
+:root[data-theme="bright"] .big[data-v="transfer"]{background:#F1E9FD}:root[data-theme="bright"] .big[data-v="transfer"] .ic{background:#6E3FC9;color:#FFFFFF}
+:root[data-theme="bright"] .big[data-v="tr-drv"]{background:#F1E9FD}:root[data-theme="bright"] .big[data-v="tr-drv"] .ic{background:#6E3FC9;color:#FFFFFF}
+:root[data-theme="bright"] .big[data-v="tour"]{background:#F1E9FD}:root[data-theme="bright"] .big[data-v="tour"] .ic{background:#6E3FC9;color:#FFFFFF}
+:root[data-theme="bright"] .big[data-v="work"]{background:#E2F3F8}:root[data-theme="bright"] .big[data-v="work"] .ic{background:#0B6A86;color:#FFFFFF}
+:root[data-theme="bright"] .big[data-v="lnd"]{background:#E0F4F8}:root[data-theme="bright"] .big[data-v="lnd"] .ic{background:#0E7490;color:#FFFFFF}
+:root[data-theme="bright"] .big[data-v="lnd-new"]{background:#E0F4F8}:root[data-theme="bright"] .big[data-v="lnd-new"] .ic{background:#0E7490;color:#FFFFFF}
+:root[data-theme="bright"] .big[data-v="mnt"]{background:#F7EBD9}:root[data-theme="bright"] .big[data-v="mnt"] .ic{background:#7C4A03;color:#FFFFFF}
+:root[data-theme="bright"] .big[data-v="mini"]{background:#FCE7F1}:root[data-theme="bright"] .big[data-v="mini"] .ic{background:#9D174D;color:#FFFFFF}
+:root[data-theme="bright"] .big[data-v="exp"]{background:#EEF0F3}:root[data-theme="bright"] .big[data-v="exp"] .ic{background:#374151;color:#FFFFFF}
+:root[data-theme="bright"] .big[data-v="users"]{background:#EEF0F3}:root[data-theme="bright"] .big[data-v="users"] .ic{background:#374151;color:#FFFFFF}
+:root[data-theme="bright"] .big[data-v="eod"]{background:#E6EDFC}:root[data-theme="bright"] .big[data-v="eod"] .ic{background:#1747B8;color:#FFFFFF}
+:root[data-theme="bright"] .big[data-v="daily"]{background:#E6EDFC}:root[data-theme="bright"] .big[data-v="daily"] .ic{background:#1747B8;color:#FFFFFF}
+:root[data-theme="bright"] .big[data-v="sales"]{background:#FFF0DD}:root[data-theme="bright"] .big[data-v="sales"] .ic{background:#B35C00;color:#FFFFFF}
+:root[data-theme="bright"] .big[data-v="att-all"]{background:#E2F3F8}:root[data-theme="bright"] .big[data-v="att-all"] .ic{background:#0B6A86;color:#FFFFFF}
+:root[data-theme="bright"] .big[data-v="pay-all"]{background:#E3F5EA}:root[data-theme="bright"] .big[data-v="pay-all"] .ic{background:#18794E;color:#FFFFFF}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -2460,7 +2515,7 @@ function vPin(){
    '<label class="f" for="upw">الرقم السري الجديد<input class="inp ltr" id="upw" type="password" inputmode="numeric" autocomplete="new-password"></label>'+
    '<button class="btn b-main" type="button" data-a="setPw" data-u="'+h(S.uid)+'">حفظ الرقم السري الجديد</button></div>':'')+
   '<div class="card"><span class="ttl">صوت الجرس</span><div class="picks" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+RINGS.map(function(x){return '<button class="pick" data-a="ringPick" data-t="'+x[0]+'" aria-pressed="'+(ringGet()===x[0])+'">'+x[1]+'</button>';}).join('')+'</div><span class="sub">دوس على أي صوت تسمعه · اللي تختاره هو اللي هيرن على الموبايل ده</span></div>'+
-  '<div class="card"><span class="ttl">شكل الأبلكيشن</span><div class="picks" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+[['auto','تلقائي'],['light','نهاري'],['dark','ليلي']].map(function(x){return '<button class="pick" data-a="theme" data-t="'+x[0]+'" aria-pressed="'+(themeGet()===x[0])+'">'+x[1]+'</button>';}).join('')+'</div><span class="sub">الليلي أريح للعين في وردية الليل · التلقائي بيمشي مع الموبايل</span></div>'+
+  '<div class="card"><span class="ttl">شكل الأبلكيشن</span><div class="picks" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+[['auto','تلقائي'],['light','نهاري'],['dark','ليلي'],['night','ليل الصحرا 🌙'],['bright','ألوان واضحة 🎨']].map(function(x){return '<button class="pick" data-a="theme" data-t="'+x[0]+'" aria-pressed="'+(themeGet()===x[0])+'">'+x[1]+'</button>';}).join('')+'</div><span class="sub">ليل الصحرا: غامق ودهبي · ألوان واضحة: كل قسم بلونه · الليلي أريح للعين بالليل · التلقائي بيمشي مع الموبايل</span></div>'+
   '<p class="hint">اسم المستخدم (@'+h(m.username||'')+') مبيتغيّرش. لو محتاج اسم مستخدم تاني، المدير يعملك حساب جديد.</p>'+
   '<p class="hint" style="text-align:center">نسخة الأبلكيشن '+APP_VER+'</p></div>';
 }
@@ -2472,7 +2527,7 @@ function vErrs(){
    '<span class="sub">ابعت صورة الشاشة دي لـ Claude لو فيه أخطاء متكررة.</span></div>';
 }
 function themeGet(){try{return localStorage.getItem('vkTheme')||'auto';}catch(e){return 'auto';}}
-function themeApply(){var t=themeGet();if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);}
+function themeApply(){var t=themeGet();if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);try{var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',t==='night'?'#121010':t==='bright'?'#1747B8':'#8A4A14');}catch(e){}}
 themeApply();
 
 // ----- users (admin) -----
@@ -2514,7 +2569,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.20.11';
+var APP_VER='2026.11.20.12';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
