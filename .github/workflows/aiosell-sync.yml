@@ -4,9 +4,11 @@
 #   APP_USER, APP_PASS          – an app account (username like in the app) that the sync uses
 name: Aiosell sync
 
+# GitHub starts scheduled runs late and often only once an hour, so one run stays up for ~5h50m
+# and syncs every 10 minutes inside it; the hourly schedule just makes sure a new one is waiting.
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '7 * * * *'
   workflow_dispatch:
     inputs:
       dry:
@@ -24,7 +26,7 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 9
+    timeout-minutes: 355
     steps:
       # until the log-ins are added in Secrets, every run just stops here quietly
       - name: Check log-ins
@@ -77,7 +79,15 @@ jobs:
           AIOSELL_PASS: ${{ secrets.AIOSELL_PASS }}
           APP_USER: ${{ secrets.APP_USER }}
           APP_PASS: ${{ secrets.APP_PASS }}
-        run: node sync/sync.js ${{ (github.event_name == 'workflow_dispatch' && inputs.dry) && '--dry' || '' }}
+          DRY: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry) && '--dry' || '' }}
+        run: |
+          end=$((SECONDS + 20700))
+          while [ $SECONDS -lt $end ]; do
+            t=$SECONDS
+            node sync/sync.js $DRY || echo "this round failed - trying again in 10 minutes"
+            [ -n "$DRY" ] && break
+            w=$((600 - (SECONDS - t))); [ $w -gt 0 ] && sleep $w
+          done
 
       - name: Save session
         if: always() && steps.chk.outputs.ok == 'true' && hashFiles('sync/.state/session.enc') != ''
