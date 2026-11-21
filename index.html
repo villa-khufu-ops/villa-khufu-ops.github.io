@@ -1196,9 +1196,19 @@ function dashMonthLoad(){var D=S.dashM;if(D&&(D.loading||S.now-D.at<5*60000))ret
     T.rn=rn;T.gn=gn;T.dd=dd;T.days=days.length;T.occ=dd?Math.round(rn*100/(allNos().length*dd)):0;
     S.dashM={T:T,at:Date.now()};render();
   }).catch(function(e){S.dashM={err:String(e&&e.code||e),at:Date.now()};render();});}
+// money actually received today: cash orders at the counter + room accounts settled + part payments + bills paid at check-out
+function dashCashLoad(){var D=S.dashC,t=today();if(D&&(D.loading||(D.d===t&&S.now-D.at<2*60000)))return;S.dashC={loading:true,d:t,at:S.now};var t0=Date.parse(t+'T00:00:00');
+  Promise.all([db.collection('log').where('d','==',t).get(),db.collection('rpay').where('doneAt','>=',t0).get().catch(function(){return null;})]).then(function(r){
+    var C={room:0,part:0,out:0,nCash:0,nRoom:0,nOut:0},pre={};
+    if(r[1])r[1].forEach(function(d){var p=d.data();pre[p.room]=(pre[p.room]||0)+(p.amt||0);});
+    r[0].forEach(function(d){var e=d.data();
+      if(e.type==='paid'){if(e.partial){C.part+=e.amount||0;}else{C.room+=e.amount||0;C.nRoom++;}}
+      else if(e.type==='checkout'&&(e.food||e.laundry)){var v=(e.food||0)+(e.laundry||0)-(e.boardFood||0)-(pre[e.room]||0);pre[e.room]=0;if(v>0){C.out+=v;C.nOut++;}}});
+    S.dashC={C:C,d:t,at:Date.now()};render();
+  }).catch(function(e){S.dashC={err:String(e&&e.code||e),d:t,at:Date.now()};render();});}
 function vDash(){
   if(!dashMine())return top('لوحة الأرقام','','home')+'<p class="empty">الصفحة دي لفوزي بس</p>';
-  setTimeout(dashMonthLoad,0);if(!S.gfb)setTimeout(gfbLoad,0);
+  setTimeout(dashMonthLoad,0);setTimeout(dashCashLoad,0);if(!S.gfb)setTimeout(gfbLoad,0);
   var t=today(),nos=allNos(),st=function(x){return nos.filter(function(n){return room(n).status===x;}).length;};
   var occ=st('occ'),clean=st('free'),dirty=st('clean'),mnt=st('maint'),tot=nos.length,pct=tot?Math.round(occ*100/tot):0;
   var arr=arrivals().length,dep=nos.filter(function(n){var a=room(n).arrival;return room(n).status==='occ'&&a&&a.out===t;}).length;
@@ -1224,6 +1234,12 @@ function vDash(){
    row(tile(clean,'فاضية','var(--ok)'),tile(dirty,'محتاجة تنظيف',dirty?'var(--warn)':null,'hk'),tile(tmr,'وصول بكرة'))+(mnt?'<p class="sub" style="margin:0">🔧 '+mnt+' غرفة صيانة</p>':'')+
    sec('💵 الفلوس النهارده')+row(tile(money(food+mini+tour+trn+wash+plan),'إجمالي النهارده','var(--accent)','eod'),tile(money(open),'حسابات مفتوحة · '+openN+' غرفة',null,'rec-acc'))+
    '<div class="card" style="gap:0;padding:8px 14px">'+line('المطعم ('+td.filter(function(o){return isFood(o);}).length+' طلب)',money(food))+line('التلاجة',money(mini))+line('الرحلات',money(tour))+line('الانتقالات',money(trn))+line('الغسيل',money(wash))+line('ترقية الإقامة (هاف/فول بورد)',money(plan))+'</div>'+
+   (function(){var C=(S.dashC||{}).C,cash=(S.orders||[]).filter(function(o){return o.d===t&&o.pay==='cash'&&o.st!=='cancel'&&!o.void;}),cs=billSum(cash);
+     if(!C)return sec('💰 اتحصّل النهارده')+'<p class="empty">'+((S.dashC||{}).err?'ماقدرتش أجيب التحصيل':'بيحمّل…')+'</p>';
+     var tt=cs+C.room+C.part+C.out;
+     return sec('💰 اتحصّل النهارده (فلوس دخلت فعلاً)')+row(tile(money(tt),'إجمالي اللي اتحصّل','var(--ok)','rec-shift'))+
+      '<div class="card" style="gap:0;padding:8px 14px">'+line('نقدي في المطعم والتلاجة ('+cash.length+')',money(cs))+line('تحصيل حسابات غرف ('+C.nRoom+')',money(C.room))+line('عند خروج النزيل ('+C.nOut+')',money(C.out))+line('دفعات جزء من الحساب',money(C.part))+'</div>'+
+      '<p class="sub" style="margin:0">ده غير «إجمالي النهارده»: الإجمالي هو اللي اتسجّل النهارده حتى لو لسه على حساب الغرفة، والتحصيل هو اللي اتدفع فعلاً النهارده (حتى لو كان من أيام قبل كده). الأكل اللي على الهاف/الفول بورد مش بيتحسب تحصيل.</p>';})()+
    sec('📅 الشهر ده')+(M?row(tile(M.dd?M.occ+'%':'—','الإشغال الشهري'+(M.dd?' · '+M.rn+' ليلة غرفة':''),'var(--accent)'),tile(M.gn||'—','ليلة نزيل'+(M.rn?' · متوسط '+Math.round(M.gn/M.rn*10)/10+' في الغرفة':'')))+
     (M.dd&&M.dd<M.days?'<p class="sub" style="margin:0">الإشغال محسوب على '+M.dd+' يوم من '+M.days+' (الأيام اللي قبل كده ما اتسجّلش فيها الإشغال)</p>':'')+
     row(tile(money(M.total),'إجمالي الشهر','var(--accent)'),tile(money(M.food),'المطعم · '+M.n+' طلب',null,'sales'))+
@@ -2699,7 +2715,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.21.12';
+var APP_VER='2026.11.21.13';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
