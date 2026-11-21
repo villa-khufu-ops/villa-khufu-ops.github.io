@@ -223,7 +223,7 @@ async function readAiosell(ctx) {
           null, { timeout: 15000 });
         await page.waitForTimeout(1500);
         const res = await readTable(page);
-        if (res) { rows = res.rows; if (!rows.length) log('تشخيص الجدول: ' + res.diag); }
+        if (res) { rows = res.rows; if (!rows.length || DRY) log('تشخيص الجدول: ' + res.diag.replace(/ أول خانة.*$/, '')); }
       } catch (_) { /* retry once */ }
     }
     if (!rows) {
@@ -275,8 +275,9 @@ async function readTomorrow(ctx) {
           const c = [...tr.cells].map((td) => (td.innerText || '').trim());
           return { room: ((c[iR] || '').match(/\b\d{3}\b/) || [''])[0], pax: parseInt(c[iP], 10), in: toIso(c[iI]), out: toIso(c[iO]), meal: c[iM] || '', comment: iC >= 0 ? (c[iC] || '') : '' };
         }).filter((r) => r.in);
-        return { rows, stale: rows.some((r) => r.in !== T), dmy };
+        return { rows, stale: rows.some((r) => r.in !== T), dmy, heads: hs.join(' | ') };
       }, T);
+      if (DRY && res.heads) log('أعمدة تقرير الوصول: [' + res.heads + ']');
       if (!res.noTable && !res.stale) return { T, rows: res.rows };
       if (res.noTable && attempt === 2) return { T, rows: [] }; // no table after submit = no arrivals
     }

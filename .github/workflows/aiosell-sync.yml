@@ -17,7 +17,8 @@ on:
         default: true
 
 concurrency:
-  group: aiosell-sync
+  # a test run (dry) does not wait behind the long live run
+  group: aiosell-sync-${{ (github.event_name == 'workflow_dispatch' && inputs.dry) && 'dry' || 'live' }}
   cancel-in-progress: false
 
 permissions:
