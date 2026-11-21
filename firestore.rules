@@ -282,7 +282,8 @@ service cloud.firestore {
         && request.resource.data.amt is number && request.resource.data.amt > 0
         && request.resource.data.done == false
         && request.resource.data.method in ['cash', 'card'];
-      allow update: if hasRole(['admin', 'rec', 'shiftm']) && onlyKeys(['done', 'doneAt', 'doneBy']);
+      // the manager's account (also used by the Aiosell sync) can move a part payment with its guest to another room
+      allow update: if isAdmin() || (hasRole(['rec', 'shiftm']) && onlyKeys(['done', 'doneAt', 'doneBy']));
       allow delete: if isAdmin();
     }
 

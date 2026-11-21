@@ -191,6 +191,7 @@ async function readTable(page) {
       meal: find(/meal/i, 4),
       in: find(/check\s*-?\s*in/i, 9),
       out: find(/check\s*-?\s*out/i, 10),
+      bk: find(/booking\s*id/i, -1),
     };
     const body = t.tBodies.length ? [...t.tBodies].flatMap((b) => [...b.rows]) : [...t.rows].slice(1);
     // only the needed columns are read – guest names are never touched
@@ -198,7 +199,9 @@ async function readTable(page) {
       const c = [...tr.cells].map((td) => (td.innerText || '').trim());
       const room = ((c[ix.room] || '').match(/\b\d{3}\b/) || [''])[0];
       const pax = parseInt(c[ix.pax], 10);
-      return { room, status: c[ix.status] || '', pax: Number.isFinite(pax) ? pax : null, meal: c[ix.meal] || '', in: date(c[ix.in]), out: date(c[ix.out]) };
+      // the booking number (not personal data) lets the app follow a guest who moves to another room
+      const bk = ix.bk >= 0 ? ((c[ix.bk] || '').match(/[A-Za-z0-9-]{3,40}/) || [''])[0] : '';
+      return { room, status: c[ix.status] || '', pax: Number.isFinite(pax) ? pax : null, meal: c[ix.meal] || '', in: date(c[ix.in]), out: date(c[ix.out]), bk };
     }).filter((r) => r.room);
     return { rows, diag: `أعمدة=[${hs.join(' | ')}] صفوف=${body.length} أول خانة رقم الغرفة=[${body.slice(0, 4).map((tr) => ((tr.cells[ix.room] || {}).innerText || '').trim().slice(0, 15)).join(' , ')}]` };
   });
@@ -332,7 +335,7 @@ async function applyToApp(ctx, aiosellRows, tmr) {
           if (!R[room].coHold) put(room, { coHold: Date.now() }); // reception sees a red alert with the open checks
           return;
         }
-        const data = { status: 'clean', in: null, out: null, plan: null, pax: null, notes: null, sofa: false, cleanReq: null, coHold: null, coAt: Date.now(), cleanAt: null, src: 'aiosell' };
+        const data = { status: 'clean', in: null, out: null, plan: null, pax: null, notes: null, sofa: false, cleanReq: null, coHold: null, coAt: Date.now(), cleanAt: null, src: 'aiosell', bk: null };
         // a stay-cleaning task still open on this room becomes a full departure cleaning for the same worker
         const ot = R[room].task;
         if (ot && ot.w) { data.task = { w: ot.w, st: 'new', at: Date.now(), ackAt: 0, next: 0, doneAt: 0 }; logs.push({ d: TODAY, at: Date.now(), room, type: 'assign', by: uid, w: ot.w, reason: 'خروج · تنظيف كامل', src: 'aiosell' }); }
@@ -348,6 +351,35 @@ async function applyToApp(ctx, aiosellRows, tmr) {
       const rank = (s) => (/checked\s*in/i.test(s) ? 2 : /assigned/i.test(s) ? 1 : 0);
       const byRoom = {};
       for (const a of A) if (!byRoom[a.room] || rank(a.status) > rank(byRoom[a.room].status)) byRoom[a.room] = a;
+
+      // ---- room move: the booking that was checked in to room X is now checked in to room Y ----
+      // its open bills (restaurant, minibar, tours, transfers, laundry, part payments) follow it to Y automatically
+      rep.move = [];
+      const bkNow = {};
+      for (const room of Object.keys(byRoom)) { const a = byRoom[room]; if (a.bk && rank(a.status) === 2) bkNow[a.bk] = room; }
+      for (const [from, r] of Object.entries(R)) {
+        const to = r.bk && r.status === 'occ' ? bkNow[r.bk] : null;
+        if (!to || to === from || !R[to]) continue;
+        const stayTo = byRoom[to].in || r.in || null, stayFrom = r.in || null;
+        let n = 0; const moves = [];
+        for (const col of ['orders', 'laundry']) {
+          (await db.collection(col).where('room', '==', from).get()).forEach((d) => {
+            const x = d.data();
+            if (x.paid === true || x.void === true || x.st === 'cancel' || (x.stayIn || null) !== stayFrom) return;
+            moves.push([db.collection(col).doc(d.id), { room: to, stayIn: stayTo, movedFrom: from, movedAt: Date.now(), movedBy: uid }]); n++;
+          });
+        }
+        const pays = [];
+        (await db.collection('rpay').where('room', '==', from).get().catch(() => ({ forEach() {} }))).forEach((d) => {
+          const x = d.data(); if (x.done || (x.stayIn || null) !== stayFrom) return;
+          pays.push([db.collection('rpay').doc(d.id), { room: to, stayIn: stayTo }]);
+        });
+        if (!DRY && moves.length) { const b = db.batch(); for (const [ref, data] of moves) b.update(ref, data); await b.commit(); }
+        if (!DRY && pays.length) { const b = db.batch(); for (const [ref, data] of pays) b.update(ref, data); await b.commit().catch(() => {}); }
+        unpaid.delete(from);
+        logs.push({ d: TODAY, at: Date.now(), room: to, type: 'roomMove', by: uid, w: null, reason: `النزيل اتنقل من غرفة ${from} لغرفة ${to} · ${n} فاتورة اتنقلت معاه`, src: 'aiosell' });
+        rep.move.push(`${from}←${to} (${n})`);
+      }
 
       for (const room of Object.keys(byRoom).sort()) {
         const a = byRoom[room]; const r = R[room];
@@ -368,6 +400,7 @@ async function applyToApp(ctx, aiosellRows, tmr) {
           if (!a.in || !a.out) { rep.skip.push(`${room}: تواريخ ناقصة في Aiosell`); continue; }
           if (occ) {
             if (r.in !== a.in || r.out !== a.out) { put(room, { in: a.in, out: a.out }); rep.dates.push(room); }
+            if (a.bk && r.bk !== a.bk) put(room, { bk: a.bk });
             if (a.plan && r.plan !== a.plan) { put(room, { plan: a.plan }); rep.plan.push(`${room} ${a.plan}`); }
             setPaxNotes();
           } else if (r.status === 'maint') {
@@ -380,7 +413,7 @@ async function applyToApp(ctx, aiosellRows, tmr) {
             // don't put the old guest back in the room, or the cleaned room would need cleaning again
             rep.skip.push(`${room}: الأبلكيشن عامل لها تشيك آوت بدري وAiosell لسه بيقول Checked In · سجّل الخروج على Aiosell`);
           } else {
-            put(room, { status: 'occ', in: a.in, out: a.out, plan: a.plan, pax: a.pax, notes: (r.arrival && r.arrival.notes) || r.notes || null, sofa: false, cleanReq: null, task: null, arrival: null, src: 'aiosell' });
+            put(room, { status: 'occ', in: a.in, out: a.out, plan: a.plan, pax: a.pax, notes: (r.arrival && r.arrival.notes) || r.notes || null, sofa: false, cleanReq: null, task: null, arrival: null, src: 'aiosell', bk: a.bk || null });
             addLog(room, 'checkin', 'تشيك إن من Aiosell');
             rep.in.push(room);
           }
@@ -448,6 +481,7 @@ async function applyToApp(ctx, aiosellRows, tmr) {
 
 function summary(rep) {
   const parts = [];
+  if (rep.move && rep.move.length) parts.push(`نقل غرف (الفواتير اتنقلت): ${rep.move.join('، ')}`);
   if (rep.in.length) parts.push(`تشيك إن: ${rep.in.join('، ')}`);
   if (rep.out.length) parts.push(`خروج: ${rep.out.join('، ')}`);
   if (rep.arrAdd.length) parts.push(`وصول اتضاف: ${rep.arrAdd.join('، ')}`);
