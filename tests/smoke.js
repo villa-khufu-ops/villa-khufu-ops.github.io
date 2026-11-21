@@ -11,6 +11,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const page = async (f, q = '') => { const p = await b.newPage({ viewport: { width: 420, height: 1200 } }); p.errs = []; p.on('pageerror', e => p.errs.push(e.message));
     await p.goto('http://localhost:8799/' + f + q); await p.waitForTimeout(2000); return p; };
   const txt = p => p.locator('body').innerText();
+  let t;
 
   // 1. manager home + main tiles
   let p = await page('admin.html');
@@ -18,13 +19,20 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(await p.locator('[data-v="rec"]').count() > 0, 'reception tile present');
   ok(p.errs.length === 0, 'manager home: no script errors ' + p.errs.join(' | '));
 
+  // 1b. manager dashboard
+  p = await page('admin.html');
+  await p.click('[data-v="dash"]', { force: true }); await p.waitForTimeout(800);
+  t = await txt(p);
+  ok(t.includes('الإشغال') && t.includes('الفلوس النهارده'), 'manager dashboard renders');
+  ok(p.errs.length === 0, 'dashboard: no script errors ' + p.errs.join(' | '));
+
   // 2. restaurant order with service + VAT
   p = await page('rec.html');
   await p.click('[data-v="rest"]', { force: true }); await p.waitForTimeout(400);
   await p.click('[data-a="cat"][data-i="4"]'); await p.waitForTimeout(200);
   await p.locator('[data-a="q"][data-d="1"]').first().click(); await p.waitForTimeout(200);
   await p.click('.cartbar'); await p.waitForTimeout(400);
-  let t = await txt(p);
+  t = await txt(p);
   ok(/خدمة 12%/.test(t) && /ضريبة 14%/.test(t), 'cart shows service and VAT');
   ok(t.includes('10.21'), 'pizza $8 total with service and VAT is $10.21');
   ok(p.errs.length === 0, 'restaurant: no script errors ' + p.errs.join(' | '));

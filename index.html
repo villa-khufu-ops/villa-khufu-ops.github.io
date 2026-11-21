@@ -769,6 +769,7 @@ function vBlocked(){
 
 function vHome(){
   var m=meDoc(),a=areas(),tiles='';
+  if(myRole()==='admin')tiles+=big('dash','📊 لوحة الأرقام','الغرف · الفلوس · الموظفين · النزلاء في صفحة واحدة',ICON.report,false);
   if(a.indexOf('rec')>=0)tiles+=big('rec','الاستقبال','وصول النهارده · خروج · نقل · طلب نظافة',ICON.desk,true);
   if(a.indexOf('exp')>=0){expListen();tiles+=big('exp','الحسابات والمصاريف','ثابتة · متغيرة · رحلات · سلف · مشتريات'+(expTodo()?' · '+expTodo()+' مستني موافقتك':''),ICON.cash,!!expTodo());}
   if(a.indexOf('hk')>=0)tiles+=big('hk','التنظيف','توزيع · مراجعة · صيانة',ICON.broom,false,urg('hk'));
@@ -1121,6 +1122,51 @@ function salesLoad(){var R=S.sales;if(!R||!db)return;R.loading=true;R.err='';ren
 function salesItems(rows){var M={};rows.forEach(function(x){(x.o.items||[]).forEach(function(i){var k=i.n,m=M[k]=M[k]||{n:k,q:0,free:0,amt:0};if(+i.p>0){m.q+=+i.q||0;m.amt=r2(m.amt+(+i.p)*(+i.q||0));}else m.free+=+i.q||0;});});
   return Object.keys(M).map(function(k){return M[k];}).sort(function(a,b){return b.amt-a.amt||b.q-a.q;});}
 function salesSum(rows){var T={n:rows.length,sub:0,svc:0,vat:0,total:0,room:0,cash:0};rows.forEach(function(x){T.sub+=x.sub;T.svc+=x.svc;T.vat+=x.vat;T.total+=x.total;if(x.pay==='نقدي')T.cash+=x.total;else T.room+=x.total;});['sub','svc','vat','total','room','cash'].forEach(function(k){T[k]=r2(T[k]);});return T;}
+
+// ---------- manager dashboard: today's picture in one page (live data + this month's money) ----------
+function dashMonthLoad(){var D=S.dashM;if(D&&(D.loading||S.now-D.at<5*60000))return;var m1=Date.parse(today().slice(0,8)+'01T00:00:00');
+  S.dashM={loading:true,at:S.now};
+  Promise.all([db.collection('orders').where('at','>=',m1).get(),db.collection('laundry').where('at','>=',m1).get()]).then(function(r){
+    var T={food:0,mini:0,tour:0,trn:0,wash:0,n:0};
+    r[0].forEach(function(d){var o=d.data();if(o.void===true||o.st==='cancel'||o.kind==='plan')return;var v=o.total||0;if(o.kind==='mini')T.mini+=v;else if(o.kind==='tour'&&o.tour&&o.tour.tr)T.trn+=v;else if(o.kind==='tour')T.tour+=v;else{T.food+=v;T.n++;}});
+    r[1].forEach(function(d){var o=d.data();if(o.void===true||o.st==='cancel')return;T.wash+=o.price||0;});
+    T.total=T.food+T.mini+T.tour+T.trn+T.wash;S.dashM={T:T,at:Date.now()};render();
+  }).catch(function(e){S.dashM={err:String(e&&e.code||e),at:Date.now()};render();});}
+function vDash(){
+  if(myRole()!=='admin')return top('لوحة الأرقام','','home')+'<p class="empty">الصفحة دي للمدير بس</p>';
+  setTimeout(dashMonthLoad,0);if(!S.gfb)setTimeout(gfbLoad,0);
+  var t=today(),nos=allNos(),st=function(x){return nos.filter(function(n){return room(n).status===x;}).length;};
+  var occ=st('occ'),clean=st('free'),dirty=st('clean'),mnt=st('maint'),tot=nos.length,pct=tot?Math.round(occ*100/tot):0;
+  var arr=arrivals().length,dep=nos.filter(function(n){var a=room(n).arrival;return room(n).status==='occ'&&a&&a.out===t;}).length;
+  var tmr=((S.prep||{})[tomorrow()]||{}).arr;tmr=Array.isArray(tmr)?tmr.length:(tmr&&typeof tmr==='object'?Object.keys(tmr).length:0);
+  var td=(S.orders||[]).filter(function(o){return o.d===t&&o.void!==true&&o.st!=='cancel'&&o.kind!=='plan';});
+  var food=0,mini=0,tour=0,trn=0;td.forEach(function(o){var v=o.total||0;if(o.kind==='mini')mini+=v;else if(o.kind==='tour'&&o.tour&&o.tour.tr)trn+=v;else if(o.kind==='tour')tour+=v;else food+=v;});
+  var wash=(S.laundry||[]).filter(function(o){return o.d===t&&o.void!==true&&o.st!=='cancel';}).reduce(function(a,o){return a+(o.price||0);},0);
+  var A=openAccounts(),open=Object.keys(A).reduce(function(a,k){return a+(A[k].total||0);},0),openN=Object.keys(A).filter(function(k){return A[k].total>0;}).length;
+  var late=(S.orders||[]).filter(function(o){return isFood(o)&&(o.st==='new'||o.st==='prep')&&S.now-(o.at||0)>30*60000;}).length,unpr=prtBad().length;
+  var gq=S.greq||[],gqN=function(ty){return gq.filter(function(g){return g.type===ty;}).length;};
+  var att=(S.attToday||[]),inNow=att.filter(function(a){return a.st==='open';}),noDrv=canDrv()?trNeedDrv().length:0;
+  var sv=((S.gfb||{}).list||[]).filter(function(g){return g.type==='survey'&&S.now-(g.at||0)<30*86400000;}),rates=[];sv.forEach(function(g){var R=g.rate||{};Object.keys(R).forEach(function(k){if(R[k]>0)rates.push(R[k]);});});
+  var avg=rates.length?Math.round(rates.reduce(function(a,b){return a+b;},0)/rates.length*10)/10:0;
+  var M=(S.dashM||{}).T;
+  var tile=function(v,l,c,go){var inner='<b style="font-size:26px;font-weight:800;line-height:1.2'+(c?';color:'+c:'')+'">'+v+'</b><span class="sub">'+l+'</span>';return go?'<button class="card" data-a="go" data-v="'+go+'" style="flex:1;min-width:0;align-items:flex-start;gap:2px;padding:12px;text-align:right">'+inner+'</button>':'<span class="card" style="flex:1;min-width:0;align-items:flex-start;gap:2px;padding:12px">'+inner+'</span>';};
+  var row=function(){return '<div style="display:grid;grid-template-columns:repeat('+arguments.length+',minmax(0,1fr));gap:10px">'+Array.prototype.join.call(arguments,'')+'</div>';};
+  var line=function(l,v){return '<div class="row" style="justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)"><span>'+l+'</span><b class="money">'+v+'</b></div>';};
+  var sec=function(ti){return '<span class="ttl" style="margin-top:6px">'+ti+'</span>';};
+  var todo=[];if(noDrv)todo.push(['tr-drv','🚗 '+noDrv+' انتقال مستني سواق']);if(unpr)todo.push(['kit','🖨️ '+unpr+' أوردر ما اتطبعش']);if(late)todo.push(['kit','⏱️ '+late+' أوردر متأخر أكتر من نص ساعة']);if(gqN('complaint'))todo.push(['gfb','😟 '+gqN('complaint')+' شكوى جديدة']);if(expTodo&&expTodo())todo.push(['exp','💵 '+expTodo()+' مصروف مستني موافقتك']);
+  return top('لوحة الأرقام',fmt(t)+' · '+hm(S.now),'home')+'<div class="stack">'+toastHtml()+
+   (todo.length?'<div class="card" style="gap:6px;border:2px solid var(--alert)"><b>محتاج منك ('+todo.length+')</b>'+todo.map(function(x){return '<button class="btn b-line" style="justify-content:flex-start;min-height:44px" data-a="go" data-v="'+x[0]+'">'+x[1]+'</button>';}).join('')+'</div>':'<div class="card" style="border:2px solid var(--ok)"><b style="color:var(--ok)">✓ مفيش حاجة مستنياك دلوقتي</b></div>')+
+   sec('🏨 الغرف')+row(tile(pct+'%','الإشغال · '+occ+' من '+tot,'var(--accent)','rec'),tile(arr,'وصول النهارده',null,'rec-arr'),tile(dep,'خروج النهارده'))+
+   row(tile(clean,'فاضية','var(--ok)'),tile(dirty,'محتاجة تنظيف',dirty?'var(--warn)':null,'hk'),tile(tmr,'وصول بكرة'))+(mnt?'<p class="sub" style="margin:0">🔧 '+mnt+' غرفة صيانة</p>':'')+
+   sec('💵 الفلوس النهارده')+row(tile(money(food+mini+tour+trn+wash),'إجمالي النهارده','var(--accent)','eod'),tile(money(open),'حسابات مفتوحة · '+openN+' غرفة',null,'rec-acc'))+
+   '<div class="card" style="gap:0;padding:8px 14px">'+line('المطعم ('+td.filter(isFood).length+' طلب)',money(food))+line('التلاجة',money(mini))+line('الرحلات',money(tour))+line('الانتقالات',money(trn))+line('الغسيل',money(wash))+'</div>'+
+   sec('📅 الشهر ده')+(M?row(tile(money(M.total),'إجمالي الشهر','var(--accent)'),tile(money(M.food),'المطعم · '+M.n+' طلب',null,'sales'))+'<div class="card" style="gap:0;padding:8px 14px">'+line('التلاجة',money(M.mini))+line('الرحلات',money(M.tour))+line('الانتقالات',money(M.trn))+line('الغسيل',money(M.wash))+'</div>':'<p class="empty">'+((S.dashM||{}).err?'ماقدرتش أجيب أرقام الشهر':'بيحمّل أرقام الشهر…')+'</p>')+
+   sec('👥 الموظفين')+row(tile(inNow.length,'في الفندق دلوقتي','var(--ok)','att-all'),tile(att.length,'سجّلوا حضور النهارده'))+
+   (inNow.length?'<p class="sub" style="margin:0">'+inNow.map(function(a){return h(wname(a.uid))+' ('+hm(a.inAt)+')';}).join(' · ')+'</p>':'')+
+   sec('🛎️ النزلاء')+row(tile(gq.filter(function(g){return g.type==='food'||g.type==='tour';}).length,'طلبات QR جديدة',null,'rec'),tile(gqN('clean'),'طلبات نظافة',null,'hk'),tile(gqN('complaint'),'شكاوي جديدة',gqN('complaint')?'var(--alert)':null,'gfb'))+
+   row(tile(avg?avg+' / 5':'—','تقييم الاستبيان (30 يوم) · '+sv.length+' نزيل',avg&&avg<4?'var(--warn)':'var(--ok)','gfb'),tile(late,'أوردرات متأخرة',late?'var(--alert)':null,'kit'))+
+   '</div>';
+}
 function vSales(){
   if(!canSales())return top('مبيعات المطعم','','home')+'<p class="empty">التقرير ده للمدير بس</p>';
   var R=S.sales=S.sales||{from:today(),to:today(),tab:'sum'};if(!R.rows&&!R.loading&&!R.err)setTimeout(salesLoad,0);
@@ -2556,7 +2602,7 @@ function vUserForm(){
 }
 
 // ---------- render ----------
-var VIEWS={sales:vSales,'tr-drv':vTrDrv,'mv-item':vMvItem,gfb:vGfb,meals:vMeals,'msg-new':vMsgNew,'tr-rep':vTrRep,'adj-mgr':vAdjMgr,transfer:vTransfer,pay:vPay,'pay-all':vPayAll,exp:vExp,'exp-new':vExpNew,errs:vErrs,att:vAtt,'att-all':vAttAll,eod:vEod,'rec-inv':vInv,'rec-inq':vRecInq,'rec-chats':vRecChats,'rec-chat':vRecChat,tour:vTour,'rec-greq':vRecGreq,qr:vQr,daily:vDaily,home:vHome,rec:vRec,'rec-arr':vRecArr,'rec-in':vRecIn,'rec-form':vRecForm,'rec-occ':vRecOcc,'rec-room':vRecRoom,'rec-move':vRecMove,hk:vHk,'hk-room':vHkRoom,work:vWork,report:vReport,users:vUsers,'user-form':vUserForm,pin:vPin,rest:vRest,'rec-acc':vRecAcc,'hk-tmr':vHkTmr,mnt:vMnt,'rec-aio':vRecAio,'rec-lost':vRecLost,'rec-shift':vRecShift,help:vHelp,'rec-mpick':vRecMPick,'rec-rep':vRecRep,'rec-acc-room':vRecAccRoom,mini:vMini,lnd:vLnd,'lnd-new':vLndNew,'rest-cart':vRestCart,'rest-orders':vRestOrders,kit:vKit};
+var VIEWS={'dash':vDash,sales:vSales,'tr-drv':vTrDrv,'mv-item':vMvItem,gfb:vGfb,meals:vMeals,'msg-new':vMsgNew,'tr-rep':vTrRep,'adj-mgr':vAdjMgr,transfer:vTransfer,pay:vPay,'pay-all':vPayAll,exp:vExp,'exp-new':vExpNew,errs:vErrs,att:vAtt,'att-all':vAttAll,eod:vEod,'rec-inv':vInv,'rec-inq':vRecInq,'rec-chats':vRecChats,'rec-chat':vRecChat,tour:vTour,'rec-greq':vRecGreq,qr:vQr,daily:vDaily,home:vHome,rec:vRec,'rec-arr':vRecArr,'rec-in':vRecIn,'rec-form':vRecForm,'rec-occ':vRecOcc,'rec-room':vRecRoom,'rec-move':vRecMove,hk:vHk,'hk-room':vHkRoom,work:vWork,report:vReport,users:vUsers,'user-form':vUserForm,pin:vPin,rest:vRest,'rec-acc':vRecAcc,'hk-tmr':vHkTmr,mnt:vMnt,'rec-aio':vRecAio,'rec-lost':vRecLost,'rec-shift':vRecShift,help:vHelp,'rec-mpick':vRecMPick,'rec-rep':vRecRep,'rec-acc-room':vRecAccRoom,mini:vMini,lnd:vLnd,'lnd-new':vLndNew,'rest-cart':vRestCart,'rest-orders':vRestOrders,kit:vKit};
 var NEED={'mv-item':['rec','rest'],gfb:['users','rec'],meals:['users','rest','rec','kit'],'tr-rep':'rec',transfer:'rec','pay-all':'users',errs:'users','att-all':'users',eod:'rec','rec-inv':'rec','rec-inq':'rec','rec-chats':'rec','rec-chat':'rec',tour:'rec','rec-greq':'rec',qr:'rec','hk-tmr':'hk',mnt:'mnt','rec-aio':'rec','rec-lost':'rec','rec-shift':'rec','rec-mpick':'rec','rec-rep':'rec','rec-acc':'rec','rec-acc-room':'rec',mini:['rec','hk','work'],lnd:['lnd','rec','hk','work'],'lnd-new':['lnd','rec','hk','work'],rest:['rest','rec'],'rest-cart':['rest','rec'],'rest-orders':['rest','rec','kit'],kit:'kit',daily:'hk',rec:'rec','rec-arr':'rec','rec-in':'rec','rec-form':'rec','rec-occ':'rec','rec-room':'rec','rec-move':'rec',hk:'hk','hk-room':'hk',work:'work',users:'users','user-form':'users'};
 function current(){
   if(!configured)return vNoConfig;
@@ -2571,7 +2617,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.21.1';
+var APP_VER='2026.11.21.2';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
