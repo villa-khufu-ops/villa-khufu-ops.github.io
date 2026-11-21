@@ -1168,10 +1168,10 @@ function dashMonthLoad(){var D=S.dashM;if(D&&(D.loading||S.now-D.at<5*60000))ret
   var days=[];for(var d=today().slice(0,8)+'01';d<=today();d=dAdd(d,1))days.push(d);
   Promise.all([db.collection('orders').where('at','>=',m1).get(),db.collection('laundry').where('at','>=',m1).get(),
     Promise.all(days.map(function(d){return db.collection('prep').doc(d).get().then(function(x){return x.exists?(x.data().nights||null):null;}).catch(function(){return null;});}))]).then(function(r){
-    var T={food:0,mini:0,tour:0,trn:0,wash:0,n:0},DR={},CR={};
-    r[0].forEach(function(d){var o=d.data();if(o.void===true||o.st==='cancel'||o.kind==='plan')return;var v=o.total||0;if(o.kind==='tour'&&o.tour&&o.tour.tr)drvAdd(DR,CR,o);if(o.kind==='mini')T.mini+=v;else if(o.kind==='tour'&&o.tour&&o.tour.tr)T.trn+=v;else if(o.kind==='tour')T.tour+=v;else{T.food+=v;T.n++;}});
+    var T={food:0,mini:0,tour:0,trn:0,wash:0,plan:0,n:0},DR={},CR={};
+    r[0].forEach(function(d){var o=d.data();if(o.void===true||o.st==='cancel')return;var v=o.total||0;if(o.kind==='plan'){T.plan+=v;return;}if(o.kind==='tour'&&o.tour&&o.tour.tr)drvAdd(DR,CR,o);if(o.kind==='mini')T.mini+=v;else if(o.kind==='tour'&&o.tour&&o.tour.tr)T.trn+=v;else if(o.kind==='tour')T.tour+=v;else{T.food+=v;T.n++;}});
     r[1].forEach(function(d){var o=d.data();if(o.void===true||o.st==='cancel')return;T.wash+=o.price||0;});
-    T.total=T.food+T.mini+T.tour+T.trn+T.wash;T.DR=DR;T.CR=CR;
+    T.total=T.food+T.mini+T.tour+T.trn+T.wash+T.plan;T.DR=DR;T.CR=CR;
     // monthly occupancy from the nightly snapshots (prep/{date}.nights): occupied room-nights / (rooms x days we have)
     var rn=0,gn=0,dd=0;r[2].forEach(function(m){if(!m)return;dd++;Object.keys(m).forEach(function(k){rn++;gn+=(m[k]&&m[k].x)||1;});});
     T.rn=rn;T.gn=gn;T.dd=dd;T.days=days.length;T.occ=dd?Math.round(rn*100/(allNos().length*dd)):0;
@@ -1184,8 +1184,8 @@ function vDash(){
   var occ=st('occ'),clean=st('free'),dirty=st('clean'),mnt=st('maint'),tot=nos.length,pct=tot?Math.round(occ*100/tot):0;
   var arr=arrivals().length,dep=nos.filter(function(n){var a=room(n).arrival;return room(n).status==='occ'&&a&&a.out===t;}).length;
   var tmr=((S.prep||{})[tomorrow()]||{}).arr;tmr=Array.isArray(tmr)?tmr.length:(tmr&&typeof tmr==='object'?Object.keys(tmr).length:0);
-  var td=(S.orders||[]).filter(function(o){return o.d===t&&o.void!==true&&o.st!=='cancel'&&o.kind!=='plan';});
-  var food=0,mini=0,tour=0,trn=0;td.forEach(function(o){var v=o.total||0;if(o.kind==='mini')mini+=v;else if(o.kind==='tour'&&o.tour&&o.tour.tr)trn+=v;else if(o.kind==='tour')tour+=v;else food+=v;});
+  var td=(S.orders||[]).filter(function(o){return o.d===t&&o.void!==true&&o.st!=='cancel';});
+  var food=0,mini=0,tour=0,trn=0,plan=0;td.forEach(function(o){var v=o.total||0;if(o.kind==='plan')plan+=v;else if(o.kind==='mini')mini+=v;else if(o.kind==='tour'&&o.tour&&o.tour.tr)trn+=v;else if(o.kind==='tour')tour+=v;else food+=v;});
   var wash=(S.laundry||[]).filter(function(o){return o.d===t&&o.void!==true&&o.st!=='cancel';}).reduce(function(a,o){return a+(o.price||0);},0);
   var A=openAccounts(),open=Object.keys(A).reduce(function(a,k){return a+(A[k].total||0);},0),openN=Object.keys(A).filter(function(k){return A[k].total>0;}).length;
   var late=(S.orders||[]).filter(function(o){return isFood(o)&&(o.st==='new'||o.st==='prep')&&S.now-(o.at||0)>30*60000;}).length,unpr=prtBad().length;
@@ -1203,12 +1203,12 @@ function vDash(){
    (todo.length?'<div class="card" style="gap:6px;border:2px solid var(--alert)"><b>محتاج منك ('+todo.length+')</b>'+todo.map(function(x){return '<button class="btn b-line" style="justify-content:flex-start;min-height:44px" data-a="go" data-v="'+x[0]+'">'+x[1]+'</button>';}).join('')+'</div>':'<div class="card" style="border:2px solid var(--ok)"><b style="color:var(--ok)">✓ مفيش حاجة مستنياك دلوقتي</b></div>')+
    sec('🏨 الغرف')+row(tile(pct+'%','الإشغال · '+occ+' من '+tot,'var(--accent)','rec'),tile(arr,'وصول النهارده',null,'rec-arr'),tile(dep,'خروج النهارده'))+
    row(tile(clean,'فاضية','var(--ok)'),tile(dirty,'محتاجة تنظيف',dirty?'var(--warn)':null,'hk'),tile(tmr,'وصول بكرة'))+(mnt?'<p class="sub" style="margin:0">🔧 '+mnt+' غرفة صيانة</p>':'')+
-   sec('💵 الفلوس النهارده')+row(tile(money(food+mini+tour+trn+wash),'إجمالي النهارده','var(--accent)','eod'),tile(money(open),'حسابات مفتوحة · '+openN+' غرفة',null,'rec-acc'))+
-   '<div class="card" style="gap:0;padding:8px 14px">'+line('المطعم ('+td.filter(isFood).length+' طلب)',money(food))+line('التلاجة',money(mini))+line('الرحلات',money(tour))+line('الانتقالات',money(trn))+line('الغسيل',money(wash))+'</div>'+
+   sec('💵 الفلوس النهارده')+row(tile(money(food+mini+tour+trn+wash+plan),'إجمالي النهارده','var(--accent)','eod'),tile(money(open),'حسابات مفتوحة · '+openN+' غرفة',null,'rec-acc'))+
+   '<div class="card" style="gap:0;padding:8px 14px">'+line('المطعم ('+td.filter(function(o){return isFood(o);}).length+' طلب)',money(food))+line('التلاجة',money(mini))+line('الرحلات',money(tour))+line('الانتقالات',money(trn))+line('الغسيل',money(wash))+line('ترقية الإقامة (هاف/فول بورد)',money(plan))+'</div>'+
    sec('📅 الشهر ده')+(M?row(tile(M.dd?M.occ+'%':'—','الإشغال الشهري'+(M.dd?' · '+M.rn+' ليلة غرفة':''),'var(--accent)'),tile(M.gn||'—','ليلة نزيل'+(M.rn?' · متوسط '+Math.round(M.gn/M.rn*10)/10+' في الغرفة':'')))+
     (M.dd&&M.dd<M.days?'<p class="sub" style="margin:0">الإشغال محسوب على '+M.dd+' يوم من '+M.days+' (الأيام اللي قبل كده ما اتسجّلش فيها الإشغال)</p>':'')+
     row(tile(money(M.total),'إجمالي الشهر','var(--accent)'),tile(money(M.food),'المطعم · '+M.n+' طلب',null,'sales'))+
-    '<p class="sub" style="margin:0">إجمالي الشهر = كل اللي اتسجّل على الأبلكيشن من أول الشهر: مطعم + تلاجة + رحلات + انتقالات + غسيل، المدفوع واللي لسه على حساب الغرف. سعر الغرف نفسه مش داخل فيه (ده في Aiosell).</p>'+'<div class="card" style="gap:0;padding:8px 14px">'+line('التلاجة',money(M.mini))+line('الرحلات',money(M.tour))+line('الانتقالات',money(M.trn))+line('الغسيل',money(M.wash))+'</div>':'<p class="empty">'+((S.dashM||{}).err?'ماقدرتش أجيب أرقام الشهر':'بيحمّل أرقام الشهر…')+'</p>')+
+    '<p class="sub" style="margin:0">إجمالي الشهر = كل اللي اتسجّل على الأبلكيشن من أول الشهر: مطعم + تلاجة + رحلات + انتقالات + غسيل + ترقية الإقامة اللي اتعملت من الأبلكيشن، المدفوع واللي لسه على حساب الغرف. سعر الغرف ووجبات الهاف/الفول بورد المحجوزة من الأول مش داخلين (دول في Aiosell)، والطبق المجاني للهاف/الفول بورد بيتحسب صفر.</p>'+'<div class="card" style="gap:0;padding:8px 14px">'+line('التلاجة',money(M.mini))+line('الرحلات',money(M.tour))+line('الانتقالات',money(M.trn))+line('الغسيل',money(M.wash))+line('ترقية الإقامة (هاف/فول بورد)',money(M.plan))+'</div>':'<p class="empty">'+((S.dashM||{}).err?'ماقدرتش أجيب أرقام الشهر':'بيحمّل أرقام الشهر…')+'</p>')+
    sec('🚗 العربيات والسواقين · الشهر ده')+(M&&M.DR?(Object.keys(M.CR).length?'<p class="sub" style="margin:0">'+drvTop(M.CR)+'</p>':'')+drvCards(M.DR):'<p class="empty">بيحمّل…</p>')+'<button class="btn b-main" data-a="go" data-v="drv-rep">📋 تقرير السواقين · اختار السواق والفترة</button>'+
    sec('👥 الموظفين')+row(tile(inNow.length,'في الفندق دلوقتي','var(--ok)','att-all'),tile(att.length,'سجّلوا حضور النهارده'))+
    (inNow.length?'<p class="sub" style="margin:0">'+inNow.map(function(a){return h(wname(a.uid))+' ('+hm(a.inAt)+')';}).join(' · ')+'</p>':'')+
@@ -2666,7 +2666,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.21.4';
+var APP_VER='2026.11.21.5';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
