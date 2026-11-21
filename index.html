@@ -673,7 +673,8 @@ function billSum(l){return l.reduce(function(s,o){return s+(o.total||0);},0);}
 function ordUpd(id,patch){if(!db)return;db.collection('orders').doc(id).set(patch,{merge:true}).catch(function(e){flash(e&&e.code==='permission-denied'?'فيه تحديث ناقص في السيستم · بلّغ المدير':'ما اتحفظش، اتأكد من النت وجرّب تاني');});}
 function ordById(id){return S.orders.filter(function(o){return o.id===id;})[0]||S.bills.filter(function(o){return o.id===id;})[0];}
 // ----- laundry helpers -----
-function lPrice(p){return Math.ceil((p||0)/4);}
+// laundry price: every 2 pieces $1 (an odd piece counts as 2) · from 21 Nov 2026 (was every 4 pieces $1)
+function lPrice(p){return Math.ceil((p||0)/2);}
 function laundryStaff(){return staffBy(function(s){return s.role==='lnd';});}
 function lndBack(){var x=homeOf();return x==='lnd'?null:x;}
 function roomLBill(no){var r=room(no);return S.lbills.filter(function(o){return o.room===no&&o.st!=='cancel'&&(o.stayIn||null)===(r.in||null);}).sort(function(a,b){return a.at-b.at;});}
@@ -1281,7 +1282,7 @@ function vLnd(){
     return '<div class="card'+(o.st==='new'?' flash':'')+'"><div class="row"><span class="badge'+(o.st==='new'?'':' occ')+'"><small>غرفة</small><b>'+h(o.room)+'</b></span><span class="grow"><span class="ttl">فاتورة #'+(o.no||'')+' · '+o.pieces+' قطعة</span><br><span style="font-size:12px;font-weight:600;opacity:.85">'+fmt(o.d)+' '+hm(o.at)+' · '+h(wname(o.by))+'</span></span><span class="chip '+st[1]+'">'+st[0]+'</span></div>'+
      (o.note?'<span class="note" style="color:var(--ink)">'+h(o.note)+'</span>':'')+'<div class="row" style="justify-content:space-between"><span class="sub">على حساب الغرفة</span><b class="money">'+money(o.price)+'</b></div>'+acts+'</div>';}).join(''):'<p class="empty">مفيش غسيل في المغسلة</p>';
   return top('المغسلة',list.length+' فاتورة في المغسلة',lndBack(),soloBtns('lnd'))+
-   '<div class="stack">'+toastHtml()+banner+(has('lnd')?soundHint():'')+big('lnd-new','غسيل جديد','كل 4 قطع بـ $1 · بتتضاف على حساب الغرفة',ICON.wash,true)+
+   '<div class="stack">'+toastHtml()+banner+(has('lnd')?soundHint():'')+big('lnd-new','غسيل جديد','كل قطعتين بـ $1 · بتتضاف على حساب الغرفة',ICON.wash,true)+
    '<h2 style="font-size:15px;margin-top:4px">موجود بالمغسلة</h2>'+body+'</div>';
 }
 function vLndNew(){
@@ -1289,7 +1290,7 @@ function vLndNew(){
   return top('غسيل جديد','سجّل عدد القطع ورقم الغرفة','lnd')+'<div class="stack">'+toastHtml()+
    '<div class="card" style="align-items:center"><span class="ttl">عدد القطع</span><div class="qty" style="align-self:center"><button data-a="lp" data-d="1" aria-label="زيادة">+</button><b style="font-size:24px;min-width:48px">'+p+'</b><button data-a="lp" data-d="-1" aria-label="تقليل">−</button></div>'+
    '<div class="picks" style="grid-template-columns:repeat(4,minmax(0,1fr));width:100%">'+[4,8,12,16].map(function(n){return '<button class="pick" data-a="lpSet" data-v="'+n+'" aria-pressed="'+(p===n)+'">'+n+' قطع</button>';}).join('')+'</div>'+
-   '<div class="row" style="justify-content:space-between;width:100%;border-top:1px solid var(--line);padding-top:8px"><span class="sub">'+lPrice(p)+' × $1 (كل 4 قطع بـ $1)</span><b class="money" style="font-size:22px">'+money(lPrice(p))+'</b></div></div>'+
+   '<div class="row" style="justify-content:space-between;width:100%;border-top:1px solid var(--line);padding-top:8px"><span class="sub">'+lPrice(p)+' × $1 (كل قطعتين بـ $1)</span><b class="money" style="font-size:22px">'+money(lPrice(p))+'</b></div></div>'+
    '<span class="ttl">رقم الغرفة</span>'+(occ.length?'<div class="grid3">'+occ.map(function(no){return '<button class="room'+(D.room===no?' sel':'')+'" style="min-height:56px" data-a="lRoom" data-n="'+no+'" aria-pressed="'+(D.room===no)+'"><b>'+no+'</b></button>';}).join('')+'</div>':'<p class="sub">مفيش غرف مشغولة دلوقتي</p>')+
    '<label class="f" for="lnote">ملاحظة (اختياري)<textarea class="inp" id="lnote" placeholder="مثلاً: كوي بس · قميص أبيض لوحده"></textarea></label>'+
    (S.err?'<p class="err" role="alert">'+h(S.err)+'</p>':'')+
@@ -2672,7 +2673,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.21.8';
+var APP_VER='2026.11.21.9';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
