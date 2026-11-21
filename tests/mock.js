@@ -18,6 +18,6 @@ function col(name){var b=q(name);b.doc=function(id){return {onSnapshot:function(
  b.add=function(d){DB[name]=DB[name]||{};var nid='x'+(seq++);DB[name][nid]=JSON.parse(JSON.stringify(d));notify(name);return Promise.resolve({id:nid})};return b;}
 window.__DB=DB;window.__UID=window.__UID||'u1';
 window.firebase={initializeApp:function(){return {}},apps:[],auth:function(){return {onAuthStateChanged:function(f){setTimeout(function(){f({uid:window.__UID})},10)},signOut:function(){}}},firestore:function(){return {collection:col,enablePersistence:function(){return Promise.resolve()},batch:function(){var ops=[];return {set:function(r,p,o){ops.push([r,p,o]);},commit:function(){ops.forEach(function(x){x[0].set(x[1],x[2]);});return Promise.resolve()}}}}}};
-window.firebase.auth.EmailAuthProvider={};window.firebase.firestore.FieldValue={delete:function(){return {__del:1};}};
+window.firebase.auth.EmailAuthProvider={};window.firebase.firestore.FieldValue={delete:function(){return {__del:1};},serverTimestamp:function(){var n=Date.now();return {toMillis:function(){return n;}};}};
 window.FIREBASE_CONFIG={apiKey:'x',projectId:'y'};
 })();

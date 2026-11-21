@@ -214,17 +214,20 @@ service cloud.firestore {
       allow read: if hasRole(['admin', 'hkm', 'hks', 'shiftm']) || (isStaff() && resource.data.uid == request.auth.uid);
       allow create: if isStaff() && request.resource.data.uid == request.auth.uid
         && request.resource.data.st == 'open'
-        && request.resource.data.keys().hasOnly(['uid', 'd', 'inAt', 'lastAt', 'inLat', 'inLng', 'inAcc', 'st'])
+        && request.resource.data.keys().hasOnly(['uid', 'd', 'inAt', 'lastAt', 'inLat', 'inLng', 'inAcc', 'st', 'srvAt'])
         && request.resource.data.inAt is number
-        && request.resource.data.inAt > request.time.toMillis() - 300000
-        && request.resource.data.inAt < request.time.toMillis() + 300000;
+        // a check-in made with no internet reaches the server later: up to 12 hours late is accepted, and srvAt keeps when it arrived
+        && request.resource.data.inAt > request.time.toMillis() - 43200000
+        && request.resource.data.inAt < request.time.toMillis() + 300000
+        && (!('srvAt' in request.resource.data) || request.resource.data.srvAt == request.time);
       allow update: if isAdmin()
         || (isStaff() && resource.data.uid == request.auth.uid && resource.data.st == 'open'
             && onlyKeys(['lastAt', 'lastLat', 'lastLng', 'lastAcc', 'outAt', 'outLat', 'outLng', 'outAcc', 'st', 'auto'])
             && (
               (request.resource.data.st == 'open'
                 && request.resource.data.lastAt is number
-                && request.resource.data.lastAt > request.time.toMillis() - 300000
+                && request.resource.data.lastAt > request.time.toMillis() - 43200000
+                && request.resource.data.lastAt >= resource.data.inAt
                 && request.resource.data.lastAt < request.time.toMillis() + 300000)
               || (request.resource.data.st == 'closed'
                 && request.resource.data.outAt is number

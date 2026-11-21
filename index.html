@@ -1585,6 +1585,8 @@ function arriveNote(){var k='vkArrive',t=today();try{if(localStorage.getItem(k)=
     navigator.serviceWorker.getRegistration().then(function(r){if(r)r.showNotification('📍 إنت دلوقتي في الفندق',{body:'دوس هنا وسجّل وصولك عشان ورديتك تبدأ',icon:'icon-192.png',badge:'icon-192.png',tag:'arrive',requireInteraction:true,vibrate:[300,150,300],data:{url:'./'}});}).catch(function(){});}catch(e){}
   try{if(typeof ring==='function')ring();}catch(e){}}
 function attSay(ok,t,sub){S.attMsg={ok:ok,t:t,s:sub};render();clearTimeout(S.attMsgT);S.attMsgT=setTimeout(function(){S.attMsg=null;render();},15000);}
+// check-in made without internet: it keeps the time he tapped, and shows when it reached the system
+function attOff(x){var s=x&&x.srvAt&&x.srvAt.toMillis?x.srvAt.toMillis():0;return s&&s-(x.inAt||0)>10*60000?' <span style="color:var(--warn);font-weight:700">(📶 من غير نت · وصل '+hm(s)+')</span>':'';}
 function autoAtt(force){
   if(!db||!S.uid||!meDoc()||!S.geo||S.geo.lat==null||!S.attLoaded)return;
   if(document.visibilityState==='hidden'||S.attBusy)return;
@@ -1625,7 +1627,7 @@ function listenRpay(){if(rpUn||!db||!S.uid||!meDoc())return;if(['admin','rec','s
 setInterval(listenRpay,2000);
 function attRows(l,showName){
   return l.slice().sort(function(a,b){return b.inAt-a.inAt;}).map(function(x){var long=!x.outAt&&S.now-x.inAt>16*3600000;
-    return '<div class="row" style="border-top:1px solid var(--line);padding-top:6px;align-items:flex-start"><span class="grow"><span style="font-size:14px;font-weight:700">'+(showName?h(wname(x.uid))+' · ':'')+fmt(x.d)+'</span><br><span class="sub">حضور '+hm(x.inAt)+' · '+(x.outAt?'انصراف '+hm(x.outAt)+(x.closedBy?' (المدير)':''):(long?'<b style="color:var(--warn)">نسي يسجّل انصراف</b>':'لسه حاضر'))+'</span>'+
+    return '<div class="row" style="border-top:1px solid var(--line);padding-top:6px;align-items:flex-start"><span class="grow"><span style="font-size:14px;font-weight:700">'+(showName?h(wname(x.uid))+' · ':'')+fmt(x.d)+'</span><br><span class="sub">حضور '+hm(x.inAt)+attOff(x)+' · '+(x.outAt?'انصراف '+hm(x.outAt)+(x.closedBy?' (المدير)':''):(long?'<b style="color:var(--warn)">نسي يسجّل انصراف</b>':'لسه حاضر'))+'</span>'+
      (showName&&!x.outAt?'<span class="row" style="gap:6px;margin-top:4px"><input class="inp" style="max-width:130px;min-height:40px" type="time" id="ao_'+x.id+'" aria-label="وقت الانصراف"><button class="btn b-line" style="width:auto;min-height:40px" data-a="attClose" data-id="'+x.id+'">قفّل الوردية</button></span>':'')+
      '</span><b style="font-size:14px;white-space:nowrap">'+hrs(shiftMs(x))+'</b></div>';}).join('');
 }
@@ -2670,7 +2672,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.21.6';
+var APP_VER='2026.11.21.7';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
@@ -2731,7 +2733,7 @@ app.addEventListener('click',function(ev){
       if(!r.ok){if(!S.geo||S.geo.lat==null){attSay(false,r.msg,'');return;}S.attWhere='out';var dd=Math.round(geoDist(S.geo.lat,S.geo.lng,c.latitude,c.longitude));
         attSay(false,'إنت خارج الفندق دلوقتي (على بعد '+dd+' متر)','لازم تكون جوه الفندق عشان تسجّل وصولك · لو إنت جوه فعلاً اطلع مكان مفتوح وجرّب تاني');return;}
       if(attOpen())return;S.attWhere='in';
-      db.collection('att').add({uid:S.uid,d:today(),inAt:t,lastAt:t,inLat:c.latitude,inLng:c.longitude,inAcc:Math.round(c.accuracy||0),st:'open'})
+      db.collection('att').add({uid:S.uid,d:today(),inAt:t,lastAt:t,inLat:c.latitude,inLng:c.longitude,inAcc:Math.round(c.accuracy||0),st:'open',srvAt:firebase.firestore.FieldValue.serverTimestamp()})
         .then(function(){attSay(true,'تم تسجيل وصولك الساعة '+hm(t)+' ✓','يوم موفق · '+'الشهر ده لحد دلوقتي: '+hrs(sumMs(S.att||[],monthStart())));})
         .catch(function(e){attSay(false,'ما اتسجّلش الوصول',e&&e.code==='permission-denied'?'فيه تحديث ناقص في السيستم · بلّغ المدير':'اتأكد من النت وجرّب تاني');});});return;}
   if(a==='attOutAsk'){S.attAsk={manual:true};render();return;}
