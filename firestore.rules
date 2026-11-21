@@ -237,6 +237,14 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // الأصناف الخلصانة في المنيو: أي حد يشوفها (حتى النزيل في الـ QR) · المطبخ والمطعم والمدير يقفلوا ويفتحوا
+    match /menu/{id} {
+      allow read: if true;
+      allow write: if hasRole(['admin', 'restm', 'kit', 'rest', 'shiftm']) && id == 'avail'
+        && request.resource.data.keys().hasOnly(['off', 'by', 'at'])
+        && request.resource.data.by == request.auth.uid;
+    }
+
     // مكان الفندق للحضور: المدير بس يحدده
     match /geo/{id} {
       allow read: if isStaff();
