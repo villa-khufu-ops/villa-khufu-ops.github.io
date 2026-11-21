@@ -24,6 +24,10 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.click('[data-v="dash"]', { force: true }); await p.waitForTimeout(800);
   t = await txt(p);
   ok(t.includes('الإشغال') && t.includes('الفلوس النهارده'), 'manager dashboard renders');
+  ok(t.includes('العربيات والسواقين'), 'dashboard shows drivers');
+  await p.click('[data-v="drv-rep"]', { force: true }); await p.waitForTimeout(800);
+  t = await txt(p);
+  ok(t.includes('تقرير السواقين') && t.includes('مشوار'), 'driver report renders');
   ok(p.errs.length === 0, 'dashboard: no script errors ' + p.errs.join(' | '));
 
   // 2. restaurant order with service + VAT
