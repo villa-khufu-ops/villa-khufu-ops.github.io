@@ -666,6 +666,8 @@ function pushCard(){
 }
 var PLACES=[['room','In my room','في الغرفة'],['roof','Rooftop','على الروف'],['pool','By the pool','عند حمام السباحة'],['out','Outside the hotel','بره الفندق']];
 function placeAr(k){var p=PLACES.filter(function(x){return x[0]===k;})[0];return p?p[2]:'';}
+function dueTxt(o){if(!o.due)return '';var d=o.dueAt?new Date(o.dueAt):null,tm=d&&iso(d)!==today()?' بكرة':'';return '⏰ مطلوب الساعة '+t12(o.due)+tm;}
+function dueChip(o){if(!o.due)return '';var late=o.dueAt&&o.dueAt-Date.now()<15*60000;return '<span class="note" style="font-weight:800;font-size:15px;'+(late?'background:#FDE7E4;color:#B42318':'background:#FFF4DB;color:#6A4A06')+'">'+h(dueTxt(o))+'</span>';}
 function destAb(o){return o.dest==='room'?o.room:o.dest==='table'?'T'+o.table:o.dest==='co'?'CO':'TA';}
 function destTxt(o){return (o.dest==='room'?'غرفة '+o.room:o.dest==='table'?'ترابيزة '+o.table:o.dest==='co'?'شركة '+(o.coName||'')+(o.table?' · ترابيزة '+o.table:''):'طلب خارجي')+(o.place&&o.place!=='room'?' · '+placeAr(o.place):'');}
 function ordUrgentKit(o){return o.st==='new'||(o.st==='prep'&&S.now>=(o.next||0));}
@@ -1128,6 +1130,7 @@ function vRestCart(){
     extra='<span class="sub">الحساب بيتسجّل على الشركة وبيتحاسب آخر الشهر</span><div class="picks" style="grid-template-columns:1fr 1fr">'+coList().map(function(c){return '<button class="pick" style="min-height:52px" data-a="pickCo" data-k="'+h(c.id)+'" aria-pressed="'+(S.draft.co===c.id)+'"><b>'+h(c.name)+'</b></button>';}).join('')+'</div><label class="f" for="otable">رقم الترابيزة (اختياري)<input class="inp ltr" id="otable" inputmode="numeric" maxlength="10"></label>';
   }else extra='<span class="sub">الدفع نقدي</span>';
   return top('مراجعة الطلب',cartCount()+' صنف','rest')+'<div class="stack">'+toastHtml()+lines+dests+extra+
+   '<label class="f" for="odue">⏰ ميعاد التقديم (اختياري · سيبه فاضي لو دلوقتي)<input class="inp ltr" id="odue" type="time" step="300"></label>'+
    '<label class="f" for="onote">ملاحظة للمطبخ (اختياري)<textarea class="inp" id="onote" placeholder="مثلاً: من غير بصل · سبايسي"></textarea></label>'+
    (S.err?'<p class="err" role="alert">'+h(S.err)+'</p>':'')+
    '<button class="btn b-main" style="min-height:58px" data-a="sendOrder">إرسال للمطبخ والاستقبال</button>'+
@@ -1302,7 +1305,7 @@ function vRestOrders(){
     else if((o.st==='prep'||o.st==='ready'||o.st==='served')&&!o.void&&isRestMgr())acts+=(S.p.ocx===o.id?'<div class="row" style="gap:8px"><span class="sub grow" style="color:var(--warn);font-weight:700">الطلب اتحضّر · تلغيه وتشيله من الحساب؟</span><button class="btn b-warn" style="width:auto;min-height:44px" data-a="oCancel" data-id="'+h(o.id)+'">أيوه، إلغاء</button><button class="btn b-line" style="width:auto;min-height:44px" data-a="ocxOff">لأ</button></div>':'<button class="btn b-line" style="min-height:40px;color:var(--warn)" data-a="ocxOn" data-id="'+h(o.id)+'">إلغاء (مدير)</button>');
     else if(o.st==='prep'&&canServe)acts+='<span class="sub" style="text-align:center">المطبخ بدأ يحضّر · الإلغاء من المدير بس</span>';
     return '<div class="card'+(o.st==='ready'?' pulse':'')+'" style="'+(o.st==='ready'?'border:2px solid var(--ok)':'')+(o.st==='cancel'?'opacity:.6':'')+'"><div class="row"><span class="badge'+(o.dest==='room'?' occ':'')+'"><small>#'+(o.no||'')+'</small><b style="font-size:14px">'+h(destAb(o))+'</b></span><span class="grow"><span class="ttl">'+h(destTxt(o))+'</span><br><span class="sub">'+hm(o.at)+' · '+h(wname(o.by))+' · '+(o.pay==='room'?'على الغرفة':'نقدي')+'</span></span><span class="chip '+st[1]+'">'+st[0]+'</span></div>'+
-     '<div class="items" style="font-size:14px">'+(o.items||[]).map(function(i){return '<span>'+i.q+'× '+h(i.n)+'</span>';}).join('')+'</div>'+(o.note?'<span class="note">'+h(o.note)+'</span>':'')+
+     '<div class="items" style="font-size:14px">'+(o.items||[]).map(function(i){return '<span>'+i.q+'× '+h(i.n)+'</span>';}).join('')+'</div>'+dueChip(o)+(o.note?'<span class="note">'+h(o.note)+'</span>':'')+
      '<div class="row" style="justify-content:space-between"><span class="sub">الإجمالي</span><b class="money">'+money(o.total)+'</b></div>'+acts+(mvB?'<div class="row" style="justify-content:flex-end">'+mvB+'</div>':'')+'</div>';}).join(''):'<p class="empty">مفيش طلبات النهارده</p>';
   var back=(has('rest')||has('rec'))?'rest':homeOf();
   return top('طلبات المطعم',fmt(t),back,canServe?'<button class="ib on" data-a="go" data-v="rest" aria-label="طلب جديد"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>':'')+
@@ -2298,8 +2301,8 @@ function prtUsed(){return !!(S.printer&&S.printer.kit);}
 function prtSet(id,o,st,err){if(!db||!id)return;db.collection('prt').doc(id).set({st:st,at:Date.now(),by:S.uid,no:o&&o.no||0,err:String(err||'').slice(0,200)}).catch(function(){});}
 function prtBad(){if(!prtUsed()||!S.prt)return [];return S.orders.filter(function(o){var x=S.prt[o.id];return isFood(o)&&(o.st==='new'||o.st==='prep')&&x&&(x.st==='fail'||x.st==='none');}).sort(function(a,b){return a.at-b.at;});}
 function prtBanner(){var l=prtBad();if(!l.length)return '';
-  return '<div class="alert" role="alert" style="background:var(--warn-bg,#fdecea);border:2px solid var(--warn,#c0392b);flex-direction:column;align-items:stretch;gap:8px"><span><b>🖨️ '+l.length+' طلب ما اتطبعش في المطبخ</b><span>اقرا الطلب من الشاشة'+(canPrint()?' أو اطبعه تاني':' · الطباعة بتشتغل من أبلكيشن الأندرويد على واي فاي الفندق')+'</span></span>'+
-   l.map(function(o){var x=S.prt[o.id]||{};return '<div class="row" style="gap:8px;align-items:center"><span class="grow"><b>#'+(o.no||'')+' · '+h(destTxt(o))+'</b><br><span class="sub">'+(x.st==='none'?(stationAlive()?'جهاز الطباعة هيطبعه دلوقتي':'اتبعت من جهاز مش على واي فاي الفندق · جهاز الطباعة مش شغال'):'الطابعة ما ردّتش')+' · '+hm(x.at||o.at)+'</span></span>'+(canPrint()?'<button class="btn b-dark" style="min-height:44px" data-a="reprint" data-id="'+h(o.id)+'">🖨️ اطبع تاني</button>':'')+'<button class="btn b-line" style="min-height:44px" data-a="prtSeen" data-id="'+h(o.id)+'">قريته ✓</button></div>';}).join('')+'</div>';}
+  return '<div class="alert" role="alert" style="background:#FDECEA;color:#5A1209;border:2px solid #C0392B;flex-direction:column;align-items:stretch;gap:8px"><span><b>🖨️ '+l.length+' طلب ما اتطبعش في المطبخ</b><span>اقرا الطلب من الشاشة'+(canPrint()?' أو اطبعه تاني':' · الطباعة بتشتغل من أبلكيشن الأندرويد على واي فاي الفندق')+'</span></span>'+
+   l.map(function(o){var x=S.prt[o.id]||{};return '<div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;border-top:1px solid rgba(0,0,0,.12);padding-top:8px"><span class="grow" style="min-width:60%"><b>#'+(o.no||'')+' · '+h(destTxt(o))+'</b><br><span class="sub">'+(x.st==='none'?(stationAlive()?'جهاز الطباعة هيطبعه دلوقتي':'اتبعت من جهاز مش على واي فاي الفندق · جهاز الطباعة مش شغال'):'الطابعة ما ردّتش')+' · '+hm(x.at||o.at)+'</span></span>'+(canPrint()?'<button class="btn b-dark" style="min-height:44px;width:auto;padding:0 14px" data-a="reprint" data-id="'+h(o.id)+'">🖨️ اطبع تاني</button>':'')+'<button class="btn b-line" style="min-height:44px;width:auto;padding:0 14px" data-a="prtSeen" data-id="'+h(o.id)+'">قريته ✓</button></div>';}).join('')+'</div>';}
 // ----- print station: one Android phone/tablet on the hotel Wi-Fi prints every kitchen order, even orders sent from phones on mobile data or another network -----
 function stationOn(){try{return localStorage.getItem('vkStation')==='1'&&canPrint();}catch(e){return false;}}
 function stationAlive(){var x=S.prt&&S.prt.station;return !!(x&&S.now-(x.at||0)<3*60000);}
@@ -2325,7 +2328,7 @@ function escpos(c){var W=c.width,H=c.height,d=c.getContext('2d').getImageData(0,
     for(var y=y0;y<y0+h;y++)for(var b=0;b<bw;b++){var v=0;for(var k=0;k<8;k++){var i=((y*W)+b*8+k)*4;if((d[i]+d[i+1]+d[i+2])/3<150)v|=128>>k;}out.push(v);}}
   out.push(0x1B,0x64,5,0x1D,0x56,0x42,0);var bin='';for(var j=0;j<out.length;j+=8192)bin+=String.fromCharCode.apply(null,out.slice(j,j+8192));return btoa(bin);}
 function kitPrint(o,done){if(!canPrint()){if(done)done('no');return;}
-  var L=[{t:'فيلا خوفو · المطبخ',s:24,c:1},{t:'طلب #'+(o.no||'')+'   ·   '+hm(o.at||Date.now()),s:40,b:1,c:1},{t:destTxt(o),s:36,b:1,c:1},'-'];
+  var L=[{t:'فيلا خوفو · المطبخ',s:24,c:1},{t:'طلب #'+(o.no||'')+'   ·   '+hm(o.at||Date.now()),s:40,b:1,c:1},{t:destTxt(o),s:36,b:1,c:1}];if(o.due)L.push({t:dueTxt(o).replace('⏰ ',''),s:40,b:1,c:1});L.push('-');
   (o.items||[]).forEach(function(i){L.push({t:i.q+' × '+i.n+(i.board?'  (هاف بورد)':i.inc?'  (ضمن الحجز)':''),s:32,b:1});});
   L.push('-');if(o.note)L.push({t:'ملاحظة: '+o.note,s:30,b:1});L.push({t:'بعته: '+wname(o.by),s:24});
   try{var id='p'+Date.now()+Math.random();if(done)printCb[id]=done;VKApp.printRaw(S.printer.kit,+S.printer.port||9100,escpos(ticketCanvas(L)),id);}catch(e){if(done)done(String(e));}}
@@ -2396,6 +2399,7 @@ function vRecAccRoom(){
     var cx=S.p.cx===o.id;
     return '<div class="row" style="border-top:1px solid var(--line);padding-top:8px;align-items:flex-start;flex-wrap:wrap"><span class="grow"><span class="sub">'+fmt(o.d)+' '+hm(o.at)+'</span><br><span style="font-size:13px">'+h(lbl)+'</span></span><span class="money">'+money(val)+'</span>'+
      (cx?'<div class="row" style="width:100%;gap:8px"><span class="sub grow" style="color:var(--warn);font-weight:700">تشيل '+money(val)+' من الحساب؟</span><button class="btn b-warn" style="width:auto;min-height:40px" data-a="voidCharge" data-id="'+h(o.id)+'" data-c2="'+it.c+'" data-n="'+no+'">أيوه، شيله</button><button class="btn b-line" style="width:auto;min-height:40px" data-a="cxOff">لأ</button></div>':
+      (it.c!=='l'&&o.kind==='tour'&&o.tour&&o.tour.tr&&!o.preArr&&r.arrival&&r.arrival.in&&(o.tour.date||'')>=r.arrival.in?'<button class="btn b-main" style="width:100%;min-height:44px;font-size:13px" data-a="trToNext" data-id="'+h(o.id)+'" data-d="'+h(r.arrival.in)+'">🛬 ده انتقال النزيل الجاي ('+(r.arrival.in===today()?'النهارده':fmt(r.arrival.in))+') · شيله من حساب النزيل ده</button>':'')+
       (it.c!=='l'?mvBtn(o).replace('data-v="mv-item"','data-v="mv-item" data-b="rec-acc-room"'):'')+(isAdminU()?'<button class="btn b-line" style="width:auto;min-height:36px;font-size:12px;padding:0 10px" data-a="cxOn" data-id="'+h(o.id)+'">إلغاء</button>':''))+'</div>';}).join('');
   var pay=S.p.confirm?
    '<div class="card" style="border:2px solid var(--ok)"><span class="ttl">قفل حساب غرفة '+no+' · '+money(a.total)+'</span>'+(planOf(no)?'<span class="chip c-info" style="align-self:flex-start">نوع الحجز: '+h(PLANS[planOf(no)])+'</span>':'')+payBtns('accPaid',no,a.food||0,a.total)+'<button class="btn b-line" data-a="go" data-v="rec-acc-room" data-n="'+no+'">رجوع</button></div>':
@@ -2653,7 +2657,7 @@ function vKit(){
     else if(o.st==='ready'){state='جاهز من '+ago(S.now-(o.readyAt||o.at))+' · مستني الويتر';}
     else state='اتقدّم '+(o.servedAt?hm(o.servedAt):'');
     return '<div class="card'+(u?' flash':'')+'"><div class="row"><span class="badge" style="width:64px;height:64px"><small>#'+(o.no||'')+'</small><b style="font-size:16px">'+h(destAb(o))+'</b></span><span class="grow"><span class="ttl" style="font-size:17px">'+h(destTxt(o))+'</span><br><span style="font-size:12px;font-weight:600;opacity:.85">'+state+'</span></span></div>'+
-     '<div class="items">'+(o.items||[]).map(function(i){return '<span>'+i.q+'× '+h(i.n)+(i.inc?' · '+(i.plan||'BB')+' مشمول':'')+'</span>';}).join('')+'</div>'+(o.note?'<span class="note" style="color:var(--ink)"><b>ملاحظة:</b> '+h(o.note)+'</span>':'')+acts+'</div>';}).join(''):'<p class="empty">'+(tab==='new'?'مفيش طلبات جديدة':tab==='prep'?'مفيش طلبات بتتحضّر':'مفيش طلبات جاهزة')+'</p>';
+     '<div class="items">'+(o.items||[]).map(function(i){return '<span>'+i.q+'× '+h(i.n)+(i.inc?' · '+(i.plan||'BB')+' مشمول':'')+'</span>';}).join('')+'</div>'+dueChip(o)+(o.note?'<span class="note" style="color:var(--ink)"><b>ملاحظة:</b> '+h(o.note)+'</span>':'')+acts+'</div>';}).join(''):'<p class="empty">'+(tab==='new'?'مفيش طلبات جديدة':tab==='prep'?'مفيش طلبات بتتحضّر':'مفيش طلبات جاهزة')+'</p>';
   return top('المطبخ',nw.length+' جديدة · '+pr.length+' بيتحضّر',homeOf()==='kit'?null:'home','<button class="ib" data-a="go" data-v="avail" aria-label="الأصناف الخلصانة" style="font-size:18px">🚫</button><a class="ib" href="'+MENU_PDF+'" target="_blank" rel="noopener" aria-label="المنيو PDF" style="text-decoration:none;font-size:20px">📖</a>'+soloBtns('kit'))+
    '<div class="stack">'+toastHtml()+prtBanner()+banners+soundHint()+'<div class="tabs" role="tablist" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+tabs+'</div>'+body+'</div>';
 }
@@ -2795,7 +2799,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.22.5';
+var APP_VER='2026.11.22.7';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
@@ -2964,6 +2968,7 @@ app.addEventListener('click',function(ev){
       if(l.free)out.push(l.fk==='board'?{n:l.n,p:0,q:l.free,inc:true,board:true,list:l.p,plan:pl}:{n:l.n,p:0,q:l.free,inc:true,list:l.p,plan:pl});
       if(l.q-l.free>0)out.push({n:l.n,p:l.p,q:l.q-l.free});});return out;})(),total:cartTotal(),tx:1,st:'new',next:0,
       note:((document.getElementById('onote')||{}).value||'').trim().slice(0,200)};
+    var du=((document.getElementById('odue')||{}).value||'').trim();if(/^\d{1,2}:\d{2}$/.test(du)){o.due=du;var dd0=new Date(),pp=du.split(':');dd0.setHours(+pp[0],+pp[1],0,0);if(dd0.getTime()<Date.now()-30*60000)dd0.setDate(dd0.getDate()+1);o.dueAt=dd0.getTime();}
     if(dd==='room'){var rn=S.draft.room;if(!rn||!META[rn]){S.err='اختار الغرفة';render();return;}if(room(rn).status!=='occ'){S.err='غرفة '+rn+' مش مشغولة · مينفعش يتحمّل عليها طلب';render();return;}o.room=rn;o.pay='room';o.paid=false;o.stayIn=room(rn).in||null;if(S.draft.place&&S.draft.place!=='room')o.place=S.draft.place;}
     else if(dd==='table'){var tb=((document.getElementById('otable')||{}).value||'').trim();if(!tb){S.err='اكتب رقم الترابيزة';render();return;}o.table=tb.slice(0,10);o.pay='cash';o.paid=true;}
     else if(dd==='co'){var cc=coById(S.draft.co);if(!cc){S.err='اختار الشركة';render();return;}o.co=cc.id;o.coName=cc.name;o.pay='co';o.paid=false;var tb2=((document.getElementById('otable')||{}).value||'').trim();if(tb2)o.table=tb2.slice(0,10);}
@@ -3029,6 +3034,7 @@ app.addEventListener('click',function(ev){
   if(a==='adjDel2'){var did=b.dataset.id;db.collection('adj').doc(did).delete().then(function(){if(S.adjL&&S.adjL.list)S.adjL.list=S.adjL.list.filter(function(x){return x.id!==did;});render();}).catch(function(){flash('ما اتمسحش');});return;}
   if(a==='trDrv'){trKeep();S.trd.driver=b.dataset.k;S.err='';render();return;}
   if(a==='trSetDrv'){if(!canDrv())return;var to2=trAll().filter(function(x){return x.id===b.dataset.id;})[0];if(!to2)return;var nt=Object.assign({},to2.tour,{driver:b.dataset.k});to2.tour=nt;ordUpd(to2.id,{tour:nt,drvAt:Date.now(),drvBy:S.uid});pushEvt('trdrv',to2.id);flash('السواق '+b.dataset.k+' · انتقال غرفة '+to2.room+' '+fmt(nt.date)+' الساعة '+(nt.time||''));render();return;}
+  if(a==='trToNext'){var tn=ordById(b.dataset.id);if(!tn)return;db.collection('orders').doc(tn.id).set({preArr:true,stayIn:b.dataset.d,movedAt:Date.now(),movedBy:S.uid},{merge:true}).then(function(){flash('✓ الانتقال اتشال من حساب النزيل ده · هيظهر على النزيل الجاي لما يوصل');}).catch(function(e){flash(e&&e.code==='permission-denied'?'ما اتحفظش · محتاج تحديث في السيستم · بلّغ المدير':'ما اتحفظش، جرّب تاني');});tn.preArr=true;tn.stayIn=b.dataset.d;render();return;}
   if(a==='trEd'){S.trEd=b.dataset.id;render();return;}
   if(a==='trEdSave'){if(!canDrv())return;var to3=trAll().filter(function(x){return x.id===b.dataset.id;})[0];if(!to3)return;var nt3=Object.assign({},to3.tour,{phone:(document.getElementById('te_ph').value||'').trim().slice(0,25),flight:(document.getElementById('te_fl').value||'').trim().toUpperCase().slice(0,20)});
     db.collection('orders').doc(to3.id).update({tour:nt3}).then(function(){if(nt3.driver)pushEvt('trdrv',to3.id);flash('اتحفظ · '+(nt3.driver?'السواق '+nt3.driver+' هيشوفه':'هيظهر للسواق لما تختاره'));}).catch(function(e){flash(e&&e.code==='permission-denied'?'ما اتحفظش · محتاج تحديث في السيستم · بلّغ المدير':'ما اتحفظش، جرّب تاني');});

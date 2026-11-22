@@ -313,6 +313,8 @@ async function applyToApp(ctx, aiosellRows, tmr) {
         (await db.collection(col).where('paid', '==', false).get()).forEach((d) => {
           const x = d.data();
           if (x.void === true || x.st === 'cancel' || x.room == null) return;
+          // a pickup booked for the guest arriving next belongs to that guest, not to the one leaving
+          if (x.preArr && R[String(x.room)] && (x.stayIn || '') !== (R[String(x.room)].in || '')) return;
           unpaid.add(String(x.room));
         });
       }
