@@ -70,6 +70,15 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   p = await page('guest.html', '?guest&pre');
   ok((await txt(p)).includes('Make your tours'), 'pre-arrival page renders');
 
+  // 6b. driver account: sees only his transfers, with weekday, guest phone and flight
+  p = await page('driver.html');
+  t = await txt(p);
+  ok(t.includes('انتقالاتي') && t.includes('MS 778') && t.includes('7700 900123') && t.includes('بكرة'), 'driver page shows his transfer with phone and flight');
+  ok(/الأحد|الاتنين|التلات|الأربع|الخميس|الجمعة|السبت/.test(t), 'driver page shows the weekday');
+  ok(!t.includes('05:00'), 'driver page hides other drivers transfers');
+  ok(await p.locator('a[href^="tel:"]').count() === 1, 'driver page has a call button');
+  ok(p.errs.length === 0, 'driver page: no script errors ' + p.errs.join(' | '));
+
   // 7. attendance page
   p = await page('rec.html');
   const att = p.locator('[data-v="att"]');
