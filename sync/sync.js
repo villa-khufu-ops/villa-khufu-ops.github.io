@@ -308,7 +308,7 @@ async function applyToApp(ctx, aiosellRows, tmr) {
       const R = {};
       (await db.collection('rooms').get()).forEach((d) => { R[d.id] = d.data(); });
 
-      const unpaid = new Set();
+      const unpaid = new Set(); const BILLS = {};
       for (const col of ['orders', 'laundry']) {
         (await db.collection(col).where('paid', '==', false).get()).forEach((d) => {
           const x = d.data();
@@ -316,6 +316,7 @@ async function applyToApp(ctx, aiosellRows, tmr) {
           // a pickup booked for the guest arriving next belongs to that guest, not to the one leaving
           if (x.preArr && R[String(x.room)] && (x.stayIn || '') !== (R[String(x.room)].in || '')) return;
           unpaid.add(String(x.room));
+          (BILLS[String(x.room)] = BILLS[String(x.room)] || []).push({ c: col[0], id: d.id.slice(0, 5), k: x.kind || x.dest || '', d: x.d, in: x.stayIn || null, pre: !!x.preArr, mv: x.movedFrom || null, t: x.total != null ? x.total : x.price, tr: x.tour && x.tour.tr ? x.tour.date : null, st: x.st || '' });
         });
       }
 
@@ -473,6 +474,7 @@ async function applyToApp(ctx, aiosellRows, tmr) {
         for (const l of logs) b.set(db.collection('log').doc(), l);
         await b.commit();
       }
+      if (DRY) rep.diag = Object.keys(R).filter((k) => R[k].coHold).map((k) => k + ' ' + JSON.stringify({ st: R[k].status, in: R[k].in, out: R[k].out, bk: !!R[k].bk, arr: R[k].arrival ? R[k].arrival.in : null, bills: BILLS[k] || [] }));
       rep.tmr = TMR ? Object.keys(TMR.arr).length : null;
       return rep;
     }, { A: aiosellRows, TODAY: todayCairo(), DRY, TMR: tmr });
@@ -483,6 +485,7 @@ async function applyToApp(ctx, aiosellRows, tmr) {
 
 function summary(rep) {
   const parts = [];
+  if (rep.diag && rep.diag.length) parts.push('تشخيص coHold: ' + rep.diag.join(' ;; '));
   if (rep.move && rep.move.length) parts.push(`نقل غرف (الفواتير اتنقلت): ${rep.move.join('، ')}`);
   if (rep.in.length) parts.push(`تشيك إن: ${rep.in.join('، ')}`);
   if (rep.out.length) parts.push(`خروج: ${rep.out.join('، ')}`);
