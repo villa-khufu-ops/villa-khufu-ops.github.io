@@ -111,7 +111,10 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     await ps.goto('http://localhost:8799/kitchen.html'); await ps.waitForTimeout(1500);
     await ps.evaluate(() => { const f = firebase.firestore(); f.collection('prt').doc('n1').set({ st: 'none', at: Date.now(), by: 'r1', no: 5, err: '' }); f.collection('orders').doc('n1').set({ d: new Date().toISOString().slice(0, 10), at: Date.now() - 5000, by: 'r1', dest: 'table', table: '7', items: [{ n: 'Koshari', p: 5, q: 1 }], total: 6.4, st: 'new', no: 5, pay: 'cash', paid: true }); });
     await ps.waitForTimeout(6000);
-    ok(await ps.evaluate(() => __P.length === 1 && __DB.prt.n1.st === 'ok' && !!__DB.prt.station), 'print station prints the order once and marks it printed');
+    ok(await ps.evaluate(() => __P.filter(ip => ip !== '192.168.1.102').length === 1 && __DB.prt.n1.st === 'ok' && !!__DB.prt.station), 'print station prints the order once and marks it printed');
+    await ps.evaluate(() => { firebase.firestore().collection('geo').doc('printer').set({ rest: '192.168.1.102' }, { merge: true }); });
+    await ps.waitForTimeout(20000);
+    ok(await ps.evaluate(() => __P.filter(ip => ip === '192.168.1.102').length >= 1 && __DB.prt.r_n1 && __DB.prt.r_n1.st === 'seen'), 'print station prints one restaurant copy on the restaurant printer');
     ok(ps.errs.length === 0, 'print station: no script errors ' + ps.errs.join(' | ')); }
 
   // 7. attendance page
