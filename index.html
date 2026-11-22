@@ -1370,12 +1370,13 @@ function trComing(){var t=today(),T=tomorrow(),L=[];
   allNos().forEach(function(no){var r=room(no),a=r.arrival;if(a&&a.in&&a.in<=t&&!(r.status==='occ'&&r.in===a.in))L.push({no:no,d:a.in>=t?a.in:t,lbl:'وصول النهارده'});});
   var A=prepOf(T).arr||{};Object.keys(A).forEach(function(no){if(META[no])L.push({no:no,d:T,lbl:'وصول بكرة'});});
   return L.sort(function(a,b){return a.d.localeCompare(b.d)||a.no.localeCompare(b.no);});}
+function trNext(no){return trComing().filter(function(x){return x.no===no&&room(no).status==='occ';})[0]||null;}
 function carOf(k){return CARS.filter(function(c){return c[0]===k;})[0]||null;}
 function trKeep(){var D=S.trd||{},g=function(i){var e=document.getElementById(i);return e?e.value:null;},v;if((v=g('trdate'))!=null)D.date=v;if((v=g('trtime'))!=null)D.time=v;if((v=g('trfrom'))!=null)D.from=v;if((v=g('trto'))!=null)D.to=v;if((v=g('trprice'))!=null)D.price=v;if((v=g('trnote'))!=null)D.note=v;S.trd=D;}
 function vTransfer(){
   var D=S.trd=S.trd||{},car=carOf(D.car),cap=car?car[3]:5,pax=Math.min(D.pax||1,cap),occL=allNos().filter(function(no){return room(no).status==='occ';}).sort();
   var omar=D.room==='OMAR';
-  var rooms='<button class="pick" style="min-height:56px;margin-bottom:8px;width:100%" data-a="trRoom" data-n="OMAR" aria-pressed="'+omar+'"><b>🚗 '+PRIV_TR+'</b><br><span class="sub" style="color:inherit;opacity:.85">انتقال خاص · مجاناً · مش على حساب أي غرفة</span></button>'+(function(){var cm=trComing();return cm.length?'<span class="sub" style="display:block;margin:4px 0">🛬 نزلاء لسه ما وصلوش · الانتقال يتحسب على حسابهم لما يوصلوا</span><div class="grid3" style="margin-bottom:10px">'+cm.map(function(x){var k='A:'+x.no+':'+x.d,sel=D.room===k;return '<button class="room'+(sel?' sel':'')+'" style="min-height:56px" data-a="trRoom" data-n="'+k+'" aria-pressed="'+sel+'"><b>'+x.no+'</b><span style="font-size:11px;display:block">'+x.lbl+'</span></button>';}).join('')+'</div><span class="sub" style="display:block;margin:4px 0">🏨 الغرف المشغولة دلوقتي</span>':'';})()+(occL.length?'<div class="grid3">'+occL.map(function(no){var sel=D.room===no;return '<button class="room'+(sel?' sel':' occ')+'" style="min-height:56px" data-a="trRoom" data-n="'+no+'" aria-pressed="'+sel+'"><b>'+no+'</b></button>';}).join('')+'</div>':'<p class="empty">مفيش غرف مشغولة دلوقتي</p>');
+  var rooms='<button class="pick" style="min-height:56px;margin-bottom:8px;width:100%" data-a="trRoom" data-n="OMAR" aria-pressed="'+omar+'"><b>🚗 '+PRIV_TR+'</b><br><span class="sub" style="color:inherit;opacity:.85">انتقال خاص · مجاناً · مش على حساب أي غرفة</span></button>'+(function(){var cm=trComing();return cm.length?'<span class="sub" style="display:block;margin:4px 0">🛬 نزلاء لسه ما وصلوش · الانتقال يتحسب على حسابهم لما يوصلوا</span><div class="grid3" style="margin-bottom:10px">'+cm.map(function(x){var k='A:'+x.no+':'+x.d,sel=D.room===k;return '<button class="room'+(sel?' sel':'')+'" style="min-height:56px" data-a="trRoom" data-n="'+k+'" aria-pressed="'+sel+'"><b>'+x.no+'</b><span style="font-size:11px;display:block">'+x.lbl+'</span></button>';}).join('')+'</div><span class="sub" style="display:block;margin:4px 0">🏨 الغرف المشغولة دلوقتي</span>':'';})()+(occL.length?'<div class="grid3">'+occL.map(function(no){var sel=D.room===no,nx=trNext(no);return '<button class="room'+(sel?' sel':' occ')+'" style="min-height:56px" data-a="trRoom" data-n="'+no+'" aria-pressed="'+sel+'"><b>'+no+'</b>'+(nx?'<span style="font-size:11px;display:block">🛬 جاي '+(nx.d===today()?'النهارده':'بكرة')+'</span>':'')+'</button>';}).join('')+'</div>':'<p class="empty">مفيش غرف مشغولة دلوقتي</p>')+(function(){var nx=D.room&&!/^A:|^OMAR$/.test(D.room)?trNext(D.room):null;if(!nx)return '';return '<div class="card" role="alert" style="margin-top:8px;border:2px solid var(--warn)"><b>⚠️ غرفة '+h(D.room)+' فيها نزيل دلوقتي، وجاي فيها نزيل جديد '+(nx.d===today()?'النهارده':'بكرة')+'</b><p class="sub" style="margin:4px 0 8px">الانتقال ده يتحسب على مين؟</p><div class="picks" style="grid-template-columns:1fr 1fr"><button class="pick" style="min-height:56px" data-a="trWho" data-k="cur" aria-pressed="'+(D.who==='cur')+'"><b>النزيل اللي ساكن دلوقتي</b><br><span class="sub" style="color:inherit;opacity:.85">مثلاً توصيله للمطار وهو مسافر</span></button><button class="pick" style="min-height:56px" data-a="trRoom" data-n="A:'+h(nx.no)+':'+nx.d+'" aria-pressed="false"><b>النزيل الجاي</b><br><span class="sub" style="color:inherit;opacity:.85">مثلاً استقباله من المطار</span></button></div></div>';})();
   return top('انتقالات وعربيات','عربية للنزيل · على حساب الغرفة','rec')+'<div class="stack">'+toastHtml()+'<button class="btn b-line" data-a="go" data-v="tr-rep">'+ICON.report+' تقارير الانتقالات · يومي · العربيات · السواقين</button>'+
    '<span class="ttl">نوع العربية</span><div class="picks" style="grid-template-columns:1fr 1fr">'+CARS.map(function(c){return '<button class="pick" style="min-height:64px" data-a="trCar" data-k="'+c[0]+'" aria-pressed="'+(D.car===c[0])+'"><b style="font-size:17px">'+c[1]+'</b><br><span class="sub" style="color:inherit;opacity:.85">لحد '+c[3]+' أفراد</span></button>';}).join('')+'</div>'+
    (DRIVER_CARS.indexOf(D.car)>=0?'<p class="sub" style="margin:0">🚗 السواق بيختاره '+h(drvNames()||'المسؤول عن السواقين')+' بعد ما تسجّل الحجز</p>':'')+
@@ -2715,7 +2716,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.22.1';
+var APP_VER='2026.11.22.2';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
@@ -2933,13 +2934,15 @@ app.addEventListener('click',function(ev){
   if(a==='adjDel2'){var did=b.dataset.id;db.collection('adj').doc(did).delete().then(function(){if(S.adjL&&S.adjL.list)S.adjL.list=S.adjL.list.filter(function(x){return x.id!==did;});render();}).catch(function(){flash('ما اتمسحش');});return;}
   if(a==='trDrv'){trKeep();S.trd.driver=b.dataset.k;S.err='';render();return;}
   if(a==='trSetDrv'){if(!canDrv())return;var to2=trAll().filter(function(x){return x.id===b.dataset.id;})[0];if(!to2)return;var nt=Object.assign({},to2.tour,{driver:b.dataset.k});to2.tour=nt;ordUpd(to2.id,{tour:nt,drvAt:Date.now(),drvBy:S.uid});flash('السواق '+b.dataset.k+' · انتقال غرفة '+to2.room+' '+fmt(nt.date)+' الساعة '+(nt.time||''));render();return;}
-  if(a==='trRoom'){trKeep();S.trd.room=b.dataset.n;S.err='';render();return;}
+  if(a==='trRoom'){trKeep();S.trd.room=b.dataset.n;S.trd.who=null;S.err='';render();return;}
+  if(a==='trWho'){trKeep();S.trd.who=b.dataset.k;S.err='';render();return;}
   if(a==='trSave'){
     if(!db)return;trKeep();var R0=S.trd,cr=carOf(R0.car),rp=parseFloat(R0.price);
     if(!cr){S.err='اختار نوع العربية';render();return;}
     if(!R0.room){S.err='اختار الغرفة';render();return;}
     var priv=R0.room==='OMAR';if(priv)rp=0;
     var pre=/^A:/.test(R0.room||'')?R0.room.split(':'):null;
+    if(!priv&&!pre&&trNext(R0.room)&&R0.who!=='cur'){S.err='غرفة '+R0.room+' جاي فيها نزيل جديد · اختار الانتقال على النزيل الحالي ولا الجاي';render();return;}
     if(!priv&&!pre&&room(R0.room).status!=='occ'){S.err='غرفة '+R0.room+' مش مشغولة · مينفعش يتحمّل عليها انتقال';render();return;}
     if(!(rp>=0)||isNaN(rp)){S.err='اكتب السعر';render();return;}
     if(!R0.date){S.err='حدّد تاريخ الرحلة';render();return;}
