@@ -2715,7 +2715,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.21.14';
+var APP_VER='2026.11.22.1';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
@@ -2776,7 +2776,7 @@ app.addEventListener('click',function(ev){
       if(!r.ok){if(!S.geo||S.geo.lat==null){attSay(false,r.msg,'');return;}S.attWhere='out';var dd=Math.round(geoDist(S.geo.lat,S.geo.lng,c.latitude,c.longitude));
         attSay(false,'إنت خارج الفندق دلوقتي (على بعد '+dd+' متر)','لازم تكون جوه الفندق عشان تسجّل وصولك · لو إنت جوه فعلاً اطلع مكان مفتوح وجرّب تاني');return;}
       if(attOpen())return;S.attWhere='in';
-      db.collection('att').add({uid:S.uid,d:today(),inAt:t,lastAt:t,inLat:c.latitude,inLng:c.longitude,inAcc:Math.round(c.accuracy||0),st:'open'})
+      db.collection('att').add({uid:S.uid,d:today(),inAt:t,lastAt:t,inLat:c.latitude,inLng:c.longitude,inAcc:Math.round(c.accuracy||0),st:'open',srvAt:firebase.firestore.FieldValue.serverTimestamp()})
         .then(function(){attSay(true,'تم تسجيل وصولك الساعة '+hm(t)+' ✓','يوم موفق · '+'الشهر ده لحد دلوقتي: '+hrs(sumMs(S.att||[],monthStart())));})
         .catch(function(e){attSay(false,'ما اتسجّلش الوصول',e&&e.code==='permission-denied'?'فيه تحديث ناقص في السيستم · بلّغ المدير':'اتأكد من النت وجرّب تاني');});});return;}
   if(a==='attOutAsk'){S.attAsk={manual:true};render();return;}
