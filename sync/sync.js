@@ -404,6 +404,7 @@ async function applyToApp(ctx, aiosellRows, tmr) {
           if (occ) {
             if (r.in !== a.in || r.out !== a.out) { put(room, { in: a.in, out: a.out }); rep.dates.push(room); }
             if (a.bk && r.bk !== a.bk) put(room, { bk: a.bk });
+            if (r.coHold && a.out > TODAY) put(room, { coHold: null }); // guest is still in the room: no checkout alert
             if (a.plan && r.plan !== a.plan) { put(room, { plan: a.plan }); rep.plan.push(`${room} ${a.plan}`); }
             setPaxNotes();
           } else if (r.status === 'maint') {
@@ -474,7 +475,7 @@ async function applyToApp(ctx, aiosellRows, tmr) {
         for (const l of logs) b.set(db.collection('log').doc(), l);
         await b.commit();
       }
-      if (DRY) rep.diag = Object.keys(R).filter((k) => R[k].coHold).map((k) => k + ' ' + JSON.stringify({ st: R[k].status, in: R[k].in, out: R[k].out, bk: !!R[k].bk, arr: R[k].arrival ? R[k].arrival.in : null, bills: BILLS[k] || [] }));
+      if (DRY) rep.diag = Object.keys(R).filter((k) => R[k].coHold).map((k) => k + ' ' + JSON.stringify({ st: R[k].status, in: R[k].in, out: R[k].out, bk: !!R[k].bk, arr: R[k].arrival ? R[k].arrival.in : null, aio: byRoom[k] ? { st: byRoom[k].status, in: byRoom[k].in, out: byRoom[k].out, sameBk: !!(byRoom[k].bk && byRoom[k].bk === R[k].bk), bkElsewhere: R[k].bk ? (Object.keys(byRoom).filter((q) => q !== k && byRoom[q].bk === R[k].bk).join(',') || null) : null } : null, bills: BILLS[k] || [] }));
       rep.tmr = TMR ? Object.keys(TMR.arr).length : null;
       return rep;
     }, { A: aiosellRows, TODAY: todayCairo(), DRY, TMR: tmr });
