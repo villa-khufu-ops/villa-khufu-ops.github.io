@@ -79,6 +79,32 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(await p.locator('a[href^="tel:"]').count() === 1, 'driver page has a call button');
   ok(p.errs.length === 0, 'driver page: no script errors ' + p.errs.join(' | '));
 
+  // 6c. company order + monthly account
+  p = await page('rec.html');
+  await p.click('[data-v="co-acc"]', { force: true }); await p.waitForTimeout(600);
+  t = await txt(p);
+  ok(t.includes('Blue Sky') && t.includes('حسابات الشركات'), 'company accounts page shows Blue Sky');
+  p = await page('rec.html');
+  await p.click('[data-v="rest"]', { force: true }); await p.waitForTimeout(400);
+  await p.click('[data-a="cat"][data-i="4"]'); await p.waitForTimeout(200);
+  await p.locator('[data-a="q"][data-d="1"]').first().click(); await p.waitForTimeout(200);
+  await p.click('.cartbar'); await p.waitForTimeout(400);
+  await p.click('[data-a="dest"][data-d="co"]'); await p.waitForTimeout(200);
+  await p.click('[data-a="pickCo"]'); await p.waitForTimeout(200);
+  await p.click('[data-a="sendOrder"]'); await p.waitForTimeout(500);
+  const coO = await p.evaluate(() => Object.values(__DB.orders).filter(o => o.pay === 'co'));
+  ok(coO.length === 1 && coO[0].co === 'bluesky' && coO[0].paid === false && coO[0].total === 10.21, 'restaurant order goes on Blue Sky, unpaid');
+  await p.evaluate(() => { const b = document.createElement('button'); b.dataset.a = 'go'; b.dataset.v = 'co-acc'; b.id = 'goco'; document.getElementById('app').appendChild(b); });
+  await p.click('#goco', { force: true }); await p.waitForTimeout(600);
+  t = await txt(p);
+  ok(t.includes('10.21') && t.includes('الشركة دفعت'), 'company account shows the order and pay button');
+  await p.click('[data-a="coPay"]'); await p.waitForTimeout(400); await p.click('[data-a="coPay"][data-m="cash"]'); await p.waitForTimeout(500);
+  const paid = await p.evaluate(() => Object.values(__DB.orders).filter(o => o.pay === 'co' && o.paid).length);
+  ok(paid === 1, 'company pay marks orders paid');
+  await p.evaluate(() => { __DB.orders.cx1 = { d: new Date().toISOString().slice(0,10), at: Date.now(), by: 'r1', dest: 'co', co: 'bluesky', coName: 'Blue Sky', items: [{ n: 'Koshari', p: 5, q: 2 }], total: 12.77, tx: 1, st: 'served', no: 9, pay: 'co', paid: false }; });
+  await p.click('[data-a="coMonth"]', { force: true }); await p.waitForTimeout(300);
+  ok(p.errs.length === 0, 'company accounts: no script errors ' + p.errs.join(' | '));
+
   // 7. attendance page
   p = await page('rec.html');
   const att = p.locator('[data-v="att"]');
