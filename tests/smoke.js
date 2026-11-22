@@ -105,6 +105,15 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.click('[data-a="coMonth"]', { force: true }); await p.waitForTimeout(300);
   ok(p.errs.length === 0, 'company accounts: no script errors ' + p.errs.join(' | '));
 
+  // 6d. print station prints orders sent from phones that are not on the hotel Wi-Fi
+  { const ps = await b.newPage(); ps.errs = []; ps.on('pageerror', e => ps.errs.push(e.message));
+    await ps.addInitScript(() => { localStorage.setItem('vkStation', '1'); window.__P = []; window.VKApp = { printRaw: function (ip, port, data, id) { __P.push(ip); setTimeout(() => window.vkPrintDone(id, 'ok'), 50); }, version: () => '1.10' }; });
+    await ps.goto('http://localhost:8799/kitchen.html'); await ps.waitForTimeout(1500);
+    await ps.evaluate(() => { const f = firebase.firestore(); f.collection('prt').doc('n1').set({ st: 'none', at: Date.now(), by: 'r1', no: 5, err: '' }); f.collection('orders').doc('n1').set({ d: new Date().toISOString().slice(0, 10), at: Date.now() - 5000, by: 'r1', dest: 'table', table: '7', items: [{ n: 'Koshari', p: 5, q: 1 }], total: 6.4, st: 'new', no: 5, pay: 'cash', paid: true }); });
+    await ps.waitForTimeout(6000);
+    ok(await ps.evaluate(() => __P.length === 1 && __DB.prt.n1.st === 'ok' && !!__DB.prt.station), 'print station prints the order once and marks it printed');
+    ok(ps.errs.length === 0, 'print station: no script errors ' + ps.errs.join(' | ')); }
+
   // 7. attendance page
   p = await page('rec.html');
   const att = p.locator('[data-v="att"]');
