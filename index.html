@@ -2315,6 +2315,25 @@ function stationTick(){if(!db||!S.uid||!stationOn())return;var now=Date.now();
     db.runTransaction(function(t){return t.get(ref).then(function(d){var c=d.exists?d.data():null;if(c&&c.st!=='none')throw 'taken';t.set(ref,{st:'ok',at:Date.now(),by:S.uid,no:o.no||0,err:''});});})
      .then(function(){kitPrint(o,function(r){if(r!=='ok')prtSet(o.id,o,'fail',r);});}).catch(function(){});});}
 setInterval(stationTick,4000);
+// guest QR food orders: the print station (logged in as reception) turns them into kitchen orders on the guest's room and prints them right away
+var gqAutoDone={};
+function gqAutoTick(){if(!db||!S.uid||!stationOn()||['admin','rec','shiftm'].indexOf(myRole())<0)return;
+  (S.greq||[]).forEach(function(g){if(g.type!=='food'||g.st!=='new'||gqAutoDone[g.id]||!g.room||room(g.room).status!=='occ'||!(g.items||[]).length)return;gqAutoDone[g.id]=1;
+    var sc=S.cart,sd=S.draft,o;try{S.cart={};(g.items||[]).forEach(function(i){if(itemAt(i.k)&&!keyOff(i.k))S.cart[i.k]=Math.min(20,i.q||1);});
+      S.draft={dest:'room',room:g.room,bb:!!planOf(g.room)&&planOf(g.room)!=='RO',place:g.place||null};
+      if(!Object.keys(S.cart).length)return;
+      o={d:today(),at:Date.now(),by:S.uid,dest:'room',src:'qr',items:(function(){var out=[];pricedLines().forEach(function(l){var pl=planOf(g.room)||'BB';
+        if(l.free)out.push(l.fk==='board'?{n:l.n,p:0,q:l.free,inc:true,board:true,list:l.p,plan:pl}:{n:l.n,p:0,q:l.free,inc:true,list:l.p,plan:pl});
+        if(l.q-l.free>0)out.push({n:l.n,p:l.p,q:l.q-l.free});});return out;})(),total:cartTotal(),tx:1,st:'new',next:0,note:String(g.note||'').slice(0,200),
+        room:g.room,pay:'room',paid:false,stayIn:room(g.room).in||null};
+      if(g.place&&g.place!=='room')o.place=g.place;}finally{S.cart=sc;S.draft=sd;}
+    if(!o)return;var gref=db.collection('greq').doc(g.id);
+    db.runTransaction(function(t){return t.get(gref).then(function(d){if(!d.exists||d.data().st!=='new')throw 'taken';t.update(gref,{st:'acc',doneAt:Date.now(),doneBy:S.uid});});})
+     .then(function(){o.no=S.orders.filter(function(x){return isFood(x)&&x.d===o.d;}).reduce(function(m,x){return Math.max(m,x.no||0);},0)+1;
+       return db.collection('orders').add(o).then(function(ref){stDone[ref.id]=1;pushEvt('order',ref.id);db.collection('prt').doc(ref.id).set({st:'ok',at:Date.now(),by:S.uid,no:o.no||0,err:''}).catch(function(){});
+         kitPrint(o,function(r){if(r!=='ok')prtSet(ref.id,o,'fail',r);});},function(){gref.update({st:'new',doneAt:Date.now(),doneBy:S.uid}).catch(function(){});gqAutoDone[g.id]=0;});})
+     .catch(function(e){if(e!=='taken')gqAutoDone[g.id]=0;});});}
+setInterval(gqAutoTick,5000);
 function canPrint(){try{return !!(window.VKApp&&VKApp.printRaw&&S.printer&&S.printer.kit);}catch(e){return false;}}
 var printCb={};
 window.vkPrintDone=function(id,res){var f=printCb[id];delete printCb[id];if(f)f(res);if(res!=='ok')flash('طابعة المطبخ ما طبعتش · اتأكد إن الموبايل على واي فاي الفندق والطابعة شغالة');};
@@ -2802,7 +2821,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.22.13';
+var APP_VER='2026.11.22.14';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};

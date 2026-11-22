@@ -114,6 +114,16 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     ok(await ps.evaluate(() => __P.filter(ip => ip !== '192.168.1.102').length === 1 && __DB.prt.n1.st === 'ok' && !!__DB.prt.station), 'print station prints the order once and marks it printed');
     ok(ps.errs.length === 0, 'print station: no script errors ' + ps.errs.join(' | ')); }
 
+  // 6e. guest QR food order: the print station (reception account) puts it on the room and prints it
+  { const ps = await b.newPage(); ps.errs = []; ps.on('pageerror', e => ps.errs.push(e.message));
+    await ps.addInitScript(() => { localStorage.setItem('vkStation', '1'); window.__P = []; window.VKApp = { printRaw: function (ip, port, data, id) { __P.push(ip); setTimeout(() => window.vkPrintDone(id, 'ok'), 50); }, version: () => '1.10' }; });
+    await ps.goto('http://localhost:8799/rec.html'); await ps.waitForTimeout(1500);
+    await ps.evaluate(() => { firebase.firestore().collection('geo').doc('printer').set({ kit: '192.168.1.100' }); firebase.firestore().collection('greq').doc('gq9').set({ room: '104', type: 'food', items: [{ k: '3-0', q: 2 }], note: 'no onion', at: Date.now(), st: 'new', place: 'room' }); });
+    await ps.waitForTimeout(8000);
+    const r = await ps.evaluate(() => ({ g: __DB.greq.gq9.st, o: Object.values(__DB.orders).filter(o => o.src === 'qr'), p: __P.length }));
+    ok(r.g === 'acc' && r.o.length === 1 && r.o[0].room === '104' && r.o[0].pay === 'room' && r.o[0].items.length > 0 && r.p >= 1, 'guest QR order goes on the room and prints ' + JSON.stringify({ g: r.g, n: r.o.length, p: r.p }));
+    ok(ps.errs.length === 0, 'guest QR auto order: no script errors ' + ps.errs.join(' | ')); }
+
   // 7. attendance page
   p = await page('rec.html');
   const att = p.locator('[data-v="att"]');
