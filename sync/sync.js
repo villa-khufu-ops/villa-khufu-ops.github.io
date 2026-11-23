@@ -475,6 +475,13 @@ async function applyToApp(ctx, aiosellRows, tmr) {
         for (const l of logs) b.set(db.collection('log').doc(), l);
         await b.commit();
       }
+      if (DRY) {
+        const pr = []; (await db.collection('prt').where('at', '>=', Date.now() - 6 * 3600e3).get()).forEach((d) => { const x = d.data(); pr.push(d.id.slice(0, 6) + ' ' + x.st + ' ' + new Date(x.at).toISOString().slice(11, 16) + ' ' + String(x.err || '').slice(0, 40)); });
+        const gp = (await db.collection('geo').doc('printer').get()).data() || {};
+        rep.prt = 'printer ' + JSON.stringify({ kit: gp.kit || null, port: gp.port || null }) + ' · prt(6h): ' + pr.sort().join(' | ');
+        const fo = []; (await db.collection('orders').where('at', '>=', Date.now() - 6 * 3600e3).get()).forEach((d) => { const x = d.data(); if (!x.kind || x.kind === 'room') fo.push(d.id.slice(0, 6) + ' ' + x.st + ' ' + new Date(x.at).toISOString().slice(11, 16) + (x.src ? ' ' + x.src : '')); });
+        rep.prt += ' · food orders(6h): ' + fo.join(' | ');
+      }
       if (DRY) rep.diag = Object.keys(R).filter((k) => R[k].coHold).map((k) => k + ' ' + JSON.stringify({ st: R[k].status, in: R[k].in, out: R[k].out, bk: !!R[k].bk, arr: R[k].arrival ? R[k].arrival.in : null, aio: byRoom[k] ? { st: byRoom[k].status, in: byRoom[k].in, out: byRoom[k].out, sameBk: !!(byRoom[k].bk && byRoom[k].bk === R[k].bk), bkElsewhere: R[k].bk ? (Object.keys(byRoom).filter((q) => q !== k && byRoom[q].bk === R[k].bk).join(',') || null) : null } : null, bills: BILLS[k] || [] }));
       rep.tmr = TMR ? Object.keys(TMR.arr).length : null;
       return rep;
@@ -487,6 +494,7 @@ async function applyToApp(ctx, aiosellRows, tmr) {
 function summary(rep) {
   const parts = [];
   if (rep.diag && rep.diag.length) parts.push('تشخيص coHold: ' + rep.diag.join(' ;; '));
+  if (rep.prt) parts.push('تشخيص الطباعة: ' + rep.prt);
   if (rep.move && rep.move.length) parts.push(`نقل غرف (الفواتير اتنقلت): ${rep.move.join('، ')}`);
   if (rep.in.length) parts.push(`تشيك إن: ${rep.in.join('، ')}`);
   if (rep.out.length) parts.push(`خروج: ${rep.out.join('، ')}`);
