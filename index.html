@@ -2351,9 +2351,10 @@ function stationTick(){if(!db||!S.uid||!stationOn())return;var now=Date.now();
   if(now-stBeat>60000){stBeat=now;db.collection('prt').doc('station').set({st:'ok',at:now,by:S.uid,no:0,err:String(wname(S.uid)||'').slice(0,60)}).catch(function(){});
     try{if(!stLock&&navigator.wakeLock)navigator.wakeLock.request('screen').then(function(l){stLock=l;l.addEventListener('release',function(){stLock=null;});}).catch(function(){});}catch(e){}}
   (S.orders||[]).forEach(function(o){if(!isFood(o)||stDone[o.id]||(o.st!=='new'&&o.st!=='prep')||now-(o.at||0)>6*3600000)return;var x=(S.prt||{})[o.id];
-    if(x?x.st!=='none':now-(o.at||0)<25000)return;stDone[o.id]=1;var ref=db.collection('prt').doc(o.id);
-    db.runTransaction(function(t){return t.get(ref).then(function(d){var c=d.exists?d.data():null;if(c&&c.st!=='none')throw 'taken';t.set(ref,{st:'ok',at:Date.now(),by:S.uid,no:o.no||0,err:''});});})
-     .then(function(){kitPrint(o,function(r){if(r!=='ok')prtSet(o.id,o,'fail',r);});}).catch(function(){});});}
+    var retry=x&&x.st==='fail'&&x.by!==S.uid&&!/^جهاز الطباعة/.test(x.err||'');
+    if(x?(x.st!=='none'&&!retry):now-(o.at||0)<25000)return;stDone[o.id]=1;var ref=db.collection('prt').doc(o.id);
+    db.runTransaction(function(t){return t.get(ref).then(function(d){var c=d.exists?d.data():null;if(c&&c.st!=='none'&&!(c.st==='fail'&&c.by!==S.uid&&!/^جهاز الطباعة/.test(c.err||'')))throw 'taken';t.set(ref,{st:'ok',at:Date.now(),by:S.uid,no:o.no||0,err:''});});})
+     .then(function(){kitPrint(o,function(r){if(r!=='ok')prtSet(o.id,o,'fail',('جهاز الطباعة: '+r).slice(0,120));});}).catch(function(){});});}
 setInterval(stationTick,4000);
 var awakeOn=null;setInterval(function(){try{if(!(window.VKApp&&VKApp.keepAwake))return;var on=stationOn()||S.view==='kit';if(on!==awakeOn){awakeOn=on;VKApp.keepAwake(on);}}catch(e){}},3000);
 // guest QR food orders: the print station (logged in as reception) turns them into kitchen orders on the guest's room and prints them right away
@@ -2865,7 +2866,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.23.4';
+var APP_VER='2026.11.23.5';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
