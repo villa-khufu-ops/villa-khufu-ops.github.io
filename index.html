@@ -334,7 +334,7 @@ var MENU=[
   ]]
 ];
 // minibar (التلاجة): [english name, arabic label, price $]
-var MINI=[['Soft Drink','سوفت درينك',3],['Water','مياه',1],['Small Chocolate','شوكولاتة صغيرة',1],['Medium Chocolate','شوكولاتة وسط',2],['Large Chocolate','شوكولاتة كبيرة',4]];
+var MINI=[['Soft Drink','سوفت درينك',1],['Water','مياه',1],['Small Chocolate','شوكولاتة صغيرة',1],['Medium Chocolate','شوكولاتة وسط',2],['Large Chocolate','شوكولاتة كبيرة',4]];
 // tours from the hotel brochure · reception sets the price for each booking
 var TOURS=[
  [1,'Pyramids of Giza, Sakkara & Memphis','الأهرامات وسقارة وممفيس','Pyramids & Sphinx · Valley Temple · Step Pyramid of Sakkara · Ramses II statue in Memphis · Lunch included'],
@@ -1425,7 +1425,9 @@ function vTrDrv(){
       '<div class="row" style="gap:8px;align-items:flex-end"><label class="f" style="width:90px" for="te_px">الأفراد<input class="inp ltr" id="te_px" type="number" min="1" max="60" inputmode="numeric" value="'+h(x.pax||1)+'"></label><label class="f grow" for="te_ph">تليفون الزبون<input class="inp ltr" id="te_ph" type="tel" maxlength="25" value="'+h(x.phone||'')+'"></label></div>'+
       '<label class="f" for="te_fl">رقم الطيارة<input class="inp ltr" id="te_fl" maxlength="20" value="'+h(x.flight||'')+'"></label><span class="sub">نوع العربية والسعر مبيتغيروش من هنا · لو عايز تغيّرهم الغي الانتقال واحجزه تاني</span>'+
       '<div class="row" style="gap:8px"><button class="btn b-main grow" data-a="trEdSave" data-id="'+h(o.id)+'">حفظ التعديل</button><button class="btn b-line" style="width:auto;padding:0 16px" data-a="trEdNo">إلغاء</button></div></div>':
-     '<button class="btn b-line" data-a="trEd" data-id="'+h(o.id)+'">✏️ عدّل الانتقال (اليوم · الساعة · من/إلى · الأفراد · التليفون · الطيارة)</button>')+'</div>';};
+     '<button class="btn b-line" data-a="trEd" data-id="'+h(o.id)+'">✏️ عدّل الانتقال (اليوم · الساعة · من/إلى · الأفراد · التليفون · الطيارة)</button>')+
+    (o.paid===true&&!o.priv?'<span class="sub">الانتقال ده اتدفع · لإلغائه لازم المدير يرجّع الفلوس الأول</span>':S.trCx===o.id?'<div class="card" style="gap:8px;border:2px solid var(--warn)"><b>متأكد إنك عايز تلغي الانتقال ده؟</b><span class="sub">'+fmt(x.date)+' الساعة '+h(t12(x.time))+' · '+h(roomLbl(o))+(x.driver?' · السواق '+h(x.driver)+' هيوصله إشعار':'')+' · المبلغ بيتشال من الحساب</span><div class="row" style="gap:8px"><button class="btn b-warn grow" style="background:var(--warn);color:#fff" data-a="trCancel" data-id="'+h(o.id)+'">أيوه الغي الانتقال</button><button class="btn b-line" style="width:auto;padding:0 16px" data-a="trCxNo">لأ</button></div></div>':
+     '<button class="btn b-line" style="color:var(--warn)" data-a="trCx" data-id="'+h(o.id)+'">🗑️ الغي الانتقال</button>')+'</div>';};
   return top('توزيع السواقين',need.length?need.length+' انتقال مستني سواق':'كل الانتقالات ليها سواق','home')+'<div class="stack">'+toastHtml()+
    '<span class="ttl">مستني سواق</span>'+(need.length?need.map(card).join(''):'<p class="empty">مفيش انتقالات مستنية سواق</p>')+
    (done.length?'<span class="ttl">ليها سواق · تقدر تغيّره</span>'+done.map(card).join(''):'')+'</div>';
@@ -2513,7 +2515,7 @@ function loadRoomRep(no,from,to){
     if(S.rrep&&S.rrep.no===no){S.rrep.rows=rows;S.rrep.loading=false;render();}
   }).catch(function(e){if(S.rrep&&S.rrep.no===no){S.rrep.loading=false;S.rrep.err=e&&e.code==='permission-denied'?'مش مسموح تشوف التقرير ده':'ما قدرتش أحمّل التقرير، جرّب تاني';render();}});
 }
-var LOGTXT={trEdit:'تعديل انتقال',restClose:'قفل / فتح المطعم',coPaid:'تحصيل حساب شركة',roomMove:'النزيل اتنقل لغرفة تانية (الفواتير اتنقلت معاه)',itemMove:'نقل صنف بين الغرف',checkin:'دخول النزيل',checkout:'خروج النزيل',cleanReq:'طلب نظافة',cleanCancel:'اتلغى طلب النظافة',assign:'اتوزعت للنظافة',ack:'العاملة استلمت الغرفة',done:'العاملة خلّصت التنظيف',approve:'المشرف راجع ووافق · الغرفة جاهزة',redo:'المشرف رجّعها تتعاد',paid:'تحصيل حساب',extend:'تغيير ميعاد الخروج',void:'إلغاء من الحساب',plan:'تغيير نوع الحجز',note:'طلب خاص للتنظيف',dnd:'النزيل رافض النظافة (ممنوع الإزعاج)'};
+var LOGTXT={trCancel:'إلغاء انتقال',trEdit:'تعديل انتقال',restClose:'قفل / فتح المطعم',coPaid:'تحصيل حساب شركة',roomMove:'النزيل اتنقل لغرفة تانية (الفواتير اتنقلت معاه)',itemMove:'نقل صنف بين الغرف',checkin:'دخول النزيل',checkout:'خروج النزيل',cleanReq:'طلب نظافة',cleanCancel:'اتلغى طلب النظافة',assign:'اتوزعت للنظافة',ack:'العاملة استلمت الغرفة',done:'العاملة خلّصت التنظيف',approve:'المشرف راجع ووافق · الغرفة جاهزة',redo:'المشرف رجّعها تتعاد',paid:'تحصيل حساب',extend:'تغيير ميعاد الخروج',void:'إلغاء من الحساب',plan:'تغيير نوع الحجز',note:'طلب خاص للتنظيف',dnd:'النزيل رافض النظافة (ممنوع الإزعاج)'};
 function rrRow(r){
   var e=r.e,t,det='',amt='',by=e.by?wname(e.by):'',cls='c-grey';
   if(r.k==='log'){
@@ -2880,7 +2882,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.23.8';
+var APP_VER='2026.11.23.9';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
@@ -3127,6 +3129,11 @@ app.addEventListener('click',function(ev){
   if(a==='picClose'){S.picBig=null;render();return;}
   if(a==='trEd'){S.trEd=b.dataset.id;render();return;}
   if(a==='trEdNo'){S.trEd=null;render();return;}
+  if(a==='trCx'){S.trCx=b.dataset.id;render();return;}
+  if(a==='trCxNo'){S.trCx=null;render();return;}
+  if(a==='trCancel'){if(!canTrEdit())return;var tc=trAll().filter(function(x){return x.id===b.dataset.id;})[0];if(!tc)return;if(tc.paid===true&&!tc.priv){flash('الانتقال ده اتدفع · المدير يرجّع الفلوس الأول');return;}
+    S.trCx=null;db.collection('orders').doc(tc.id).update({st:'cancel',paid:true,cancelAt:Date.now(),cancelBy:S.uid}).then(function(){if(tc.tour.driver)pushEvt('trcan',tc.id);logEv('trCancel',tc.room||null,{reason:'إلغاء انتقال '+fmt(tc.tour.date)+' الساعة '+(tc.tour.time||'')+(tc.tour.driver?' · السواق '+tc.tour.driver:'')});flash('✓ الانتقال اتلغى'+(tc.tour.driver?' · السواق '+tc.tour.driver+' هيوصله إشعار':''));})
+      .catch(function(e){flash(e&&e.code==='permission-denied'?'ما اتلغاش · فيه تحديث ناقص في السيستم · بلّغ المدير':'ما اتلغاش، جرّب تاني');});tc.st='cancel';render();return;}
   if(a==='trEdSave'){if(!canTrEdit())return;var to3=trAll().filter(function(x){return x.id===b.dataset.id;})[0];if(!to3)return;var gv=function(i){return ((document.getElementById(i)||{}).value||'').trim();};
     var nd=gv('te_d'),ntm=gv('te_t'),npx=Math.max(1,Math.min(60,parseInt(gv('te_px'),10)||to3.tour.pax||1));
     if(!/^\d{4}-\d{2}-\d{2}$/.test(nd)){flash('اختار اليوم');return;}if(!/^\d{1,2}:\d{2}$/.test(ntm)){flash('اختار الساعة');return;}

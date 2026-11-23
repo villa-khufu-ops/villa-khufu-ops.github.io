@@ -99,6 +99,11 @@ service cloud.firestore {
             && resource.data.kind == 'tour'
             && onlyKeys(['tour', 'drvAt', 'drvBy'])
             && request.resource.data.tour.diff(resource.data.tour).affectedKeys().hasOnly(['driver', 'phone', 'flight', 'date', 'time', 'pax', 'from', 'to']))
+        // إلغاء انتقال لسه ما اتدفعش: الاستقبال ومدير الوردية والمسؤول عن السواقين
+        || ((hasRole(['rec', 'shiftm']) || (isStaff() && staffDoc().data.get('trd', false) == true))
+            && resource.data.kind == 'tour' && (resource.data.paid != true || resource.data.get('pay', '') == 'free')
+            && onlyKeys(['st', 'paid', 'cancelAt', 'cancelBy'])
+            && request.resource.data.st == 'cancel')
         // الاستقبال: يعدّل ميعاد الانتقال وبياناته (من غير السواق ولا العربية ولا السعر)
         || (hasRole(['rec', 'shiftm'])
             && resource.data.kind == 'tour'
