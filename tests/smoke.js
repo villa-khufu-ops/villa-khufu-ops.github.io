@@ -124,6 +124,16 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     ok(r.g === 'acc' && r.o.length === 1 && r.o[0].room === '104' && r.o[0].pay === 'room' && r.o[0].items.length > 0 && r.p >= 1, 'guest QR order goes on the room and prints ' + JSON.stringify({ g: r.g, n: r.o.length, p: r.p }));
     ok(ps.errs.length === 0, 'guest QR auto order: no script errors ' + ps.errs.join(' | ')); }
 
+  // 6f. restaurant closed at night: the guest QR can't order
+  { const pg = await b.newPage(); pg.errs = []; pg.on('pageerror', e => pg.errs.push(e.message));
+    await pg.goto('http://localhost:8799/guest.html?guest&r=104'); await pg.waitForTimeout(1200);
+    await pg.evaluate(() => { firebase.firestore().collection('menu').doc('avail').set({ off: { __closed: Date.now() } }, { merge: true }); });
+    const inp = await pg.$('#groom'); if (inp) { await inp.fill('104'); await pg.click('[data-a="gRoom"]'); }
+    await pg.waitForTimeout(500); await pg.click('[data-a="gTab"][data-t="food"]'); await pg.waitForTimeout(500);
+    const tt = await pg.evaluate(() => document.body.innerText);
+    ok(/closed now/i.test(tt) && !(await pg.$('[data-a="gSendFood"]')), 'restaurant closed: guest sees closed and cannot order');
+    ok(pg.errs.length === 0, 'restaurant closed: no script errors ' + pg.errs.join(' | ')); }
+
   // 7. attendance page
   p = await page('rec.html');
   const att = p.locator('[data-v="att"]');
