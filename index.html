@@ -2873,7 +2873,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.23.6';
+var APP_VER='2026.11.23.7';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
@@ -2897,6 +2897,8 @@ window.addEventListener('online',function(){NET.off=false;netShow();});
     if(guest||Date.now()-last<60000||!window.fetch)return;last=Date.now();
     fetch('index.html?v='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():'';}).then(function(t){
       var m=/APP_VER='([0-9.]+)'/.exec(t||''),n=/APP_NAME='([^']*)'/.exec(t||'');
+      // the reception laptop's print program has no one to press the button: it reloads by itself
+      if(m&&verNewer(m[1],APP_VER)&&(function(){try{return window.VKApp&&VKApp.version&&VKApp.version()==='laptop';}catch(e){return false;}})()){location.replace(location.pathname+'?u='+Date.now());return;}
       if(m&&verNewer(m[1],APP_VER)&&nb){nb.textContent='⬆️ في نسخة جديدة '+m[1]+(n?' · '+n[1]:'')+' — دوس هنا عشان تحدّث';nb.style.display='block';}
     }).catch(function(){});
   }
