@@ -107,7 +107,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
 
   // 6d. print station prints orders sent from phones that are not on the hotel Wi-Fi
   { const ps = await b.newPage(); ps.errs = []; ps.on('pageerror', e => ps.errs.push(e.message));
-    await ps.addInitScript(() => { localStorage.setItem('vkStation', '1'); window.__P = []; window.VKApp = { printRaw: function (ip, port, data, id) { __P.push(ip); setTimeout(() => window.vkPrintDone(id, 'ok'), 50); }, version: () => '1.10' }; });
+    await ps.addInitScript(() => { localStorage.setItem('vkStation', '1'); window.__P = []; window.VKApp = { printRaw: function (ip, port, data, id) { __P.push(ip); setTimeout(() => window.vkPrintDone(id, 'ok'), 50); }, version: () => 'laptop' }; });
     await ps.goto('http://localhost:8799/kitchen.html'); await ps.waitForTimeout(1500);
     await ps.evaluate(() => { const f = firebase.firestore(); f.collection('prt').doc('n1').set({ st: 'none', at: Date.now(), by: 'r1', no: 5, err: '' }); f.collection('orders').doc('n1').set({ d: new Date().toISOString().slice(0, 10), at: Date.now() - 5000, by: 'r1', dest: 'table', table: '7', items: [{ n: 'Koshari', p: 5, q: 1 }], total: 6.4, st: 'new', no: 5, pay: 'cash', paid: true }); });
     await ps.waitForTimeout(6000);
@@ -116,7 +116,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
 
   // 6e. guest QR food order: the print station (reception account) puts it on the room and prints it
   { const ps = await b.newPage(); ps.errs = []; ps.on('pageerror', e => ps.errs.push(e.message));
-    await ps.addInitScript(() => { localStorage.setItem('vkStation', '1'); window.__P = []; window.VKApp = { printRaw: function (ip, port, data, id) { __P.push(ip); setTimeout(() => window.vkPrintDone(id, 'ok'), 50); }, version: () => '1.10' }; });
+    await ps.addInitScript(() => { localStorage.setItem('vkStation', '1'); window.__P = []; window.VKApp = { printRaw: function (ip, port, data, id) { __P.push(ip); setTimeout(() => window.vkPrintDone(id, 'ok'), 50); }, version: () => 'laptop' }; });
     await ps.goto('http://localhost:8799/rec.html'); await ps.waitForTimeout(1500);
     await ps.evaluate(() => { firebase.firestore().collection('geo').doc('printer').set({ kit: '192.168.1.100' }); firebase.firestore().collection('greq').doc('gq9').set({ room: '104', type: 'food', items: [{ k: '3-0', q: 2 }], note: 'no onion', at: Date.now(), st: 'new', place: 'room' }); });
     await ps.waitForTimeout(8000);
