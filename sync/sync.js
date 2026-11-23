@@ -308,17 +308,21 @@ async function applyToApp(ctx, aiosellRows, tmr) {
       const R = {};
       (await db.collection('rooms').get()).forEach((d) => { R[d.id] = d.data(); });
 
+      // open bills are read only for the rooms that might be checked out this round (saves the free daily reads)
       const unpaid = new Set(); const BILLS = {};
-      for (const col of ['orders', 'laundry']) {
-        (await db.collection(col).where('paid', '==', false).get()).forEach((d) => {
-          const x = d.data();
-          if (x.void === true || x.st === 'cancel' || x.room == null) return;
-          // a pickup booked for the guest arriving next belongs to that guest, not to the one leaving
-          if (x.preArr && R[String(x.room)] && (x.stayIn || '') !== (R[String(x.room)].in || '')) return;
-          unpaid.add(String(x.room));
-          (BILLS[String(x.room)] = BILLS[String(x.room)] || []).push({ c: col[0], id: d.id.slice(0, 5), k: x.kind || x.dest || '', d: x.d, in: x.stayIn || null, pre: !!x.preArr, mv: x.movedFrom || null, t: x.total != null ? x.total : x.price, tr: x.tour && x.tour.tr ? x.tour.date : null, st: x.st || '' });
-        });
-      }
+      const addBill = (col, d) => {
+        const x = d.data();
+        if (x.paid !== false || x.void === true || x.st === 'cancel' || x.room == null) return;
+        // a pickup booked for the guest arriving next belongs to that guest, not to the one leaving
+        if (x.preArr && R[String(x.room)] && (x.stayIn || '') !== (R[String(x.room)].in || '')) return;
+        unpaid.add(String(x.room));
+        (BILLS[String(x.room)] = BILLS[String(x.room)] || []).push({ c: col[0], id: d.id.slice(0, 5), k: x.kind || x.dest || '', d: x.d, in: x.stayIn || null, pre: !!x.preArr, mv: x.movedFrom || null, t: x.total != null ? x.total : x.price, tr: x.tour && x.tour.tr ? x.tour.date : null, st: x.st || '' });
+      };
+      const loadUnpaid = async (rooms) => {
+        for (const k of rooms) for (const col of ['orders', 'laundry']) {
+          (await db.collection(col).where('room', '==', k).where('paid', '==', false).get()).forEach((d) => addBill(col, d));
+        }
+      };
 
       // rooms with an open to-do that reception still has to enter in Aiosell
       const pending = new Set();
@@ -354,6 +358,10 @@ async function applyToApp(ctx, aiosellRows, tmr) {
       const rank = (s) => (/checked\s*in/i.test(s) ? 2 : /assigned/i.test(s) ? 1 : 0);
       const byRoom = {};
       for (const a of A) if (!byRoom[a.room] || rank(a.status) > rank(byRoom[a.room].status)) byRoom[a.room] = a;
+      {
+        const cand = Object.keys(R).filter((k) => R[k].status === 'occ' && (!byRoom[k] || rank(byRoom[k].status) !== 2 || (byRoom[k].in && R[k].in && byRoom[k].in !== R[k].in)) || R[k].coHold);
+        await loadUnpaid(cand);
+      }
 
       // ---- room move: the booking that was checked in to room X is now checked in to room Y ----
       // its open bills (restaurant, minibar, tours, transfers, laundry, part payments) follow it to Y automatically

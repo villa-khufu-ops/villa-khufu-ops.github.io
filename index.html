@@ -1205,7 +1205,7 @@ function drvExport(){var R=S.drvR,rows=drvRepRows();var A=[['التاريخ','ا
   loadXLSX().then(function(X){var wb=X.utils.book_new();var s1=X.utils.aoa_to_sheet(A),s2=X.utils.aoa_to_sheet(B);s1['!views']=s2['!views']=[{RTL:true}];X.utils.book_append_sheet(wb,s1,'المشاوير');X.utils.book_append_sheet(wb,s2,'كل سواق');X.writeFile(wb,name+'.xlsx');}).catch(function(){flash('ماقدرتش أعمل ملف Excel');});}
 // the dashboard is Fawzy's alone (his app name or username is fawzy)
 function dashMine(){var m=meDoc()||{};return myRole()==='admin'&&(String(m.name||'').trim().toLowerCase()==='fawzy'||String(m.username||'').trim().toLowerCase()==='fawzy');}
-function dashMonthLoad(){var D=S.dashM;if(D&&(D.loading||S.now-D.at<5*60000))return;var m1=Date.parse(today().slice(0,8)+'01T00:00:00');
+function dashMonthLoad(){var D=S.dashM;if(D&&(D.loading||S.now-D.at<30*60000))return;var m1=Date.parse(today().slice(0,8)+'01T00:00:00');
   S.dashM={loading:true,at:S.now};
   var days=[];for(var d=today().slice(0,8)+'01';d<=today();d=dAdd(d,1))days.push(d);
   Promise.all([db.collection('orders').where('at','>=',m1).get(),db.collection('laundry').where('at','>=',m1).get(),
@@ -2882,7 +2882,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.23.9';
+var APP_VER='2026.11.23.10';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
