@@ -28,6 +28,9 @@ public class WebActivity extends Activity {
     static final String HOST = "villa-khufu-ops.github.io";
     WebView w;
     long pausedAt = 0;
+    android.webkit.ValueCallback<Uri[]> pick;
+    static final int PICK = 41;
+    Uri camUri;
     boolean failed = false;
 
     @Override
@@ -50,6 +53,30 @@ public class WebActivity extends Activity {
             @Override
             public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback cb) {
                 cb.invoke(origin, Geo.fine(WebActivity.this), false);
+            }
+            // photo of a maintenance problem: pick from the gallery / files (the phone offers its camera app too)
+            @Override
+            public boolean onShowFileChooser(WebView v, android.webkit.ValueCallback<Uri[]> cb, FileChooserParams fp) {
+                if (pick != null) pick.onReceiveValue(null);
+                pick = cb;
+                try {
+                    Intent get = new Intent(Intent.ACTION_GET_CONTENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*");
+                    Intent ch = Intent.createChooser(get, "صورة العطل");
+                    camUri = null;
+                    if (Build.VERSION.SDK_INT >= 29) {
+                        try {
+                            ContentValues cv = new ContentValues();
+                            cv.put(MediaStore.Images.Media.DISPLAY_NAME, "vk-" + System.currentTimeMillis() + ".jpg");
+                            cv.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+                            camUri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, cv);
+                            Intent cam = new Intent(MediaStore.ACTION_IMAGE_CAPTURE).putExtra(MediaStore.EXTRA_OUTPUT, camUri)
+                                    .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                            ch.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{ cam });
+                        } catch (Exception ignored) { camUri = null; }
+                    }
+                    startActivityForResult(ch, PICK);
+                } catch (Exception e) { pick = null; return false; }
+                return true;
             }
         });
         w.setWebViewClient(new WebViewClient() {
@@ -118,6 +145,19 @@ public class WebActivity extends Activity {
                 });
             } catch (Exception ignored) { }
         }).start();
+    }
+
+    @Override
+    protected void onActivityResult(int req, int res, Intent data) {
+        super.onActivityResult(req, res, data);
+        if (req != PICK || pick == null) return;
+        Uri[] r = null;
+        if (res == RESULT_OK && data != null && data.getData() != null) r = new Uri[]{ data.getData() };
+        else if (res == RESULT_OK && camUri != null) r = new Uri[]{ camUri };
+        else if (camUri != null) { try { getContentResolver().delete(camUri, null, null); } catch (Exception ignored) { } }
+        camUri = null;
+        pick.onReceiveValue(r);
+        pick = null;
     }
 
     @Override

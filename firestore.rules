@@ -143,6 +143,13 @@ service cloud.firestore {
     }
 
     // طلبات النزلاء من الـ QR (أكل · رحلة · تنظيف · شكوى · تقييم): أي حد يبعت لغرفة مشغولة بس، والاستقبال والمدير يشوفوها ويردّوا عليها
+    // حالة طلب النزيل من الـQR (اتبعت / بيتحضّر / جاهز / اتقدّم): النزيل بيقرا طلبه بس برقمه، والموظفين بيكتبوا الحالة
+    match /gstat/{id} {
+      allow get: if true;
+      allow create, update: if isStaff()
+        && request.resource.data.keys().hasOnly(['st', 'at', 'no'])
+        && request.resource.data.st in ['new', 'prep', 'ready', 'served'];
+    }
     match /greq/{id} {
       allow create: if request.resource.data.keys().hasOnly(['room', 'type', 'items', 'tour', 'note', 'at', 'st', 'place', 'rate'])
         && request.resource.data.room is string && request.resource.data.room.size() == 3
