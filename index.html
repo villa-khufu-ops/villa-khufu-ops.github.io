@@ -2315,6 +2315,7 @@ function stationTick(){if(!db||!S.uid||!stationOn())return;var now=Date.now();
     db.runTransaction(function(t){return t.get(ref).then(function(d){var c=d.exists?d.data():null;if(c&&c.st!=='none')throw 'taken';t.set(ref,{st:'ok',at:Date.now(),by:S.uid,no:o.no||0,err:''});});})
      .then(function(){kitPrint(o,function(r){if(r!=='ok')prtSet(o.id,o,'fail',r);});}).catch(function(){});});}
 setInterval(stationTick,4000);
+var awakeOn=null;setInterval(function(){try{if(!(window.VKApp&&VKApp.keepAwake))return;var on=stationOn()||S.view==='kit';if(on!==awakeOn){awakeOn=on;VKApp.keepAwake(on);}}catch(e){}},3000);
 // guest QR food orders: the print station (logged in as reception) turns them into kitchen orders on the guest's room and prints them right away
 var gqAutoDone={};
 function gqAutoTick(){if(!db||!S.uid||!stationOn()||['admin','rec','shiftm'].indexOf(myRole())<0)return;
@@ -2778,7 +2779,8 @@ function vErrs(){
 }
 // only two looks now: night and bright · an old choice (auto / light / dark) moves to the nearest one
 function themeGet(){var t='';try{t=localStorage.getItem('vkTheme')||'';}catch(e){}if(t==='night'||t==='bright')return t;if(t==='dark')return 'night';if(!t){try{if(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)return 'night';}catch(e){}}return 'bright';}
-function themeApply(){if(/(^|[?&])guest(=|&|$)/.test(location.search))return;var t=themeGet();if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);try{var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',t==='night'?'#121010':t==='bright'?'#1747B8':'#8A4A14');}catch(e){}}
+function themeApply(){if(/(^|[?&])guest(=|&|$)/.test(location.search))return;var t=themeGet();if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);try{var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',t==='night'?'#121010':t==='bright'?'#1747B8':'#8A4A14');}catch(e){}
+  try{if(window.VKApp&&VKApp.setBar){var dk=t==='night'||(t==='auto'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);VKApp.setBar(dk?'#121010':'#FAF7F0',!dk);}}catch(e){}}
 themeApply();
 
 // ----- users (admin) -----
@@ -2821,7 +2823,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.22.15';
+var APP_VER='2026.11.23.1';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};

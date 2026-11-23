@@ -27,6 +27,8 @@ import java.io.OutputStream;
 public class WebActivity extends Activity {
     static final String HOST = "villa-khufu-ops.github.io";
     WebView w;
+    long pausedAt = 0;
+    boolean failed = false;
 
     @Override
     protected void onCreate(Bundle b) {
@@ -51,6 +53,15 @@ public class WebActivity extends Activity {
             }
         });
         w.setWebViewClient(new WebViewClient() {
+            // no internet when the app opens: a simple Arabic page that tries again by itself
+            @Override
+            public void onReceivedError(WebView v, WebResourceRequest r, android.webkit.WebResourceError e) {
+                if (r == null || !r.isForMainFrame()) return;
+                failed = true;
+                v.loadDataWithBaseURL(null, "<html dir='rtl'><body style='font-family:sans-serif;background:#121010;color:#F4EDE2;display:flex;flex-direction:column;align-items:center;justify-content:center;height:90vh;text-align:center;gap:12px'>"
+                        + "<div style='font-size:46px'>📶</div><b style='font-size:22px'>مفيش نت دلوقتي</b><span style='font-size:16px;opacity:.8'>الأبلكيشن هيفتح لوحده أول ما النت يرجع</span></body></html>", "text/html", "UTF-8", null);
+                v.postDelayed(WebActivity.this::retry, 5000);
+            }
             @Override
             public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
                 Uri u = r.getUrl();
@@ -62,8 +73,17 @@ public class WebActivity extends Activity {
         });
         // always a fresh page on start, so every update reaches the phone right away
         s.setCacheMode(WebSettings.LOAD_NO_CACHE);
-        w.loadUrl("https://" + HOST + "/?app=1&u=" + System.currentTimeMillis());
+        home();
         checkApk();
+    }
+
+    void home() { failed = false; w.loadUrl("https://" + HOST + "/?app=1&u=" + System.currentTimeMillis()); }
+    void retry() {
+        if (!failed || isFinishing()) return;
+        android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        android.net.NetworkCapabilities nc = cm == null ? null : cm.getNetworkCapabilities(cm.getActiveNetwork());
+        if (nc != null && nc.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)) home();
+        else w.postDelayed(this::retry, 5000);
     }
 
     @Override
@@ -107,10 +127,15 @@ public class WebActivity extends Activity {
     }
 
     @Override
-    protected void onResume() { super.onResume(); w.onResume(); }
+    protected void onResume() {
+        super.onResume(); w.onResume();
+        // left in the background for hours: open fresh, so the phone always has the newest version
+        if (pausedAt > 0 && System.currentTimeMillis() - pausedAt > 4 * 3600_000L) home();
+        pausedAt = 0;
+    }
 
     @Override
-    protected void onPause() { w.onPause(); super.onPause(); }
+    protected void onPause() { pausedAt = System.currentTimeMillis(); w.onPause(); super.onPause(); }
 
     String ver() {
         try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return "?"; }
@@ -142,6 +167,26 @@ public class WebActivity extends Activity {
                 final String r = res;
                 runOnUiThread(() -> w.evaluateJavascript("window.vkPrintDone&&vkPrintDone(" + org.json.JSONObject.quote(cb) + "," + org.json.JSONObject.quote(r) + ")", null));
             }).start();
+        }
+        /** Top and bottom bars in the colour of the app's look (dark look = dark bars). */
+        @JavascriptInterface public void setBar(String hex, boolean darkIcons) {
+            runOnUiThread(() -> {
+                try {
+                    int c = Color.parseColor(hex);
+                    getWindow().setStatusBarColor(c);
+                    getWindow().setNavigationBarColor(c);
+                    int f = 0;
+                    if (darkIcons) f |= android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+                    getWindow().getDecorView().setSystemUiVisibility(f);
+                } catch (Exception ignored) { }
+            });
+        }
+        /** Screen stays on (kitchen screen, print station). */
+        @JavascriptInterface public void keepAwake(boolean on) {
+            runOnUiThread(() -> {
+                if (on) getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                else getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            });
         }
         @JavascriptInterface public void setup() {
             runOnUiThread(() -> startActivity(new Intent(WebActivity.this, MainActivity.class).putExtra("setup", true)));
