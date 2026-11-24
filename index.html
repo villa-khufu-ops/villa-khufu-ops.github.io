@@ -2420,9 +2420,9 @@ function kitPrint(o,done){if(!canPrint()){if(done)done('no');return;}
   try{var id='p'+Date.now()+Math.random();if(done)printCb[id]=done;VKApp.printRaw(S.printer.kit,+S.printer.port||9100,escpos(ticketCanvas(L)),id);}catch(e){if(done)done(String(e));}}
 // guest statement straight to the reception receipt printer (one tap, no print dialog)
 var logoBW=null;function logoImg(cb){if(logoBW&&logoBW.complete)return cb(logoBW);logoBW=new Image();logoBW.onload=function(){cb(logoBW);};logoBW.onerror=function(){cb(null);};logoBW.src='logo-bw.png';}
-function invCanvas(D,img){var W=576,c=document.createElement('canvas'),x=c.getContext('2d'),pad=14,y=8,ops=[];
+function invCanvas(D,img){var K=2,W=576,c=document.createElement('canvas'),x=c.getContext('2d'),pad=14,y=8,ops=[];
   function wrap(t,font,max){x.font=font;var out=[],cur='';String(t).split(' ').forEach(function(w){var n=cur?cur+' '+w:w;if(x.measureText(n).width>max&&cur){out.push(cur);cur=w;}else cur=n;});if(cur)out.push(cur);return out;}
-  function line(t,sz,b,al,right){var f=(b?'bold ':'')+sz+'px sans-serif';var rw=0;if(right){x.font=f;rw=x.measureText(right).width+16;}wrap(t,f,W-2*pad-rw).forEach(function(tt,i){ops.push(['t',tt,y+sz,f,al||'left',i===0?right:null]);y+=sz+8;});}
+  function line(t,sz,b,al,right){var f=(b?'bold ':'')+(sz*K)+'px sans-serif';var rw=0;if(right){x.font=f;rw=x.measureText(right).width+16;}wrap(t,f,W-2*pad-rw).forEach(function(tt,i){ops.push(['t',tt,y+sz*K,f,al||'left',i===0?right:null]);y+=sz*K+8;});}
   function rule(th){ops.push(['r',y+4,th||2]);y+=14;}
   if(img){var iw=img.width,ih=img.height;ops.push(['i',img,(W-iw)/2,y,iw,ih]);y+=ih+6;}
   line('Giza, Egypt',26,0,'center');rule(3);line('GUEST STATEMENT',40,1,'center');line(fmtEn(today()),28,0,'center');rule(3);
@@ -2433,7 +2433,7 @@ function invCanvas(D,img){var W=576,c=document.createElement('canvas'),x=c.getCo
   line('Restaurant incl. 12% service & 14% VAT.',24,0,'center');line('Room charges are billed separately.',24,0,'center');line('Thank you for staying with us!',28,1,'center');
   c.width=W;c.height=y+16;x.fillStyle='#fff';x.fillRect(0,0,W,c.height);x.fillStyle='#000';
   ops.forEach(function(o){if(o[0]==='r'){x.fillRect(pad,o[1],W-2*pad,o[2]);return;}if(o[0]==='i'){x.imageSmoothingEnabled=false;x.drawImage(o[1],o[2],o[3],o[4],o[5]);return;}
-    x.font=o[3];x.direction='ltr';x.textAlign=o[4];x.fillText(o[1],o[4]==='center'?W/2:pad,o[2]);if(o[5]){x.textAlign='right';x.fillText(o[5],W-pad,o[2]);}});return c;}
+    x.font=o[3];x.direction='ltr';x.textAlign=o[4];var tx=o[4]==='center'?W/2:pad;x.fillText(o[1],tx,o[2]);x.lineWidth=1.5;x.strokeText(o[1],tx,o[2]);if(o[5]){x.textAlign='right';x.fillText(o[5],W-pad,o[2]);x.strokeText(o[5],W-pad,o[2]);}});return c;}
 function invUsbOn(){try{return !!(window.VKApp&&VKApp.version&&VKApp.version()==='laptop'&&VKApp.recUsb&&VKApp.recUsb());}catch(e){return false;}}
 function invPrint(fb){var D=S.invData;if(!D)return;
   // reception laptop program + USB receipt printer: the program sends the receipt straight to that printer (exact 80 mm, no dialog, no driver scaling)
