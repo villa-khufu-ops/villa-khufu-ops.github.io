@@ -493,6 +493,9 @@ async function applyToApp(ctx, aiosellRows, tmr) {
         rep.prt += ' · station: ' + JSON.stringify(stn).slice(0, 200);
         const pu = []; (await db.collection('push').where('at', '>=', Date.now() - 3 * 3600e3).get()).forEach((d) => { const x = d.data(); pu.push((x.role || '') + ' ' + new Date(x.at).toISOString().slice(11, 16) + ' ' + String(x.ua || '').replace(/^Mozilla\/5.0 /, '').slice(0, 70)); });
         rep.prt += ' · push(3h): ' + pu.join(' | ');
+        const tv = []; (await db.collection('orders').where('at', '>=', Date.now() - 30 * 3600e3).get()).forEach((d) => { const x = d.data(); if (x.kind !== 'tour') return; const t = x.tour || {};
+          tv.push(d.id.slice(0, 6) + ' ' + new Date(x.at).toISOString().slice(5, 16) + ' room=' + x.room + ' dest=' + x.dest + ' pay=' + x.pay + ' paid=' + x.paid + ' st=' + x.st + ' tot=' + x.total + ' stayIn=' + x.stayIn + (x.preArr ? ' preArr' : '') + ' tr=' + !!t.tr + ' car=' + t.car + ' drv=' + (t.driver ? 'set' : 'none') + ' date=' + t.date + ' ' + t.time + (t.grp ? ' grp lead=' + t.lead : '')); });
+        rep.prt += ' · tours(30h): ' + tv.sort().join(' | ');
       }
       if (DRY) rep.diag = Object.keys(R).filter((k) => R[k].coHold).map((k) => k + ' ' + JSON.stringify({ st: R[k].status, in: R[k].in, out: R[k].out, bk: !!R[k].bk, arr: R[k].arrival ? R[k].arrival.in : null, aio: byRoom[k] ? { st: byRoom[k].status, in: byRoom[k].in, out: byRoom[k].out, sameBk: !!(byRoom[k].bk && byRoom[k].bk === R[k].bk), bkElsewhere: R[k].bk ? (Object.keys(byRoom).filter((q) => q !== k && byRoom[q].bk === R[k].bk).join(',') || null) : null } : null, bills: BILLS[k] || [] }));
       rep.tmr = TMR ? Object.keys(TMR.arr).length : null;
