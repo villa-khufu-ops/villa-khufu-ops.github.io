@@ -1168,7 +1168,7 @@ function salesSum(rows){var T={n:rows.length,sub:0,svc:0,vat:0,total:0,room:0,ca
 // ---------- manager dashboard: today's picture in one page (live data + this month's money) ----------
 
 // transfers per driver and per car (dashboard + driver report)
-function drvKey(o){return (o.tour&&o.tour.driver)||(DRIVER_CARS.indexOf(o.tour&&o.tour.car)>=0?'— من غير سواق':'— عربية من برة');}
+function drvKey(o){if(o.tour&&o.tour.driver===DRV_OUT)return '— عربية من برة';return (o.tour&&o.tour.driver)||(DRIVER_CARS.indexOf(o.tour&&o.tour.car)>=0?'— من غير سواق':'— عربية من برة');}
 function drvRoute(x){var f=String(x.from||'').trim(),t=String(x.to||'').trim();return f||t?'من '+(f||'—')+' لـ '+(t||'—'):'من غير مكان';}
 function drvAdd(DR,CR,o){var x=o.tour||{},k=drvKey(o),c=(carOf(x.car)||[0,x.car||'—'])[1],D=DR[k]=DR[k]||{n:0,sum:0,pax:0,cars:{},routes:{}};
   D.sum+=o.total||0;if(!trLead(o))return;D.n++;D.pax+=+x.pax||0;D.cars[c]=(D.cars[c]||0)+1;var rt=drvRoute(x);D.routes[rt]=(D.routes[rt]||0)+1;CR[c]=(CR[c]||0)+1;}
@@ -1369,7 +1369,7 @@ function vLndNew(){
 
 // ----- transfers (reception): car + people + price, charged to the room like a tour -----
 var CARS=[['sedan','سيدان','Sedan',3],['xpander','اكسبندر','Xpander',5],['hiace','هاي اس','HiAce',12],['coaster','كوستر','Coaster',20],['bus','اتوبيس','Bus',40]];
-var DRIVERS=['ياسر','سعيد إبراهيم','سعيد زغلول','عزت'],DRIVER_CARS=['sedan','xpander'];
+var DRIVERS=['ياسر','سعيد إبراهيم','سعيد زغلول','عزت'],DRV_OUT='عربية من برة',DRIVER_CARS=['sedan','xpander','hiace','coaster','bus'];
 // quick date buttons (today / tomorrow / the day after) that fill a date box without redrawing the page
 function dayAfter(n){var d=new Date();d.setDate(d.getDate()+n);return iso(d);}
 function dateQuick(id,cur){return '<div class="picks" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+[['النهارده',0],['بكرة',1],['بعد بكرة',2]].map(function(x){var v=dayAfter(x[1]);return '<button class="pick" style="min-height:44px" data-a="dPick" data-f="'+id+'" data-v="'+v+'" aria-pressed="'+(cur===v)+'">'+x[0]+'<br><span class="sub" style="color:inherit">'+fmt(v)+'</span></button>';}).join('')+'</div>';}
@@ -1419,7 +1419,7 @@ function vTrDrv(){
   if(!canTrEdit())return top('توزيع السواقين','','home')+'<p class="empty">الصفحة دي للمسؤول عن السواقين والاستقبال بس</p>';
   var t=dayAfter(-1),need=trNeedDrv().sort(function(a,b){return trWhen(a)-trWhen(b);}),done=trAll().filter(function(o){return DRIVER_CARS.indexOf(o.tour.car)>=0&&o.tour.driver&&(o.tour.date||'')>=t;}).sort(function(a,b){return trWhen(a)-trWhen(b);});
   var card=function(o){var x=o.tour,c=carOf(x.car);return '<div class="card" style="gap:8px'+(x.driver?'':';border:2px solid var(--warn)')+'"><div class="row" style="align-items:flex-start"><span class="grow"><b style="font-size:16px">'+fmt(x.date)+' · الساعة '+h(x.time||'—')+'</b><br><span class="sub">'+h(roomLbl(o))+' · '+(c?c[1]:'')+' · '+(x.pax||1)+' أفراد'+(x.from||x.to?' · '+h(x.from||'')+' ← '+h(x.to||''):'')+(o.note?' · '+h(o.note):'')+'</span>'+trInfo(x)+'</span>'+(x.driver?'<span class="chip c-ok">'+h(x.driver)+'</span>':'<span class="chip c-warn">مفيش سواق</span>')+'</div>'+
-    (canDrv()?'<div class="picks" style="grid-template-columns:1fr 1fr">'+DRIVERS.map(function(d){return '<button class="pick" style="min-height:48px" data-a="trSetDrv" data-id="'+h(o.id)+'" data-k="'+h(d)+'" aria-pressed="'+(x.driver===d)+'"><b>'+h(d)+'</b></button>';}).join('')+'</div>':'')+
+    (canDrv()?'<div class="picks" style="grid-template-columns:1fr 1fr">'+DRIVERS.concat([DRV_OUT]).map(function(d){return '<button class="pick" style="min-height:48px" data-a="trSetDrv" data-id="'+h(o.id)+'" data-k="'+h(d)+'" aria-pressed="'+(x.driver===d)+'"><b>'+h(d)+'</b></button>';}).join('')+'</div>':'')+
     (S.trEd===o.id?'<div class="card" style="gap:8px;background:var(--soft)"><b>✏️ تعديل الانتقال</b><div class="row" style="gap:8px;align-items:flex-end"><label class="f grow" for="te_d">اليوم<input class="inp ltr" id="te_d" type="date" value="'+h(x.date||'')+'"></label><label class="f grow" for="te_t">الساعة<input class="inp ltr" id="te_t" type="time" value="'+h(x.time||'')+'"></label></div>'+
       '<div class="row" style="gap:8px;align-items:flex-end"><label class="f grow" for="te_fr">من<input class="inp" id="te_fr" maxlength="80" value="'+h(x.from||'')+'"></label><label class="f grow" for="te_to">إلى<input class="inp" id="te_to" maxlength="80" value="'+h(x.to||'')+'"></label></div>'+
       '<div class="row" style="gap:8px;align-items:flex-end"><label class="f" style="width:90px" for="te_px">الأفراد<input class="inp ltr" id="te_px" type="number" min="1" max="60" inputmode="numeric" value="'+h(x.pax||1)+'"></label><label class="f grow" for="te_ph">تليفون الزبون<input class="inp ltr" id="te_ph" type="tel" maxlength="25" value="'+h(x.phone||'')+'"></label></div>'+
@@ -2894,7 +2894,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.24.3';
+var APP_VER='2026.11.24.4';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};

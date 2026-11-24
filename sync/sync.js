@@ -371,6 +371,8 @@ async function applyToApp(ctx, aiosellRows, tmr) {
       for (const [from, r] of Object.entries(R)) {
         const to = r.bk && r.status === 'occ' ? bkNow[r.bk] : null;
         if (!to || to === from || !R[to]) continue;
+        // one booking with several rooms (a group): the guest did not move while the old room is still checked in on the same booking
+        if (byRoom[from] && byRoom[from].bk === r.bk && rank(byRoom[from].status) === 2) continue;
         const stayTo = byRoom[to].in || r.in || null, stayFrom = r.in || null;
         let n = 0; const moves = [];
         for (const col of ['orders', 'laundry']) {
