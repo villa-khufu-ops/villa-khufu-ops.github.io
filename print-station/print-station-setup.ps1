@@ -11,3 +11,18 @@ $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoi
 Register-ScheduledTask -TaskName 'VillaKhufu Print Station' -Action $action -Trigger $t2 -Settings $settings -Force | Out-Null
 Start-Process wscript.exe -ArgumentList "`"$vbs`"" -WorkingDirectory $PSScriptRoot
 Write-Host 'Print station is on. Windows checks every 5 minutes and starts it again if it stopped.'
+
+# one icon "Villa Khufu" on the Desktop and Start menu: opens the app window of the same program
+$ws = New-Object -ComObject WScript.Shell
+$open = Join-Path $PSScriptRoot 'open-villa-khufu.vbs'
+$ico = Join-Path $PSScriptRoot 'VillaKhufu.ico'
+foreach ($d in @([Environment]::GetFolderPath('Desktop'), (Join-Path ([Environment]::GetFolderPath('StartMenu')) 'Programs'))) {
+  $lnk = $ws.CreateShortcut((Join-Path $d 'Villa Khufu.lnk'))
+  $lnk.TargetPath = 'wscript.exe'
+  $lnk.Arguments = "`"$open`""
+  $lnk.WorkingDirectory = $PSScriptRoot
+  $lnk.IconLocation = $ico
+  $lnk.Description = 'Villa Khufu Operations + kitchen printing'
+  $lnk.Save()
+}
+Write-Host 'Villa Khufu icon is on the Desktop.'

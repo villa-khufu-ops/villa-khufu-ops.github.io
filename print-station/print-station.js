@@ -1,16 +1,20 @@
-// Villa Khufu · print station on this laptop
-// Opens the app hidden in the background and prints every kitchen order on the kitchen printer
-// (the laptop and the printer are on the same network), even orders sent from phones on mobile data.
-//   node print-station.js --login   → opens a window: log in to the app once, then close the window
-//   node print-station.js           → runs hidden and keeps printing (started by Windows at log-on)
+// Villa Khufu · reception laptop app + kitchen print station, in one program
+//  - Always running in the background: prints every kitchen order on the kitchen printer
+//    (this laptop and the printer are on the same network), even orders sent from phones on mobile data.
+//  - The "Villa Khufu" icon opens the same program as a normal app window. Closing the window
+//    does not stop printing: it keeps running in the background.
+//   node print-station.js          → background (started by Windows)
+//   node print-station.js --show   → open the app window (the Desktop icon)
 const { chromium } = require('playwright');
-const net = require('net'), fs = require('fs'), path = require('path');
+const net = require('net'), http = require('http'), fs = require('fs'), path = require('path');
 
 const APP_URL = process.env.VK_URL || 'https://villa-khufu-ops.github.io/';
 const PROFILE = path.join(__dirname, 'print-profile');
 const LOG = path.join(__dirname, 'print-station-log.txt');
 const STOP = path.join(__dirname, 'STOP-PRINT.txt');
-const LOGIN = process.argv.includes('--login');
+const PORT = 47913;
+const LOGIN = process.argv.includes('--login');   // setup: open the window once, then exit when it is closed
+const SHOW = process.argv.includes('--show') || LOGIN;
 
 function log(m) {
   const line = new Date().toLocaleString('en-GB', { timeZone: 'Africa/Cairo' }) + '  ' + m + '\r\n';
@@ -19,9 +23,13 @@ function log(m) {
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function openContext(headless) {
-  const opts = { headless, viewport: { width: 420, height: 900 }, locale: 'ar-EG', ignoreDefaultArgs: ['--enable-automation'] };
-  for (const channel of ['chrome', 'msedge']) {
+let wantShow = SHOW, ctxNow = null, kick = null;
+
+async function openContext(show) {
+  const opts = show
+    ? { headless: false, viewport: null, locale: 'ar-EG', ignoreDefaultArgs: ['--enable-automation'], args: ['--app=' + APP_URL, '--kiosk-printing', '--window-size=1300,880', '--no-first-run'] }
+    : { headless: true, viewport: { width: 420, height: 900 }, locale: 'ar-EG', ignoreDefaultArgs: ['--enable-automation'] };
+  for (const channel of ['msedge', 'chrome']) {
     try { return await chromium.launchPersistentContext(PROFILE, { ...opts, channel }); } catch (_) {}
   }
   return chromium.launchPersistentContext(PROFILE, opts);
@@ -37,16 +45,13 @@ function sendRaw(ip, port, b64) {
   });
 }
 
-async function login() {
-  const ctx = await openContext(false);
-  const page = ctx.pages()[0] || await ctx.newPage();
-  await page.goto(APP_URL).catch(() => {});
-  console.log('سجّل دخول على الأبلكيشن في الشباك اللي اتفتح، وبعدين اقفل الشباك.');
-  await new Promise((r) => ctx.on('close', r));
-}
-
 async function runOnce() {
-  const ctx = await openContext(true);
+  const show = wantShow;
+  let ctx;
+  for (let k = 0; k < 4 && !ctx; k++) { try { ctx = await openContext(show); } catch (e) { if (k === 3) { ctx = null; var err = e; } else await sleep(3000); } }
+  if (!ctx) { const e = err; log('ما فتحش الشباك: ' + String(e && e.message || e).split('\n')[0].slice(0, 200)); wantShow = false; await sleep(5000); return; }
+  ctxNow = ctx;
+  let closed = false; ctx.on('close', () => { closed = true; });
   try {
     await ctx.exposeBinding('__vkRaw', async ({ page }, ip, port, b64, id) => {
       const r = await sendRaw(ip, port, b64);
@@ -60,25 +65,44 @@ async function runOnce() {
     });
     const page = ctx.pages()[0] || await ctx.newPage();
     page.on('pageerror', (e) => log('page error: ' + String(e && e.message).slice(0, 200)));
-    await page.goto(APP_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await page.waitForFunction(() => window.firebase && firebase.apps && firebase.apps.length, null, { timeout: 60000 });
-    const uid = await page.evaluate(() => new Promise((res) => { const un = firebase.auth().onAuthStateChanged((u) => { un(); res(u ? u.uid : null); }); setTimeout(() => res(null), 20000); }));
-    if (!uid) { log('مش مسجّل دخول · شغّل print-station-login.bat وسجّل دخول مرة واحدة'); await ctx.close(); await sleep(5 * 60000); return; }
-    log('شغال · جهاز الطباعة جاهز');
-    const started = Date.now();
-    // stay up; reload every 6 hours to pick up app updates
-    while (!fs.existsSync(STOP) && Date.now() - started < 6 * 3600e3 && !page.isClosed()) await sleep(15000);
-  } catch (e) { log('error: ' + String(e && e.message || e).slice(0, 300)); await sleep(30000); }
+    await page.goto(APP_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });   // reload so the printer hook is in place
+    if (show) {
+      log('الشباك مفتوح · الطباعة شغالة');
+      // the window: stays until the person closes it, then back to the background
+      await new Promise((res) => { const t = setInterval(() => { if (closed || page.isClosed() || fs.existsSync(STOP)) { clearInterval(t); res(); } }, 1000); });
+      wantShow = false;
+      if (LOGIN) { try { await ctx.close(); } catch (_) {} log('تسجيل الدخول خلص'); process.exit(0); }
+    } else {
+      await page.waitForFunction(() => window.firebase && firebase.apps && firebase.apps.length, null, { timeout: 60000 });
+      const uid = await page.evaluate(() => new Promise((res) => { const un = firebase.auth().onAuthStateChanged((u) => { un(); res(u ? u.uid : null); }); setTimeout(() => res(null), 20000); }));
+      if (!uid) { log('مش مسجّل دخول · افتح أيقونة Villa Khufu وسجّل دخول مرة واحدة'); await ctx.close(); await sleep(60000); return; }
+      log('شغال في الخلفية · الطباعة جاهزة');
+      const started = Date.now();
+      // stay up until the icon asks for the window, or 6 hours pass (then a fresh start)
+      while (!fs.existsSync(STOP) && !wantShow && Date.now() - started < 6 * 3600e3 && !closed && !page.isClosed()) await new Promise((r) => { kick = r; setTimeout(r, 5000); });
+    }
+  } catch (e) { log('error: ' + String(e && e.message || e).slice(0, 300)); await sleep(15000); }
   try { await ctx.close(); } catch (_) {}
+  ctxNow = null;
+}
+
+function askRunningToShow() {
+  return new Promise((res) => {
+    const rq = http.get({ host: '127.0.0.1', port: PORT, path: '/show', timeout: 3000 }, (r) => { r.resume(); res(true); });
+    rq.on('error', () => res(false)); rq.on('timeout', () => { rq.destroy(); res(false); });
+  });
 }
 
 (async () => {
-  if (LOGIN) return login();
-  // only one copy at a time
-  const lock = net.createServer().on('error', () => { console.log('already running'); process.exit(0); });
-  lock.listen(47913, '127.0.0.1', async () => {
+  // only one copy at a time: the copy that runs also answers the icon ("/show" = open the window)
+  const srv = http.createServer((req, res) => {
+    if (req.url === '/show') { if (!wantShow) { wantShow = true; if (kick) kick(); } res.end('ok'); } else res.end('villa-khufu');
+  });
+  srv.on('error', async () => { if (SHOW) await askRunningToShow(); process.exit(0); });
+  srv.listen(PORT, '127.0.0.1', async () => {
+    try { if (fs.existsSync(STOP)) fs.unlinkSync(STOP); } catch (_) {}
     log('بدأ');
-    while (!fs.existsSync(STOP)) await runOnce();
+    while (!fs.existsSync(STOP)) { try { await runOnce(); } catch (e) { log('error: ' + String(e && e.message || e).slice(0, 200)); await sleep(15000); } }
     log('اتوقف (STOP-PRINT.txt موجود)'); process.exit(0);
   });
 })();
