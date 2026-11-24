@@ -33,3 +33,8 @@ New-Item -Path $k -Force | Out-Null
 Set-ItemProperty -Path $k -Name DisplayName -Value 'Villa Khufu'
 Set-ItemProperty -Path $k -Name IconUri -Value (Join-Path $PSScriptRoot 'icon-192.png')
 Set-ItemProperty -Path $k -Name ShowInSettings -Value 0 -Type DWord
+
+# the reception receipt printer on USB (the app prints invoices straight to it)
+$usb = @(Get-Printer | Where-Object { $_.PortName -like 'USB*' -or $_.PortName -like 'COM*' })
+if ($usb.Count -eq 0) { Write-Host 'No USB printer found on this laptop. Invoices will use the normal print window.' }
+else { Write-Host ('USB printers: ' + (($usb | ForEach-Object { $_.Name }) -join ', ')) }

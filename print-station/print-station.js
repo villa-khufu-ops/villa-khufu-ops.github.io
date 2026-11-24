@@ -50,6 +50,20 @@ async function openContext(show) {
   return chromium.launchPersistentContext(PROFILE, opts);
 }
 
+// reception receipt printer on USB: hand the bytes to Windows (RAW, no resizing) through raw-print.ps1
+function sendUsb(b64) {
+  return new Promise((resolve) => {
+    if (process.platform !== 'win32') return resolve('not-windows');
+    const f = path.join(os.tmpdir(), 'vk-rcpt-' + Date.now() + '.bin');
+    try { fs.writeFileSync(f, Buffer.from(String(b64), 'base64')); } catch (e) { return resolve('file'); }
+    let out = '';
+    const p = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, 'raw-print.ps1'), '-File', f], { windowsHide: true });
+    const t = setTimeout(() => { try { p.kill(); } catch (_) {} }, 30000);
+    p.stdout.on('data', (d) => { out += d; });
+    p.on('error', () => {});
+    p.on('close', () => { clearTimeout(t); try { fs.unlinkSync(f); } catch (_) {} const r = out.trim().split(/\r?\n/).pop() || 'fail'; log('فاتورة على ' + r); resolve(r.indexOf('ok|') === 0 ? 'ok' : r.split('|')[0]); });
+  });
+}
 // send the ticket bytes straight to the printer (port 9100)
 function sendRaw(ip, port, b64) {
   return new Promise((resolve) => {
@@ -69,7 +83,7 @@ async function runOnce() {
   let closed = false; ctx.on('close', () => { closed = true; });
   try {
     await ctx.exposeBinding('__vkRaw', async ({ page }, ip, port, b64, id) => {
-      const r = await sendRaw(ip, port, b64);
+      const r = String(ip) === 'usb' ? await sendUsb(b64) : await sendRaw(ip, port, b64);
       log('print to ' + ip + ' → ' + r);
       await page.evaluate(([i, x]) => { try { window.vkPrintDone && window.vkPrintDone(i, x); } catch (e) {} }, [id, r]).catch(() => {});
       return r;
@@ -80,7 +94,7 @@ async function runOnce() {
     await ctx.addInitScript(() => {
       try { navigator.serviceWorker && navigator.serviceWorker.addEventListener('message', (e) => { const n = e.data && e.data.vkNote; if (n && window.__vkNote) window.__vkNote(String(n.title || 'Villa Khufu'), String(n.body || '')); }); } catch (e) {}
       try { localStorage.setItem('vkStation', '1'); } catch (e) {}
-      window.VKApp = { printRaw: function (ip, port, b64, id) { window.__vkRaw(ip, port, b64, id); }, version: function () { return 'laptop'; } };
+      window.VKApp = { printRaw: function (ip, port, b64, id) { window.__vkRaw(ip, port, b64, id); }, version: function () { return 'laptop'; }, recUsb: function () { return true; } };
     });
     const page = ctx.pages()[0] || await ctx.newPage();
     page.on('pageerror', (e) => log('page error: ' + String(e && e.message).slice(0, 200)));

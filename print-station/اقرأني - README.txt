@@ -11,3 +11,6 @@ Install / update:
  3) From now on use the "Villa Khufu" icon.
 
 Stop printing: print-station-stop.bat   |  Start again: 1-SETUP.bat
+
+Reception invoices (USB printer): the app sends the invoice straight to the USB receipt printer.
+If it picks the wrong printer: create rec-printer.txt in this folder with the exact printer name inside.
