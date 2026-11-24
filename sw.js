@@ -18,10 +18,12 @@ self.addEventListener('push', e => {
   let p = {};
   try { p = e.data ? e.data.json() : {}; } catch (x) { p = { data: { body: e.data && e.data.text() } }; }
   const d = p.data || p.notification || p;
-  e.waitUntil(self.registration.showNotification(d.title || 'Villa Khufu', {
+  // the reception laptop program also hears it (shows it as a Windows notification while its window is closed)
+  const tell = self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => list.forEach(c => { try { c.postMessage({ vkNote: { title: d.title || 'Villa Khufu', body: d.body || '' } }); } catch (x) {} })).catch(() => {});
+  e.waitUntil(Promise.all([tell, self.registration.showNotification(d.title || 'Villa Khufu', {
     body: d.body || '', icon: 'icon-192.png', badge: 'icon-192.png', tag: d.tag || undefined,
     requireInteraction: true, vibrate: [300, 150, 300, 150, 300], data: { url: d.url || './' }
-  }));
+  })]));
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();
