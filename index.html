@@ -937,11 +937,11 @@ function vRecRoom(){
    '<div class="card"><div class="row">'+ICON.broom+'<span class="grow"><span class="ttl">النظافة</span><br><span class="sub">مفيش طلب نظافة</span></span><button class="btn b-main" style="width:auto;min-height:44px" data-a="cleanOn" data-n="'+no+'">طلب نظافة</button></div></div>';
   var bill=roomBill(no),bsum=billSum(bill);
   var food='<div class="card"><div class="row">'+ICON.food+'<span class="grow"><span class="ttl">المطعم</span><br><span class="sub">'+(bill.length?bill.length+' طلب على حساب الغرفة':'مفيش طلبات على الغرفة')+'</span></span><b class="money" style="font-size:18px">'+money(bsum)+'</b></div>'+
-   bill.map(function(o){return '<div class="row" style="border-top:1px solid var(--line);padding-top:6px;align-items:flex-start"><span class="grow"><span class="sub">#'+(o.no||'')+' · '+fmt(o.d)+' '+hm(o.at)+'</span><br><span class="ltr" style="display:block;text-align:right;font-size:13px">'+h((o.items||[]).map(function(i){return i.q+'× '+i.n;}).join('، '))+'</span></span><span class="money">'+money(o.total)+'</span></div>';}).join('')+
+   bill.map(function(o){return '<div class="row" style="border-top:1px solid var(--line);padding-top:6px;align-items:flex-start"><span class="grow"><span class="sub">#'+(o.no||'')+' · '+fmt(o.d)+' '+hm(o.at)+'</span><br><span class="ltr" style="display:block;text-align:right;font-size:13px">'+h((o.items||[]).map(function(i){return i.q+'× '+i.n;}).join('، '))+'</span></span><span class="money">'+oMoney(o)+'</span></div>';}).join('')+
    '<button class="btn b-line" style="min-height:44px" data-a="roomOrder" data-n="'+no+'">'+ICON.food+' طلب مطعم للغرفة</button></div>';
   var mb=roomMini(no),msum=billSum(mb);
   var fridge='<div class="card"><div class="row">'+ICON.fridge+'<span class="grow"><span class="ttl">التلاجة</span><br><span class="sub">'+(mb.length?mb.length+' مرة على حساب الغرفة':'مفيش حاجة من التلاجة')+'</span></span><b class="money" style="font-size:18px">'+money(msum)+'</b></div>'+
-   mb.map(function(o){return '<div class="row" style="border-top:1px solid var(--line);padding-top:6px;align-items:flex-start"><span class="grow"><span class="sub">'+fmt(o.d)+' '+hm(o.at)+'</span><br><span style="font-size:13px">'+h((o.items||[]).map(function(i){return i.q+'× '+(i.ar||i.n);}).join('، '))+'</span></span><span class="money">'+money(o.total)+'</span></div>';}).join('')+
+   mb.map(function(o){return '<div class="row" style="border-top:1px solid var(--line);padding-top:6px;align-items:flex-start"><span class="grow"><span class="sub">'+fmt(o.d)+' '+hm(o.at)+'</span><br><span style="font-size:13px">'+h((o.items||[]).map(function(i){return i.q+'× '+(i.ar||i.n);}).join('، '))+'</span></span><span class="money">'+oMoney(o)+'</span></div>';}).join('')+
    '<button class="btn b-line" style="min-height:44px" data-a="roomMini" data-n="'+no+'">'+ICON.fridge+' تلاجة للغرفة</button></div>';
   var lb=roomLBill(no),lsum=lb.reduce(function(s,o){return s+(o.price||0);},0);
   var LST={new:'مستني المغسلة تستلم',wash:'بيتغسل',ready:'جاهز',done:'اتسلّم'};
@@ -950,7 +950,7 @@ function vRecRoom(){
    '<button class="btn b-line" style="min-height:44px" data-a="roomWash" data-n="'+no+'">'+ICON.wash+' غسيل جديد للغرفة</button></div>';
   var tb=roomTours(no),tsum=billSum(tb),tbT=tb.filter(function(o){return o.tour&&o.tour.tr;}),trnSum=billSum(tbT),tbR=tb.length-tbT.length;
   var tours='<div class="card"><div class="row">'+ICON.report+'<span class="grow"><span class="ttl">الرحلات والانتقالات</span><br><span class="sub">'+(tb.length?[tbR?tbR+' رحلة':'',tbT.length?tbT.length+' انتقال':''].filter(Boolean).join(' · ')+' على حساب الغرفة':'مفيش رحلات ولا انتقالات على الغرفة')+'</span></span><b class="money" style="font-size:18px">'+money(tsum)+'</b></div>'+
-   tb.map(function(o){return '<div class="row" style="border-top:1px solid var(--line);padding-top:6px;align-items:flex-start"><span class="grow"><span class="sub">'+fmt(o.d)+' '+hm(o.at)+'</span><br><span style="font-size:13px">'+h(tourTxt(o))+'</span></span><span class="money">'+money(o.total)+'</span></div>';}).join('')+
+   tb.map(function(o){return '<div class="row" style="border-top:1px solid var(--line);padding-top:6px;align-items:flex-start"><span class="grow"><span class="sub">'+fmt(o.d)+' '+hm(o.at)+'</span><br><span style="font-size:13px">'+h(tourTxt(o))+'</span></span><span class="money">'+oMoney(o)+'</span></div>';}).join('')+
    '<button class="btn b-line" style="min-height:44px" data-a="roomTour" data-n="'+no+'">'+ICON.report+' رحلة للغرفة</button></div>';
   var due=bsum+lsum+msum+tsum,paidPart=((openAccounts()[no]||{}).part)||0;due=Math.max(0,Math.round((due-paidPart)*100)/100);
   var parts=[];if(tsum-trnSum)parts.push('رحلات <span class="money">'+money(tsum-trnSum)+'</span>');if(trnSum)parts.push('انتقالات <span class="money">'+money(trnSum)+'</span>');if(bsum)parts.push('مطعم <span class="money">'+money(bsum)+'</span>');if(msum)parts.push('تلاجة <span class="money">'+money(msum)+'</span>');if(lsum)parts.push('غسيل <span class="money">'+money(lsum)+'</span>');if(paidPart)parts.push('اتدفع منها <span class="money">− '+money(paidPart)+'</span>');
@@ -1142,7 +1142,7 @@ function vRestCart(){
   }else if(d==='table'){
     extra='<label class="f" for="otable">رقم الترابيزة<input class="inp ltr" id="otable" inputmode="numeric" maxlength="10"></label><span class="sub">الدفع نقدي</span>';
   }else if(d==='co'){
-    extra='<span class="sub">الحساب بيتسجّل على الشركة وبيتحاسب آخر الشهر</span><div class="picks" style="grid-template-columns:1fr 1fr">'+coList().map(function(c){return '<button class="pick" style="min-height:52px" data-a="pickCo" data-k="'+h(c.id)+'" aria-pressed="'+(S.draft.co===c.id)+'"><b>'+h(c.name)+'</b></button>';}).join('')+'</div><label class="f" for="otable">رقم الترابيزة (اختياري)<input class="inp ltr" id="otable" inputmode="numeric" maxlength="10"></label>';
+    extra='<span class="sub">الحساب بيتسجّل على الشركة وبيتحاسب آخر الشهر</span><div class="picks" style="grid-template-columns:1fr 1fr">'+coList().map(function(c){return '<button class="pick" style="min-height:52px" data-a="pickCo" data-k="'+h(c.id)+'" aria-pressed="'+(S.draft.co===c.id)+'"><b>'+h(c.name)+'</b></button>';}).join('')+'</div><label class="f" for="otable">رقم الترابيزة (اختياري)<input class="inp ltr" id="otable" inputmode="numeric" maxlength="10"></label><label class="f" for="oegp">💵 سعر متفق عليه بالجنيه (اختياري · سيبه فاضي للأسعار العادية بالدولار)<input class="inp ltr" id="oegp" type="number" min="1" max="200000" inputmode="numeric" placeholder="مثلاً 850"></label>';
   }else extra='<span class="sub">الدفع نقدي</span>';
   return top('مراجعة الطلب',cartCount()+' صنف','rest')+'<div class="stack">'+toastHtml()+lines+dests+extra+
    '<label class="f" for="odue">⏰ ميعاد التقديم (اختياري · سيبه فاضي لو دلوقتي)<input class="inp ltr" id="odue" type="time" step="300"></label>'+
@@ -1333,7 +1333,7 @@ function vRestOrders(){
     else if(o.st==='prep'&&canServe)acts+='<span class="sub" style="text-align:center">المطبخ بدأ يحضّر · الإلغاء من المدير بس</span>';
     return '<div class="card'+(o.st==='ready'?' pulse':'')+'" style="'+(o.st==='ready'?'border:2px solid var(--ok)':'')+(o.st==='cancel'?'opacity:.6':'')+'"><div class="row"><span class="badge'+(o.dest==='room'?' occ':'')+'"><small>#'+(o.no||'')+'</small><b style="font-size:14px">'+h(destAb(o))+'</b></span><span class="grow"><span class="ttl">'+h(destTxt(o))+'</span><br><span class="sub">'+hm(o.at)+' · '+h(wname(o.by))+' · '+(o.pay==='room'?'على الغرفة':'نقدي')+'</span></span><span class="chip '+st[1]+'">'+st[0]+'</span></div>'+
      '<div class="items" style="font-size:14px">'+(o.items||[]).map(function(i){return '<span>'+i.q+'× '+h(i.n)+'</span>';}).join('')+'</div>'+dueChip(o)+(o.note?'<span class="note">'+h(o.note)+'</span>':'')+
-     '<div class="row" style="justify-content:space-between"><span class="sub">الإجمالي</span><b class="money">'+money(o.total)+'</b></div>'+acts+(mvB?'<div class="row" style="justify-content:flex-end">'+mvB+'</div>':'')+'</div>';}).join(''):'<p class="empty">مفيش طلبات النهارده</p>';
+     '<div class="row" style="justify-content:space-between"><span class="sub">الإجمالي</span><b class="money">'+oMoney(o)+'</b></div>'+acts+(mvB?'<div class="row" style="justify-content:flex-end">'+mvB+'</div>':'')+'</div>';}).join(''):'<p class="empty">مفيش طلبات النهارده</p>';
   var back=(has('rest')||has('rec'))?'rest':homeOf();
   return top('طلبات المطعم',fmt(t),back,canServe?'<button class="ib on" data-a="go" data-v="rest" aria-label="طلب جديد"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>':'')+
    '<div class="stack">'+toastHtml()+'<div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="stat c-soft"><b>'+live.filter(function(o){return o.d===t;}).length+'</b><span>طلب النهارده</span></div><div class="stat c-ok"><b class="money">'+money(tot)+'</b><span>إجمالي النهارده</span></div></div>'+body+'</div>';
@@ -2019,13 +2019,17 @@ function loadInv(no){
   }).catch(function(e){if(S.inv&&S.inv.no===no){S.inv={no:no,err:'ما قدرتش أحمّل الفاتورة، جرّب تاني'};render();}});
 }
 // ----- companies that bring guests to eat: their orders go on the company and are paid once a month -----
-var DEFAULT_COS=[{id:'bluesky',name:'Blue Sky',phone:'',note:'',on:true}];
+var DEFAULT_COS=[{id:'bluesky',name:'Blue Sky',phone:'',note:'',on:true},{id:'bluebus',name:'Blue Bus',phone:'',note:'',on:true}];
+// a company order can carry an agreed price in Egyptian pounds (o.egp); its dollar total is then 0
+function oMoney(o){return o&&o.egp?egp(o.egp):money((o&&o.total)||0);}
+function coAmt(u,e){return e?(u?money(u)+' + ':'')+egp(e):money(u||0);}
 function coList(){return (S.cos||[]).filter(function(c){return c.on!==false;});}
 function coById(id){return (S.cos||[]).filter(function(c){return c.id===id;})[0]||null;}
 var coUn=null,coKey='';
 function coListen(id){if(!db||!id||coKey===id)return;coKey=id;if(coUn)coUn();S.coAll=null;coUn=db.collection('orders').where('co','==',id).onSnapshot(function(sn){var l=[];sn.forEach(function(d){var v=Object.assign({id:d.id},d.data());if(v.st!=='cancel'&&!v.void)l.push(v);});S.coAll=l;render();},function(){S.coAll=[];render();});unsubs.push(function(){if(coUn)coUn();coUn=null;coKey='';});}
 function coRows(){var m=S.coM||today().slice(0,7),l=(S.coAll||[]).filter(function(o){return (o.d||'').slice(0,7)===m;}).sort(function(a,b){return (a.at||0)-(b.at||0);});
-  var tot=r2(l.reduce(function(x,o){return x+(o.total||0);},0)),due=r2(l.filter(function(o){return !o.paid;}).reduce(function(x,o){return x+(o.total||0);},0));return {m:m,rows:l,tot:tot,due:due};}
+  var sm=function(L,k){return r2(L.reduce(function(x,o){return x+(o[k]||0);},0));},un=l.filter(function(o){return !o.paid;});
+  return {m:m,rows:l,tot:sm(l,'total'),due:sm(un,'total'),totE:sm(l,'egp'),dueE:sm(un,'egp')};}
 function vCoAcc(){
   var adm=myRole()==='admin',cs=adm?(S.cos||[]):coList();
   if(!S.coSel&&cs.length)S.coSel=cs[0].id;var c=coById(S.coSel);if(c)coListen(c.id);
@@ -2036,17 +2040,17 @@ function vCoAcc(){
   var mName=function(m){return MONTHS[+m.slice(5,7)-1]+' '+m.slice(0,4);};
   var unAll=(S.coAll||[]).filter(function(o){return !o.paid;}),unOld=unAll.filter(function(o){return (o.d||'').slice(0,7)!==R.m;});
   var td='padding:6px;border-bottom:1px solid #ddd;text-align:right;vertical-align:top';
-  var tbl=R.rows.length?'<table style="width:100%;border-collapse:collapse;font-size:13px"><tr><th style="'+td+'">اليوم</th><th style="'+td+'">الطلب</th><th style="'+td+';text-align:left">المبلغ</th></tr>'+R.rows.map(function(o){return '<tr><td style="'+td+';white-space:nowrap">'+wday(o.d)+'<br>'+fmt(o.d)+'</td><td style="'+td+'">#'+(o.no||'')+(o.table?' · ترابيزة '+h(o.table):'')+'<br><span class="ltr" style="display:block;text-align:right">'+h((o.items||[]).map(function(i){return i.q+'× '+i.n;}).join(', '))+'</span>'+(o.paid?'<b style="color:var(--ok)">✓ اتدفع</b>':'')+'</td><td style="'+td+';text-align:left;white-space:nowrap"><b>'+money(o.total||0)+'</b></td></tr>';}).join('')+'</table>':'<p class="empty">مفيش طلبات للشركة دي في '+mName(R.m)+'</p>';
+  var tbl=R.rows.length?'<table style="width:100%;border-collapse:collapse;font-size:13px"><tr><th style="'+td+'">اليوم</th><th style="'+td+'">الطلب</th><th style="'+td+';text-align:left">المبلغ</th></tr>'+R.rows.map(function(o){return '<tr><td style="'+td+';white-space:nowrap">'+wday(o.d)+'<br>'+fmt(o.d)+'</td><td style="'+td+'">#'+(o.no||'')+(o.table?' · ترابيزة '+h(o.table):'')+'<br><span class="ltr" style="display:block;text-align:right">'+h((o.items||[]).map(function(i){return i.q+'× '+i.n;}).join(', '))+'</span>'+(o.paid?'<b style="color:var(--ok)">✓ اتدفع</b>':'')+'</td><td style="'+td+';text-align:left;white-space:nowrap"><b>'+oMoney(o)+'</b></td></tr>';}).join('')+'</table>':'<p class="empty">مفيش طلبات للشركة دي في '+mName(R.m)+'</p>';
   var canPay=['admin','rec','shiftm'].indexOf(myRole())>=0,ask=S.coAsk===S.coSel+R.m;
-  var wa=c&&c.phone&&R.rows.length?waLink(c.phone,'فيلا خوفو · حساب '+c.name+' عن شهر '+mName(R.m)+'\n'+R.rows.length+' طلب · الإجمالي '+money(R.tot)+(R.due!==R.tot?'\nالمتبقي '+money(R.due):'')+'\nشامل الخدمة 12% والضريبة 14%'):'';
+  var wa=c&&c.phone&&R.rows.length?waLink(c.phone,'فيلا خوفو · حساب '+c.name+' عن شهر '+mName(R.m)+'\n'+R.rows.length+' طلب · الإجمالي '+coAmt(R.tot,R.totE)+(R.due!==R.tot||R.dueE!==R.totE?'\nالمتبقي '+coAmt(R.due,R.dueE):'')+'\nشامل الخدمة 12% والضريبة 14%'):'';
   return top('حسابات الشركات','أكل الشركات · بيتحاسب كل شهر','rec')+'<div class="stack">'+toastHtml()+mgr+
    '<div class="picks noprint" style="grid-template-columns:1fr 1fr">'+cs.map(function(x){return '<button class="pick" style="min-height:48px'+(x.on===false?';opacity:.6':'')+'" data-a="coPick" data-k="'+h(x.id)+'" aria-pressed="'+(x.id===S.coSel)+'"><b>'+h(x.name)+'</b>'+(x.on===false?'<br><span class="sub">موقوفة</span>':'')+'</button>';}).join('')+'</div>'+
    '<div class="picks noprint" style="grid-template-columns:repeat(4,minmax(0,1fr))">'+ms.map(function(m){return '<button class="pick" data-a="coMonth" data-m="'+m+'" aria-pressed="'+(m===R.m)+'">'+MONTHS[+m.slice(5,7)-1]+'</button>';}).join('')+'</div>'+
-   (unOld.length?'<p class="noprint" style="margin:0;color:var(--warn);font-weight:700">⚠️ فيه '+unOld.length+' طلب لسه ما اتدفعش في شهور تانية · '+money(r2(unOld.reduce(function(x,o){return x+(o.total||0);},0)))+'</p>':'')+
+   (unOld.length?'<p class="noprint" style="margin:0;color:var(--warn);font-weight:700">⚠️ فيه '+unOld.length+' طلب لسه ما اتدفعش في شهور تانية · '+coAmt(r2(unOld.reduce(function(x,o){return x+(o.total||0);},0)),r2(unOld.reduce(function(x,o){return x+(o.egp||0);},0)))+'</p>':'')+
    (S.coAll==null?'<p class="hint">بيحمّل…</p>':'<div class="card printme" style="gap:8px"><div class="row"><span class="grow"><b style="font-size:18px">فيلا خوفو · حساب '+h(c?c.name:'')+'</b><br><span class="sub">شهر '+mName(R.m)+' · '+R.rows.length+' طلب · الأسعار شاملة الخدمة 12% والضريبة 14%</span></span></div>'+tbl+
-    '<div class="row" style="justify-content:space-between;border-top:2px solid var(--line);padding-top:8px"><b>إجمالي الشهر</b><b class="money" style="font-size:20px">'+money(R.tot)+'</b></div>'+(R.due!==R.tot?'<div class="row" style="justify-content:space-between"><span>اتدفع</span><b class="money">'+money(r2(R.tot-R.due))+'</b></div><div class="row" style="justify-content:space-between"><b>المتبقي</b><b class="money" style="color:var(--warn)">'+money(R.due)+'</b></div>':'')+'</div>')+
+    '<div class="row" style="justify-content:space-between;border-top:2px solid var(--line);padding-top:8px"><b>إجمالي الشهر</b><b class="money" style="font-size:20px">'+coAmt(R.tot,R.totE)+'</b></div>'+(R.due!==R.tot||R.dueE!==R.totE?'<div class="row" style="justify-content:space-between"><span>اتدفع</span><b class="money">'+coAmt(r2(R.tot-R.due),r2(R.totE-R.dueE))+'</b></div><div class="row" style="justify-content:space-between"><b>المتبقي</b><b class="money" style="color:var(--warn)">'+coAmt(R.due,R.dueE)+'</b></div>':'')+'</div>')+
    (R.rows.length?'<div class="row noprint" style="gap:8px"><button class="btn b-main grow" data-a="coPrint">🖨️ اطبع الحساب</button>'+(wa?'<a class="btn b-wa grow" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px" target="_blank" rel="noopener" href="'+h(wa)+'">'+ICON.wa+' ابعت للشركة</a>':'')+'</div>':'')+
-   (canPay&&R.due>0?(ask?'<div class="card noprint" style="gap:8px;border:2px solid var(--ok)"><b>الشركة دفعت '+money(R.due)+' عن '+mName(R.m)+'؟ اتدفع إزاي؟</b><div class="row" style="gap:8px"><button class="btn b-ok grow" data-a="coPay" data-m="cash">نقدي</button><button class="btn b-ok grow" data-a="coPay" data-m="card">كارت</button><button class="btn b-ok grow" data-a="coPay" data-m="bank">تحويل</button></div></div>':'<button class="btn b-ok noprint" style="min-height:56px" data-a="coPay">💵 الشركة دفعت حساب '+mName(R.m)+' · '+money(R.due)+'</button>'):'')+
+   (canPay&&(R.due>0||R.dueE>0)?(ask?'<div class="card noprint" style="gap:8px;border:2px solid var(--ok)"><b>الشركة دفعت '+coAmt(R.due,R.dueE)+' عن '+mName(R.m)+'؟ اتدفع إزاي؟</b><div class="row" style="gap:8px"><button class="btn b-ok grow" data-a="coPay" data-m="cash">نقدي</button><button class="btn b-ok grow" data-a="coPay" data-m="card">كارت</button><button class="btn b-ok grow" data-a="coPay" data-m="bank">تحويل</button></div></div>':'<button class="btn b-ok noprint" style="min-height:56px" data-a="coPay">💵 الشركة دفعت حساب '+mName(R.m)+' · '+coAmt(R.due,R.dueE)+'</button>'):'')+
    '</div>';
 }
 function vRecInq(){
@@ -2894,7 +2898,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.24.4';
+var APP_VER='2026.11.25.1';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
@@ -3027,9 +3031,9 @@ app.addEventListener('click',function(ev){
   if(a==='coPrint'){window.print();return;}
   if(a==='coPay'){if(['admin','rec','shiftm'].indexOf(myRole())<0)return;var CA=coRows(),un=CA.rows.filter(function(o){return !o.paid;});if(!un.length)return;
     if(S.coAsk!==S.coSel+CA.m||!b.dataset.m){S.coAsk=S.coSel+CA.m;render();return;}S.coAsk=null;
-    var pm2=b.dataset.m||'cash',amt=r2(un.reduce(function(x,o){return x+(o.total||0);},0)),bt=db.batch(),at2=Date.now();
+    var pm2=b.dataset.m||'cash',amt=r2(un.reduce(function(x,o){return x+(o.total||0);},0)),amtE=r2(un.reduce(function(x,o){return x+(o.egp||0);},0)),bt=db.batch(),at2=Date.now();
     un.forEach(function(o){bt.update(db.collection('orders').doc(o.id),{paid:true,paidAt:at2,paidBy:S.uid});o.paid=true;o.paidAt=at2;});
-    bt.commit().then(function(){db.collection('log').add({d:today(),at:at2,type:'coPaid',co:S.coSel,coName:(coById(S.coSel)||{}).name||'',month:CA.m,amount:amt,method:pm2,n:un.length,by:S.uid,reason:'تحصيل حساب شركة'}).catch(function(){});flash('اتحصّل '+money(amt)+' من '+((coById(S.coSel)||{}).name||'')+' · '+un.length+' طلب');}).catch(function(e){flash(e&&e.code==='permission-denied'?'ما اتحفظش · مش مسموحلك تحصّل':'ما اتحفظش، جرّب تاني');});render();return;}
+    bt.commit().then(function(){db.collection('log').add({d:today(),at:at2,type:'coPaid',co:S.coSel,coName:(coById(S.coSel)||{}).name||'',month:CA.m,amount:amt,amountEgp:amtE,method:pm2,n:un.length,by:S.uid,reason:'تحصيل حساب شركة'}).catch(function(){});flash('اتحصّل '+coAmt(amt,amtE)+' من '+((coById(S.coSel)||{}).name||'')+' · '+un.length+' طلب');}).catch(function(e){flash(e&&e.code==='permission-denied'?'ما اتحفظش · مش مسموحلك تحصّل':'ما اتحفظش، جرّب تاني');});render();return;}
   if(a==='ordPlace'){S.draft.place=b.dataset.p;render();return;}
   if(a==='setNote'){var gv=((document.getElementById('gnote')||{}).value||'').trim().slice(0,150),ro2=room(no);if(gv===(ro2.notes||''))return;
     upd(no,{notes:gv||null});logEv('note',no,{reason:gv?'طلب خاص: '+gv:'اتشال الطلب الخاص'});
@@ -3069,7 +3073,7 @@ app.addEventListener('click',function(ev){
     var du=((document.getElementById('odue')||{}).value||'').trim();if(/^\d{1,2}:\d{2}$/.test(du)){o.due=du;var dd0=new Date(),pp=du.split(':');dd0.setHours(+pp[0],+pp[1],0,0);if(dd0.getTime()<Date.now()-30*60000)dd0.setDate(dd0.getDate()+1);o.dueAt=dd0.getTime();}
     if(dd==='room'){var rn=S.draft.room;if(!rn||!META[rn]){S.err='اختار الغرفة';render();return;}if(room(rn).status!=='occ'){S.err='غرفة '+rn+' مش مشغولة · مينفعش يتحمّل عليها طلب';render();return;}o.room=rn;o.pay='room';o.paid=false;o.stayIn=room(rn).in||null;if(S.draft.place&&S.draft.place!=='room')o.place=S.draft.place;}
     else if(dd==='table'){var tb=((document.getElementById('otable')||{}).value||'').trim();if(!tb){S.err='اكتب رقم الترابيزة';render();return;}o.table=tb.slice(0,10);o.pay='cash';o.paid=true;}
-    else if(dd==='co'){var cc=coById(S.draft.co);if(!cc){S.err='اختار الشركة';render();return;}o.co=cc.id;o.coName=cc.name;o.pay='co';o.paid=false;var tb2=((document.getElementById('otable')||{}).value||'').trim();if(tb2)o.table=tb2.slice(0,10);}
+    else if(dd==='co'){var cc=coById(S.draft.co);if(!cc){S.err='اختار الشركة';render();return;}var eg=Math.round(+(((document.getElementById('oegp')||{}).value)||0));if(eg>0){if(eg>200000){S.err='السعر بالجنيه كبير قوي · راجعه';render();return;}o.egp=eg;o.list=o.total;o.total=0;}o.co=cc.id;o.coName=cc.name;o.pay='co';o.paid=false;var tb2=((document.getElementById('otable')||{}).value||'').trim();if(tb2)o.table=tb2.slice(0,10);}
     else{o.pay='cash';o.paid=true;}
     o.no=S.orders.filter(function(x){return isFood(x)&&x.d===o.d;}).reduce(function(m,x){return Math.max(m,x.no||0);},0)+1;
     if(S.draft.greq){o.gq=S.draft.greq;o.src='qr';}
