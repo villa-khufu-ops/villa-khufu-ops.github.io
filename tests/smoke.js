@@ -104,15 +104,15 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.evaluate(() => { __DB.orders.cx1 = { d: new Date().toISOString().slice(0,10), at: Date.now(), by: 'r1', dest: 'co', co: 'bluesky', coName: 'Blue Sky', items: [{ n: 'Koshari', p: 5, q: 2 }], total: 12.77, tx: 1, st: 'served', no: 9, pay: 'co', paid: false }; });
   await p.click('[data-a="coMonth"]', { force: true }); await p.waitForTimeout(300);
   ok(p.errs.length === 0, 'company accounts: no script errors ' + p.errs.join(' | '));
-  // 6d. Blue Bus order at an agreed price in pounds
+  // 6d. Blue Bus Meal: one fixed package at 850 EGP
   p = await page('rec.html');
   await p.click('[data-v="rest"]', { force: true }); await p.waitForTimeout(400);
-  await p.click('[data-a="cat"][data-i="4"]'); await p.waitForTimeout(200);
+  await p.click('[data-a="cat"][data-i="10"]'); await p.waitForTimeout(200);
+  t = await txt(p); ok(t.includes('Blue Bus Meal') && t.includes('850 ج'), 'package tab shows Blue Bus Meal at 850 EGP');
   await p.locator('[data-a="q"][data-d="1"]').first().click(); await p.waitForTimeout(200);
   await p.click('.cartbar'); await p.waitForTimeout(400);
   await p.click('[data-a="dest"][data-d="co"]'); await p.waitForTimeout(200);
   await p.click('[data-a="pickCo"][data-k="bluebus"]'); await p.waitForTimeout(200);
-  await p.fill('#oegp', '850');
   await p.click('[data-a="sendOrder"]'); await p.waitForTimeout(500);
   const bb = await p.evaluate(() => Object.values(__DB.orders).filter(o => o.co === 'bluebus'));
   ok(bb.length === 1 && bb[0].egp === 850 && bb[0].total === 0 && bb[0].paid === false, 'Blue Bus order saved at 850 EGP');
@@ -122,6 +122,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   t = await txt(p);
   ok(t.includes('850 ج') && t.includes('الشركة دفعت'), 'Blue Bus account shows 850 EGP');
   ok(p.errs.length === 0, 'Blue Bus: no script errors ' + p.errs.join(' | '));
+  p = await page('guest.html'); await p.waitForTimeout(800);
+  t = await txt(p); ok(!t.includes('Blue Bus Meal') && !t.includes('باقات'), 'guests do not see the staff package');
 
   // 6d. print station prints orders sent from phones that are not on the hotel Wi-Fi
   { const ps = await b.newPage(); ps.errs = []; ps.on('pageerror', e => ps.errs.push(e.message));
