@@ -211,7 +211,7 @@ textarea.inp{padding:12px 14px;min-height:84px;resize:none}
 #verTag:empty{display:none}
 #netBar{position:fixed;left:0;right:0;bottom:0;z-index:55;display:none;background:#b3261e;color:#fff;font:800 15px/1.4 system-ui,sans-serif;padding:12px 16px;text-align:center;direction:rtl}
 #verNew{position:fixed;top:0;left:0;right:0;z-index:60;display:none;background:#1d7a3a;color:#fff;border:0;font:800 16px/1.4 system-ui,sans-serif;padding:14px 16px;text-align:center;cursor:pointer;direction:rtl}
-@media print{#verTag,#verNew{display:none!important}html,body{background:#fff!important}.printme{border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important;color:#000!important}.printme *{color:#000!important;background:transparent!important;box-shadow:none!important}}
+@media print{:root{color-scheme:light!important}#verTag,#verNew{display:none!important}html,body,#app,.stack{background:#fff!important}.printme{border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important;color:#000!important}.printme *{color:#000!important;background:transparent!important;box-shadow:none!important}}
 @page receipt{size:80mm auto;margin:2mm}
 @media print{.rcpt{page:receipt;width:72mm!important;max-width:72mm!important;padding:0!important;font-size:12px}}
 .mt td,.mt th{padding:6px 4px;vertical-align:top}
@@ -2444,6 +2444,23 @@ function invCanvas(D,img){var K=2,W=576,c=document.createElement('canvas'),x=c.g
   c.width=W;c.height=y+16;x.fillStyle='#fff';x.fillRect(0,0,W,c.height);x.fillStyle='#000';
   ops.forEach(function(o){if(o[0]==='r'){x.fillRect(pad,o[1],W-2*pad,o[2]);return;}if(o[0]==='i'){x.imageSmoothingEnabled=false;x.drawImage(o[1],o[2],o[3],o[4],o[5]);return;}
     x.font=o[3];x.direction='ltr';x.textAlign=o[4];var tx=o[4]==='center'?W/2:pad;x.fillText(o[1],tx,o[2]);x.lineWidth=1.5;x.strokeText(o[1],tx,o[2]);if(o[5]){x.textAlign='right';x.fillText(o[5],W-pad,o[2]);x.strokeText(o[5],W-pad,o[2]);}});return c;}
+// company monthly statement on the 80 mm receipt printer: black text on white, nothing else
+function amtEn(u,e){var en=function(n){return 'EGP '+(Math.round((n||0)*100)/100).toLocaleString('en-US');};return e?(u?money(u)+' + ':'')+en(e):money(u||0);}
+function coCanvas(c,R,img){var K=1.25,W=576,cv=document.createElement('canvas'),x=cv.getContext('2d'),pad=14,y=8,ops=[];
+  function wrap(t,font,max){x.font=font;var out=[],cur='';String(t).split(' ').forEach(function(w){var n=cur?cur+' '+w:w;if(x.measureText(n).width>max&&cur){out.push(cur);cur=w;}else cur=n;});if(cur)out.push(cur);return out;}
+  function line(t,sz,b,al,right){var f=(b?'bold ':'')+Math.round(sz*K)+'px sans-serif';var rw=0;if(right){x.font=f;rw=x.measureText(right).width+16;}wrap(t,f,W-2*pad-rw).forEach(function(tt,i){ops.push(['t',tt,y+sz*K,f,al||'left',i===0?right:null]);y+=Math.round(sz*K)+8;});}
+  function rule(th){ops.push(['r',y+4,th||2]);y+=14;}
+  var mo=['January','February','March','April','May','June','July','August','September','October','November','December'][+R.m.slice(5,7)-1]+' '+R.m.slice(0,4);
+  if(img){ops.push(['i',img,(W-img.width)/2,y,img.width,img.height]);y+=img.height+6;}
+  line('Giza, Egypt',24,0,'center');rule(3);line('COMPANY STATEMENT',36,1,'center');line(c.name,34,1,'center');line(mo+'  ·  '+R.rows.length+(R.rows.length===1?' order':' orders'),26,0,'center');rule(3);
+  R.rows.forEach(function(o){line(fmtEn(o.d)+'  #'+(o.no||''),28,1,'left',amtEn(o.total,o.egp));if(o.table)line('Table '+o.table,26);
+    line((o.items||[]).map(function(i){return i.q+'x '+i.n;}).join(', '),26);if(o.paid)line('Paid',24);y+=6;});
+  rule(3);line('TOTAL',36,1,'left',amtEn(R.tot,R.totE));
+  if(R.due!==R.tot||R.dueE!==R.totE){line('Paid',30,0,'left',amtEn(r2(R.tot-R.due),r2(R.totE-R.dueE)));line('BALANCE DUE',36,1,'left',amtEn(R.due,R.dueE));}
+  rule(2);if(R.tot)line('Dollar prices incl. 12% service & 14% VAT.',22,0,'center');line('Thank you!',28,1,'center');
+  cv.width=W;cv.height=y+16;x.fillStyle='#fff';x.fillRect(0,0,W,cv.height);x.fillStyle='#000';
+  ops.forEach(function(o){if(o[0]==='r'){x.fillRect(pad,o[1],W-2*pad,o[2]);return;}if(o[0]==='i'){x.imageSmoothingEnabled=false;x.drawImage(o[1],o[2],o[3],o[4],o[5]);return;}
+    x.font=o[3];x.direction='ltr';x.textAlign=o[4];var tx=o[4]==='center'?W/2:pad;x.fillText(o[1],tx,o[2]);x.lineWidth=1;x.strokeText(o[1],tx,o[2]);if(o[5]){x.textAlign='right';x.fillText(o[5],W-pad,o[2]);x.strokeText(o[5],W-pad,o[2]);}});return cv;}
 function invUsbOn(){try{return !!(window.VKApp&&VKApp.version&&VKApp.version()==='laptop'&&VKApp.recUsb&&VKApp.recUsb());}catch(e){return false;}}
 function invPrint(fb){var D=S.invData;if(!D)return;
   // reception laptop program + USB receipt printer: the program sends the receipt straight to that printer (exact 80 mm, no dialog, no driver scaling)
@@ -2904,7 +2921,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.25.2';
+var APP_VER='2026.11.25.3';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
@@ -3034,7 +3051,10 @@ app.addEventListener('click',function(ev){
     db.collection('geo').doc('companies').set({list:L2,at:Date.now(),by:S.uid}).then(function(){flash('اتحفظت الشركة '+cn);}).catch(function(){flash('ما اتحفظش، جرّب تاني');});S.coEd=null;S.err='';render();return;}
   if(a==='coPick'){S.coSel=b.dataset.k;S.coAcc=null;render();return;}
   if(a==='coMonth'){S.coM=b.dataset.m;render();return;}
-  if(a==='coPrint'){window.print();return;}
+  if(a==='coPrint'){var cP=coById(S.coSel),RP=coRows();
+    if(cP&&RP.rows.length&&invUsbOn()){S.prMsg={t:'⏳ بيطبع حساب الشركة…'};flash('⏳ بيطبع حساب '+cP.name+'…');
+      logoImg(function(img){try{var id='u'+Date.now();printCb[id]=function(r){flash(r==='ok'?'✓ حساب الشركة اتطبع':'✗ الطابعة ما ردتش ('+r+') · بجرّب بطريقة تانية');if(r!=='ok')window.print();};VKApp.printRaw('usb',0,escpos(coCanvas(cP,RP,img)),id);}catch(e){window.print();}});return;}
+    window.print();return;}
   if(a==='coPay'){if(['admin','rec','shiftm'].indexOf(myRole())<0)return;var CA=coRows(),un=CA.rows.filter(function(o){return !o.paid;});if(!un.length)return;
     if(S.coAsk!==S.coSel+CA.m||!b.dataset.m){S.coAsk=S.coSel+CA.m;render();return;}S.coAsk=null;
     var pm2=b.dataset.m||'cash',amt=r2(un.reduce(function(x,o){return x+(o.total||0);},0)),amtE=r2(un.reduce(function(x,o){return x+(o.egp||0);},0)),bt=db.batch(),at2=Date.now();
