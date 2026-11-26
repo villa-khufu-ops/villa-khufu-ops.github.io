@@ -2046,7 +2046,7 @@ function vCoAcc(){
   var mName=function(m){return MONTHS[+m.slice(5,7)-1]+' '+m.slice(0,4);};
   var unAll=(S.coAll||[]).filter(function(o){return !o.paid;}),unOld=unAll.filter(function(o){return (o.d||'').slice(0,7)!==R.m;});
   var td='padding:6px;border-bottom:1px solid #ddd;text-align:right;vertical-align:top';
-  var tbl=R.rows.length?'<table style="width:100%;border-collapse:collapse;font-size:13px"><tr><th style="'+td+'">اليوم</th><th style="'+td+'">الطلب</th><th style="'+td+';text-align:left">المبلغ</th></tr>'+R.rows.map(function(o){return '<tr><td style="'+td+';white-space:nowrap">'+wday(o.d)+'<br>'+fmt(o.d)+'</td><td style="'+td+'">#'+(o.no||'')+(o.table?' · ترابيزة '+h(o.table):'')+'<br><span class="ltr" style="display:block;text-align:right">'+h((o.items||[]).map(function(i){return i.q+'× '+i.n;}).join(', '))+'</span>'+(o.paid?'<b style="color:var(--ok)">✓ اتدفع</b>':'')+'</td><td style="'+td+';text-align:left;white-space:nowrap"><b>'+oMoney(o)+'</b></td></tr>';}).join('')+'</table>':'<p class="empty">مفيش طلبات للشركة دي في '+mName(R.m)+'</p>';
+  var tbl=R.rows.length?'<table style="width:100%;border-collapse:collapse;font-size:13px"><tr><th style="'+td+'">الطلب</th><th style="'+td+';text-align:left">المبلغ</th></tr>'+R.rows.map(function(o){var hd=[o.no?'#'+o.no:'',o.table?'ترابيزة '+h(o.table):''].filter(Boolean).join(' · ');return '<tr><td style="'+td+'">'+(hd?hd+'<br>':'')+'<span style="display:block;text-align:right"><bdi>'+h((o.items||[]).map(function(i){return o.kind==='co-add'?i.n:i.q+'× '+i.n;}).join(', '))+'</bdi></span>'+(o.paid?'<b style="color:var(--ok)">✓ اتدفع</b>':'')+'</td><td style="'+td+';text-align:left;white-space:nowrap"><b>'+oMoney(o)+'</b></td></tr>';}).join('')+'</table>':'<p class="empty">مفيش طلبات للشركة دي في '+mName(R.m)+'</p>';
   var canPay=['admin','rec','shiftm'].indexOf(myRole())>=0,ask=S.coAsk===S.coSel+R.m;
   var addCard=c&&canPay&&R.m===now?'<div class="card noprint" style="gap:8px"><span class="ttl">➕ إضافة مبلغ على حساب '+h(c.name)+'</span><span class="sub">زي المشاريب الساخنة · بيتسجّل على الحساب بس ومش بيروح للمطبخ</span>'+
     '<label class="f" for="cad">البيان<input class="inp" id="cad" maxlength="80" value="مشاريب ساخنة"></label>'+
@@ -2058,7 +2058,7 @@ function vCoAcc(){
    '<div class="picks noprint" style="grid-template-columns:repeat(4,minmax(0,1fr))">'+ms.map(function(m){return '<button class="pick" data-a="coMonth" data-m="'+m+'" aria-pressed="'+(m===R.m)+'">'+MONTHS[+m.slice(5,7)-1]+'</button>';}).join('')+'</div>'+
    (unOld.length?'<p class="noprint" style="margin:0;color:var(--warn);font-weight:700">⚠️ فيه '+unOld.length+' طلب لسه ما اتدفعش في شهور تانية · '+coAmt(r2(unOld.reduce(function(x,o){return x+(o.total||0);},0)),r2(unOld.reduce(function(x,o){return x+(o.egp||0);},0)))+'</p>':'')+
    addCard+(S.coAll==null?'<p class="hint">بيحمّل…</p>':'<div class="card printme" style="gap:8px"><img src="logo-bw.png" alt="Villa Khufu" style="display:block;margin:0 auto;width:220px;max-width:70%;height:auto"><div class="row"><span class="grow"><b style="font-size:18px">فيلا خوفو · حساب '+h(c?c.name:'')+'</b><br><span class="sub">شهر '+mName(R.m)+' · '+R.rows.length+' طلب'+(R.tot?' · الأسعار بالدولار شاملة الخدمة 12% والضريبة 14%':'')+'</span></span></div>'+tbl+
-    '<div class="row" style="justify-content:space-between;border-top:2px solid var(--line);padding-top:8px"><b>إجمالي الشهر</b><b class="money" style="font-size:20px">'+coAmt(R.tot,R.totE)+'</b></div>'+(R.due!==R.tot||R.dueE!==R.totE?'<div class="row" style="justify-content:space-between"><span>اتدفع</span><b class="money">'+coAmt(r2(R.tot-R.due),r2(R.totE-R.dueE))+'</b></div><div class="row" style="justify-content:space-between"><b>المتبقي</b><b class="money" style="color:var(--warn)">'+coAmt(R.due,R.dueE)+'</b></div>':'')+'</div>')+
+    '<div class="row" style="justify-content:space-between;border-top:2px solid var(--line);padding-top:8px"><b>الإجمالي</b><b class="money" style="font-size:20px">'+coAmt(R.tot,R.totE)+'</b></div>'+(R.due!==R.tot||R.dueE!==R.totE?'<div class="row" style="justify-content:space-between"><span>اتدفع</span><b class="money">'+coAmt(r2(R.tot-R.due),r2(R.totE-R.dueE))+'</b></div><div class="row" style="justify-content:space-between"><b>المتبقي</b><b class="money" style="color:var(--warn)">'+coAmt(R.due,R.dueE)+'</b></div>':'')+'</div>')+
    (R.rows.length?'<div class="row noprint" style="gap:8px"><button class="btn b-main grow" data-a="coPrint">🖨️ اطبع الحساب</button>'+(wa?'<a class="btn b-wa grow" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px" target="_blank" rel="noopener" href="'+h(wa)+'">'+ICON.wa+' ابعت للشركة</a>':'')+'</div>':'')+
    (canPay&&(R.due>0||R.dueE>0)?(ask?'<div class="card noprint" style="gap:8px;border:2px solid var(--ok)"><b>الشركة دفعت '+coAmt(R.due,R.dueE)+' عن '+mName(R.m)+'؟ اتدفع إزاي؟</b><div class="row" style="gap:8px"><button class="btn b-ok grow" data-a="coPay" data-m="cash">نقدي</button><button class="btn b-ok grow" data-a="coPay" data-m="card">كارت</button><button class="btn b-ok grow" data-a="coPay" data-m="bank">تحويل</button></div></div>':'<button class="btn b-ok noprint" style="min-height:56px" data-a="coPay">💵 الشركة دفعت حساب '+mName(R.m)+' · '+coAmt(R.due,R.dueE)+'</button>'):'')+
    '</div>';
@@ -2457,7 +2457,7 @@ function coCanvas(c,R,img){var K=1.25,W=576,cv=document.createElement('canvas'),
   var mo=['January','February','March','April','May','June','July','August','September','October','November','December'][+R.m.slice(5,7)-1]+' '+R.m.slice(0,4);
   if(img){ops.push(['i',img,(W-img.width)/2,y,img.width,img.height]);y+=img.height+6;}
   line('Giza, Egypt',24,0,'center');rule(3);line('COMPANY STATEMENT',36,1,'center');line(c.name,34,1,'center');line(mo+'  ·  '+R.rows.length+(R.rows.length===1?' order':' orders'),26,0,'center');rule(3);
-  R.rows.forEach(function(o){line(fmtEn(o.d)+'  #'+(o.no||''),28,1,'left',amtEn(o.total,o.egp));if(o.table)line('Table '+o.table,26);
+  R.rows.forEach(function(o){if(o.kind==='co-add'){line(((o.items||[])[0]||{}).n||'',28,1,'left',amtEn(o.total,o.egp));if(o.paid)line('Paid',24);y+=6;return;}line(o.no?'#'+o.no+(o.table?'  ·  Table '+o.table:''):(o.table?'Table '+o.table:''),28,1,'left',amtEn(o.total,o.egp));
     line((o.items||[]).map(function(i){return o.kind==='co-add'?i.n:i.q+'x '+i.n;}).join(', '),26);if(o.paid)line('Paid',24);y+=6;});
   rule(3);line('TOTAL',36,1,'left',amtEn(R.tot,R.totE));
   if(R.due!==R.tot||R.dueE!==R.totE){line('Paid',30,0,'left',amtEn(r2(R.tot-R.due),r2(R.totE-R.dueE)));line('BALANCE DUE',36,1,'left',amtEn(R.due,R.dueE));}
@@ -2925,7 +2925,7 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.26.1';
+var APP_VER='2026.11.26.2';
 var APP_NAME='فاتورة على طابعة الاستقبال';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};

@@ -124,7 +124,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.fill('#caa', '710'); await p.click('[data-a="coAdd"]'); await p.waitForTimeout(600);
   const ca = await p.evaluate(() => Object.values(__DB.orders).filter(o => o.co === 'bluebus' && o.kind === 'co-add'));
   ok(ca.length === 1 && ca[0].egp === 710 && ca[0].st === 'served' && ca[0].items[0].n === 'مشاريب ساخنة', 'hot drinks 710 EGP added to Blue Bus (not to kitchen)');
-  t = await txt(p); ok(t.includes('1,560 ج'), 'Blue Bus total now 850 + 710 = 1,560 EGP');
+  t = await txt(p); ok(t.includes('1,560 ج') && t.includes('الإجمالي') && !t.includes('إجمالي الشهر'), 'Blue Bus total now 850 + 710 = 1,560 EGP');
   ok(p.errs.length === 0, 'Blue Bus: no script errors ' + p.errs.join(' | '));
   p = await page('guest.html'); await p.waitForTimeout(800);
   t = await txt(p); ok(!t.includes('Blue Bus Meal') && !t.includes('باقات'), 'guests do not see the staff package');
