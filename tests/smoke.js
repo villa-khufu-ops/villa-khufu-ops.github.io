@@ -126,8 +126,15 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(ca.length === 1 && ca[0].egp === 710 && ca[0].st === 'served' && ca[0].items[0].n === 'مشاريب ساخنة', 'hot drinks 710 EGP added to Blue Bus (not to kitchen)');
   t = await txt(p); ok(t.includes('1,560 ج') && t.includes('الإجمالي') && !t.includes('إجمالي الشهر'), 'Blue Bus total now 850 + 710 = 1,560 EGP');
   ok(p.errs.length === 0, 'Blue Bus: no script errors ' + p.errs.join(' | '));
-  p = await page('guest.html'); await p.waitForTimeout(800);
+  p = await page('guest.html', '?guest'); await p.waitForTimeout(800);
   t = await txt(p); ok(!t.includes('Blue Bus Meal') && !t.includes('باقات'), 'guests do not see the staff package');
+  await p.click('[data-a="gLang"]'); await p.waitForTimeout(200);
+  await p.click('[data-a="gLangSet"][data-l="it"]'); await p.waitForTimeout(300);
+  t = await txt(p); ok(t.includes('Italiano') && (t.includes('Continua') || t.includes('Ristorante')), 'guest page switches to Italian');
+  await p.click('[data-a="gLang"]'); await p.waitForTimeout(200);
+  await p.click('[data-a="gLangSet"][data-l="es"]'); await p.waitForTimeout(300);
+  t = await txt(p); ok(t.includes('Español') && (t.includes('Continuar') || t.includes('Restaurante')), 'guest page switches to Spanish');
+  ok(p.errs.length === 0, 'guest languages: no script errors ' + p.errs.join(' | '));
 
   // 6d. print station prints orders sent from phones that are not on the hotel Wi-Fi
   { const ps = await b.newPage(); ps.errs = []; ps.on('pageerror', e => ps.errs.push(e.message));
