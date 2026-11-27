@@ -2882,12 +2882,12 @@ function vPin(){
   '<div class="card"><span class="ttl">صوت الجرس</span><div class="picks" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+RINGS.map(function(x){return '<button class="pick" data-a="ringPick" data-t="'+x[0]+'" aria-pressed="'+(ringGet()===x[0])+'">'+x[1]+'</button>';}).join('')+'</div><span class="sub">دوس على أي صوت تسمعه · اللي تختاره هو اللي هيرن على الموبايل ده</span></div>'+
   '<div class="card"><span class="ttl">شكل الأبلكيشن</span><div class="picks" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+[['night','ليل الصحرا 🌙'],['bright','ألوان واضحة 🎨']].map(function(x){return '<button class="pick" data-a="theme" data-t="'+x[0]+'" aria-pressed="'+(themeGet()===x[0])+'">'+x[1]+'</button>';}).join('')+'</div><span class="sub">ليل الصحرا: غامق ودهبي ومريح بالليل · ألوان واضحة: كل قسم بلونه</span></div>'+
   '<p class="hint">اسم المستخدم (@'+h(m.username||'')+') مبيتغيّرش. لو محتاج اسم مستخدم تاني، المدير يعملك حساب جديد.</p>'+
-  '<p class="hint" style="text-align:center">نسخة الأبلكيشن '+APP_VER+'</p></div>';
+  '<p class="hint" style="text-align:center">نسخة الأبلكيشن '+APP_LABEL+' · '+APP_VER+'</p></div>';
 }
 function vErrs(){
   if(!S.errsLoaded){S.errsLoaded=true;db.collection('errs').orderBy('at','desc').limit(60).get().then(function(sn){var l=[];sn.forEach(function(d){l.push(Object.assign({id:d.id},d.data()));});S.errs=l;render();}).catch(function(){S.errs=[];render();});}
   var l=S.errs||[];
-  return top('أخطاء الأبلكيشن','نسخة '+APP_VER,'home')+'<div class="stack">'+toastHtml()+
+  return top('أخطاء الأبلكيشن','نسخة '+APP_LABEL,'home')+'<div class="stack">'+toastHtml()+
    (l.length?l.map(function(e){return '<div class="card" style="gap:4px"><span class="ttl ltr" style="font-size:13px;text-align:left;word-break:break-word">'+h(e.msg)+'</span><span class="sub">'+fmt(iso(new Date(e.at)))+' '+hm(e.at)+' · '+h(wname(e.uid))+' ('+h(e.role||'')+') · شاشة '+h(e.view||'')+' · نسخة '+h(e.v||'')+'</span></div>';}).join('')+'<button class="btn b-line" data-a="errsClear">امسح السجل</button>':'<p class="empty">مفيش أخطاء ✓</p>')+
    '<span class="sub">ابعت صورة الشاشة دي لـ Claude لو فيه أخطاء متكررة.</span></div>';
 }
@@ -2937,8 +2937,10 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.27.3';
-var APP_NAME='فاتورة على طابعة الاستقبال';
+var APP_VER='2026.11.27.4';
+// the version people see: goes up by 1 with every update
+var APP_LABEL='v50';
+var APP_NAME='أرقام للتحديثات';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
 var NET={off:!navigator.onLine,pendSince:0,t:null};
 function netShow(){var el=document.getElementById('netBar');if(!el)return;
@@ -2952,7 +2954,7 @@ window.addEventListener('online',function(){NET.off=false;netShow();});
 // ---------- version badge + "new version" banner: anyone can tell at a glance whether an upload reached their phone ----------
 (function(){
   var guest=/[?&]guest/.test(location.search);
-  try{var t=document.getElementById('verTag');if(t&&!guest)t.textContent='نسخة '+APP_VER+' · '+APP_NAME;}catch(e){}
+  try{var t=document.getElementById('verTag');if(t&&!guest)t.textContent=APP_LABEL+' · '+APP_NAME;}catch(e){}
   var nb=document.getElementById('verNew');
   if(nb)nb.addEventListener('click',function(){nb.textContent='بيحدّث…';try{if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration)navigator.serviceWorker.getRegistration().then(function(r){if(r)r.update();});}catch(e){}setTimeout(function(){var q=/[?&]app=1/.test(location.search)?'?app=1&u=':'?u=';location.replace(location.pathname+q+Date.now()+location.hash);},600);});
   var last=0;
@@ -2960,10 +2962,10 @@ window.addEventListener('online',function(){NET.off=false;netShow();});
   function check(){
     if(guest||Date.now()-last<60000||!window.fetch)return;last=Date.now();
     fetch('index.html?v='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():'';}).then(function(t){
-      var m=/APP_VER='([0-9.]+)'/.exec(t||''),n=/APP_NAME='([^']*)'/.exec(t||'');
+      var m=/APP_VER='([0-9.]+)'/.exec(t||''),n=/APP_NAME='([^']*)'/.exec(t||''),lb=/APP_LABEL='([^']*)'/.exec(t||'');
       // the reception laptop's print program has no one to press the button: it reloads by itself
       if(m&&verNewer(m[1],APP_VER)&&(function(){try{return window.VKApp&&VKApp.version&&VKApp.version()==='laptop';}catch(e){return false;}})()){location.replace(location.pathname+'?u='+Date.now());return;}
-      if(m&&verNewer(m[1],APP_VER)&&nb){nb.textContent='⬆️ في نسخة جديدة '+m[1]+(n?' · '+n[1]:'')+' — دوس هنا عشان تحدّث';nb.style.display='block';}
+      if(m&&verNewer(m[1],APP_VER)&&nb){nb.textContent='⬆️ في تحديث جديد '+(lb?lb[1]:m[1])+(n?' · '+n[1]:'')+' — دوس هنا عشان تحدّث';nb.style.display='block';}
     }).catch(function(){});
   }
   setTimeout(check,4000);setInterval(check,5*60000);
