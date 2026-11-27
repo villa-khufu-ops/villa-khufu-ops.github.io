@@ -831,7 +831,7 @@ function vHome(){
 }
 function tipList(groups){var o=groups.filter(function(g){return g[1].length;}).map(function(g){return '<small>'+g[0]+'</small>'+g[1].map(function(n){return '<b>'+h(n)+'</b>';}).join('');}).join('');return '<div class="tip" role="tooltip">'+(o||'مفيش')+'</div>';}
 function big(v,l,d,ic,main,n){return '<button class="big'+(main?' main':'')+(n?' pulse':'')+'" data-a="go" data-v="'+v+'"><span class="ic">'+ic+'</span><span class="grow"><span class="l">'+l+(n?' <span class="cnt">'+n+'</span>':'')+'</span><span class="d">'+d+'</span></span></button>';}
-function homeOf(){var a=areas();if(a.indexOf('hk')>=0)a=a.filter(function(x){return x!=='lnd';});if(a.length===1&&a[0]!=='rec'&&(meDoc()||{}).trd===true)return 'home';return a.length===1?(a[0]==='work'?'work':a[0]):'home';}
+function homeOf(){if(dashMine())return 'home';var a=areas();if(a.indexOf('hk')>=0)a=a.filter(function(x){return x!=='lnd';});if(a.length===1&&a[0]!=='rec'&&(meDoc()||{}).trd===true)return 'home';return a.length===1?(a[0]==='work'?'work':a[0]):'home';}
 
 // ----- reception -----
 function coHoldBanner(){
@@ -1188,7 +1188,7 @@ function drvRepLoad(){var R=S.drvR;if(!R||R.loading)return;R.loading=true;R.err=
    .catch(function(e){R.loading=false;R.err='ماقدرتش أجيب الانتقالات · '+(e&&e.code||e);render();});}
 function drvRepRows(){var R=S.drvR;return (R.all||[]).filter(function(o){var d=o.tour.date||'';return d>=R.from&&d<=R.to&&(R.drv==='*'||drvKey(o)===R.drv);}).sort(function(a,b){return trWhen(a)-trWhen(b);});}
 function vDrvRep(){
-  if(!dashMine())return top('تقرير السواقين','','home')+'<p class="empty">الصفحة دي لفوزي بس</p>';
+  if(!dashMine())return top('تقرير السواقين','','home')+'<p class="empty">الصفحة دي للي فوزي فاتحها له بس</p>';
   var t=today(),m1=t.slice(0,8)+'01',R=S.drvR=S.drvR||{from:m1,to:t,drv:'*'};if(!R.all&&!R.loading&&!R.err)setTimeout(drvRepLoad,0);
   var pm=new Date(Date.parse(m1)-86400000),pm1=iso(pm).slice(0,8)+'01';
   var q=function(f,tt,l){return '<button class="pick" data-a="drvRange" data-f="'+f+'" data-t="'+tt+'" aria-pressed="'+(R.from===f&&R.to===tt)+'">'+l+'</button>';};
@@ -1210,9 +1210,8 @@ function drvExport(){var R=S.drvR,rows=drvRepRows();var A=[['التاريخ','ا
   var name='السواقين-فيلا-خوفو-'+R.from+'-لحد-'+R.to;
   loadXLSX().then(function(X){var wb=X.utils.book_new();var s1=X.utils.aoa_to_sheet(A),s2=X.utils.aoa_to_sheet(B);s1['!views']=s2['!views']=[{RTL:true}];X.utils.book_append_sheet(wb,s1,'المشاوير');X.utils.book_append_sheet(wb,s2,'كل سواق');X.writeFile(wb,name+'.xlsx');}).catch(function(){flash('ماقدرتش أعمل ملف Excel');});}
 // the dashboard is Fawzy's alone (his app name or username is fawzy)
-// the numbers dashboard: the owner (Fawzy) and the accountant Abdooo
-var DASH_USERS=['fawzy','abdooo'];
-function dashMine(){var m=meDoc()||{},n=String(m.name||'').trim().toLowerCase(),u=String(m.username||'').trim().toLowerCase();return ['admin','acc'].indexOf(myRole())>=0&&(DASH_USERS.indexOf(n)>=0||DASH_USERS.indexOf(u)>=0);}
+// the numbers dashboard + daily report: the owner (Fawzy) and anyone he ticks in the user form (staff.dash)
+function dashMine(){var m=meDoc()||{},n=String(m.name||'').trim().toLowerCase(),u=String(m.username||'').trim().toLowerCase();return m.dash===true||(myRole()==='admin'&&(n==='fawzy'||u==='fawzy'));}
 function dashMonthLoad(){var D=S.dashM;if(D&&(D.loading||S.now-D.at<30*60000))return;var m1=Date.parse(today().slice(0,8)+'01T00:00:00');
   S.dashM={loading:true,at:S.now};
   var days=[];for(var d=today().slice(0,8)+'01';d<=today();d=dAdd(d,1))days.push(d);
@@ -1251,7 +1250,7 @@ function dashCashLoad(){var D=S.dashC,t=today();if(D&&(D.loading||(D.d===t&&S.no
     S.dashC={C:C,d:t,at:Date.now()};render();
   }).catch(function(e){S.dashC={err:String(e&&e.code||e),d:t,at:Date.now()};render();});}
 function vDash(){
-  if(!dashMine())return top('لوحة الأرقام','','home')+'<p class="empty">الصفحة دي لفوزي بس</p>';
+  if(!dashMine())return top('لوحة الأرقام','','home')+'<p class="empty">الصفحة دي للي فوزي فاتحها له بس</p>';
   setTimeout(dashMonthLoad,0);setTimeout(dashCashLoad,0);if(!S.gfb)setTimeout(gfbLoad,0);
   var t=today(),nos=allNos(),st=function(x){return nos.filter(function(n){return room(n).status===x;}).length;};
   var occ=st('occ'),clean=st('free'),dirty=st('clean'),mnt=st('maint'),tot=nos.length,pct=tot?Math.round(occ*100/tot):0;
@@ -2915,6 +2914,7 @@ function vUserForm(){
   '<label class="check" for="ua">الحساب شغال<input type="checkbox" id="ua"'+(!s||s.active!==false?' checked':'')+'></label>'+
   '<label class="f" for="udrv">لو الحساب لسواق: هو مين من السواقين؟<select class="inp" id="udrv"><option value="">— مش سواق —</option>'+DRIVERS.map(function(d){return '<option'+(s&&s.drv===d?' selected':'')+'>'+h(d)+'</option>';}).join('')+'</select></label>'+
   '<label class="check" for="utrd">🚗 بيختار السواقين للانتقالات<input type="checkbox" id="utrd"'+(s&&s.trd===true?' checked':'')+'></label>'+
+  '<label class="check" for="udash">📊 يشوف لوحة الأرقام والتقرير اليومي<input type="checkbox" id="udash"'+(s&&s.dash===true?' checked':'')+'></label>'+
   (s?'<div class="card" style="gap:8px;border:2px solid var(--warn)"><span class="ttl">نسي الرقم السري؟</span><span class="sub">اكتب رقم سري جديد (6 أرقام أو أكتر)، وابعته للموظف بنفسك.</span>'+
    '<label class="f" for="upw">الرقم السري الجديد<input class="inp ltr" id="upw" type="password" inputmode="numeric" autocomplete="new-password"></label>'+
    '<button class="btn b-main" type="button" data-a="setPw" data-u="'+h(u)+'">حفظ الرقم السري الجديد</button></div>':'')+
@@ -2937,9 +2937,9 @@ function current(){
   if(nd&&[].concat(nd).every(function(x){return a.indexOf(x)<0;}))S.view=homeOf();
   return VIEWS[S.view]||vHome;
 }
-var APP_VER='2026.11.27.5';
+var APP_VER='2026.11.27.6';
 // the version people see: goes up by 1 with every update
-var APP_LABEL='v51';
+var APP_LABEL='v52';
 function verTxt(l){return 'Version '+String(l||'').replace(/^v/i,'');}
 var APP_NAME='';
 // ---------- "not sent yet" bar: a tap made without internet is kept on the phone and sent later, so say so instead of looking done ----------
@@ -3505,12 +3505,12 @@ app.addEventListener('submit',function(ev){
     flash('بلاغ صيانة غرفة '+rno+' اتبعت للفني والاستقبال ومدير التنظيف',waFor(mntStaff().concat(hkManagers(),receptionists()),txt));return;
   }
   if(f.id==='userForm'){
-    var ex=S.p.u,name=document.getElementById('un').value.trim(),role=document.getElementById('ur').value,act=document.getElementById('ua').checked,phone=(document.getElementById('uph').value||'').trim(),trd=!!(document.getElementById('utrd')||{}).checked,udrv=(document.getElementById('udrv')||{}).value||'';
+    var ex=S.p.u,name=document.getElementById('un').value.trim(),role=document.getElementById('ur').value,act=document.getElementById('ua').checked,phone=(document.getElementById('uph').value||'').trim(),trd=!!(document.getElementById('utrd')||{}).checked,udash=!!(document.getElementById('udash')||{}).checked,udrv=(document.getElementById('udrv')||{}).value||'';
     if(role==='drv'&&!udrv){S.err='اختار السواق ده مين من القايمة';render();return;}
     if(!name){S.err='اكتب الاسم';render();return;}
     if(ex===S.uid&&(!act||role!=='admin')){S.err='مينفعش توقف حسابك أو تشيل صلاحية المدير من نفسك';render();return;}
     if(ex){
-      db.collection('staff').doc(ex).set({name:name,role:role,active:act,phone:phone,trd:trd,drv:role==='drv'?udrv:null},{merge:true}).then(function(){go('users');flash('اتحفظ '+name);}).catch(function(){S.err='ما اتحفظش، جرّب تاني';render();});
+      db.collection('staff').doc(ex).set({name:name,role:role,active:act,phone:phone,trd:trd,dash:udash,drv:role==='drv'?udrv:null},{merge:true}).then(function(){go('users');flash('اتحفظ '+name);}).catch(function(){S.err='ما اتحفظش، جرّب تاني';render();});
       return;
     }
     var uname=(document.getElementById('uu').value||'').trim().toLowerCase(),pin=document.getElementById('up').value;

@@ -21,7 +21,7 @@ function since_(coll, field, from) {
     var v = val_({ mapValue: { fields: x.document.fields || {} } }); v._id = x.document.name.split('/').pop(); return v; });
 }
 function fawzyUids_() {
-  return listAll_('staff').filter(function (s) { return s.active !== false && (s.role === 'admin' || s.role === 'acc') && (/fawzy|فوزي/i.test(String(s.name || '') + ' ' + String(s.username || '')) || String(s.username || '').trim().toLowerCase() === 'abdooo'); }).map(function (s) { return s._id; });
+  return listAll_('staff').filter(function (s) { return s.active !== false && (s.dash === true || (s.role === 'admin' && /fawzy|فوزي/i.test(String(s.name || '') + ' ' + String(s.username || '')))); }).map(function (s) { return s._id; });
 }
 function money_(n) { n = Math.round((n || 0) * 100) / 100; return '$' + n; }
 
