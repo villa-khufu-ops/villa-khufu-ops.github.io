@@ -134,6 +134,14 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.click('[data-a="gLang"]'); await p.waitForTimeout(200);
   await p.click('[data-a="gLangSet"][data-l="es"]'); await p.waitForTimeout(300);
   t = await txt(p); ok(t.includes('Español') && (t.includes('Continuar') || t.includes('Restaurante')), 'guest page switches to Spanish');
+  p = await page('guest.html', '?guest&r=104'); await p.waitForTimeout(1200);
+  if (await p.locator('[data-a="gLang"]').count()) { await p.click('[data-a="gLang"]'); await p.waitForTimeout(200); await p.click('[data-a="gLangSet"][data-l="fr"]'); await p.waitForTimeout(500); }
+  if (await p.locator('#groom').count()) { await p.fill('#groom', '104'); await p.click('[data-a="gRoom"]'); await p.waitForTimeout(600); }
+  await p.locator('[data-a="gTab"][data-t="food"]').first().click(); await p.waitForTimeout(400);
+  t = await txt(p); ok(t.includes('Petit-déjeuner') || t.includes('Colazione') || t.includes('Desayuno'), 'menu names are translated (French)');
+  await p.click('[data-a="gHome"]'); await p.waitForTimeout(300);
+  await p.locator('[data-a="gTab"][data-t="tour"]').first().click(); await p.waitForTimeout(400);
+  t = await txt(p); ok(t.includes('Pyramides de Gizeh'), 'tour names are translated (French)');
   ok(p.errs.length === 0, 'guest languages: no script errors ' + p.errs.join(' | '));
 
   // 6d. print station prints orders sent from phones that are not on the hotel Wi-Fi
