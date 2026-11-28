@@ -18,6 +18,9 @@ public class PushService extends FirebaseMessagingService {
         String title = d.get("title"), body = d.get("body"), tag = d.get("tag");
         if (title == null && m.getNotification() != null) { title = m.getNotification().getTitle(); body = m.getNotification().getBody(); }
         if (title == null) title = "فيلا خوفو";
-        Geo.hotelNotify(this, tag == null ? String.valueOf(System.currentTimeMillis()) : tag, title, body == null ? "" : body);
+        // what to open when the notification is tapped: "order:ID", "trbook:ID"…
+        String open = d.get("open");
+        if (open == null && d.get("k") != null && d.get("id") != null) open = d.get("k") + ":" + d.get("id");
+        Geo.hotelNotify(this, tag == null ? String.valueOf(System.currentTimeMillis()) : tag, title, body == null ? "" : body, open);
     }
 }

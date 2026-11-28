@@ -1,6 +1,6 @@
 // Villa Khufu service worker: makes the app installable and opens fast.
 // Network first for the page, so every upload on GitHub reaches staff right away.
-const CACHE = 'vk-shell-v8';
+const CACHE = 'vk-shell-v9';
 const SHELL = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'logo.jpg'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).catch(() => {})); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))); self.clients.claim(); });
@@ -22,14 +22,16 @@ self.addEventListener('push', e => {
   const tell = self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => list.forEach(c => { try { c.postMessage({ vkNote: { title: d.title || 'Villa Khufu', body: d.body || '' } }); } catch (x) {} })).catch(() => {});
   e.waitUntil(Promise.all([tell, self.registration.showNotification(d.title || 'Villa Khufu', {
     body: d.body || '', icon: 'icon-192.png', badge: 'icon-192.png', tag: d.tag || undefined,
-    requireInteraction: true, vibrate: [300, 150, 300, 150, 300], data: { url: d.url || './' }
+    requireInteraction: true, vibrate: [300, 150, 300, 150, 300], data: { url: d.url || './', open: d.open || (d.k && d.id ? d.k + ':' + d.id : '') }
   })]));
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();
-  const url = (e.notification.data && e.notification.data.url) || './';
+  const nd = e.notification.data || {}, open = nd.open || '';
+  // open the order / transfer itself: the open app goes to it, or the app starts on it
+  const url = open ? './?open=' + encodeURIComponent(open) : (nd.url || './');
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-    for (const c of list) { if ('focus' in c) return c.focus(); }
+    for (const c of list) { if ('focus' in c) { if (open) { try { c.postMessage({ vkOpen: open }); } catch (x) {} } return c.focus(); } }
     return self.clients.openWindow(url);
   }));
 });

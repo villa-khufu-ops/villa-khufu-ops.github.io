@@ -104,7 +104,13 @@ public class WebActivity extends Activity {
         checkApk();
     }
 
-    void home() { failed = false; w.loadUrl("https://" + HOST + "/?app=1&u=" + System.currentTimeMillis()); }
+    void home() {
+        failed = false;
+        String o = getIntent() == null ? null : getIntent().getStringExtra("open");
+        String q = "";
+        if (o != null) { try { q = "&open=" + java.net.URLEncoder.encode(o, "UTF-8"); } catch (Exception ignored) { } getIntent().removeExtra("open"); }
+        w.loadUrl("https://" + HOST + "/?app=1&u=" + System.currentTimeMillis() + q);
+    }
     void retry() {
         if (!failed || isFinishing()) return;
         android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
@@ -117,6 +123,9 @@ public class WebActivity extends Activity {
     protected void onNewIntent(Intent i) {
         super.onNewIntent(i);
         setIntent(i);
+        // a tapped notification: go straight to that order / transfer
+        String o = i.getStringExtra("open");
+        if (o != null && w != null) { i.removeExtra("open"); w.evaluateJavascript("window.vkOpen&&window.vkOpen(" + org.json.JSONObject.quote(o) + ")", null); }
     }
 
     /** New version of the Android app on the website: offer to download it. */

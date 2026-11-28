@@ -123,14 +123,15 @@ public final class Geo {
     }
 
     /** Hotel notifications from the server (orders, maintenance, checkout, messages…). */
-    static void hotelNotify(Context c, String tag, String title, String body) {
+    static void hotelNotify(Context c, String tag, String title, String body, String openWhat) {
         NotificationChannel ch = new NotificationChannel("hotel", "شغل الفندق", NotificationManager.IMPORTANCE_HIGH);
         ch.setDescription("طلبات · صيانة · خروج غرف · رسايل");
         ch.enableVibration(true);
         ch.setVibrationPattern(new long[]{0, 300, 150, 300, 150, 300});
         c.getSystemService(NotificationManager.class).createNotificationChannel(ch);
-        Intent open = new Intent(c, WebActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        PendingIntent pi = PendingIntent.getActivity(c, 100, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        Intent open = new Intent(c, WebActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        if (openWhat != null) open.putExtra("open", openWhat);
+        PendingIntent pi = PendingIntent.getActivity(c, 100 + (tag.hashCode() & 0xffff), open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification n = new Notification.Builder(c, "hotel")
                 .setSmallIcon(android.R.drawable.ic_popup_reminder)
                 .setContentTitle(title).setContentText(body)

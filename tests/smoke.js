@@ -143,6 +143,10 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.locator('[data-a="gTab"][data-t="tour"]').first().click(); await p.waitForTimeout(400);
   t = await txt(p); ok(t.includes('Pyramides de Gizeh'), 'tour names are translated (French)');
   ok(p.errs.length === 0, 'guest languages: no script errors ' + p.errs.join(' | '));
+  p = await page('admin.html', '?open=trbook%3Aabc'); await p.waitForTimeout(800);
+  t = await txt(p); ok(/الانتقالات|السواق/.test(t), 'notification link opens the transfers screen');
+  await p.evaluate(() => window.vkOpen('order:xyz')); await p.waitForTimeout(500);
+  t = await txt(p); ok(/الطلبات|طلب/.test(t) && p.errs.length === 0, 'notification tap opens the restaurant orders ' + p.errs.join(' | '));
 
   // 6d. print station prints orders sent from phones that are not on the hotel Wi-Fi
   { const ps = await b.newPage(); ps.errs = []; ps.on('pageerror', e => ps.errs.push(e.message));
